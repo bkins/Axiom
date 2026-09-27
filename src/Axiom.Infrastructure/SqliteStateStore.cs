@@ -1,0 +1,298 @@
+using Axiom.Core;
+using Microsoft.Data.Sqlite;
+
+namespace Axiom.Infrastructure;
+
+public sealed class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore
+{
+    public const int CurrentSchemaVersion = 2;
+    private readonly IAxiomLog _log = log ?? new NullAxiomLog();
+    private string ConnectionString => new SqliteConnectionStringBuilder
+    {
+        DataSource = paths.DatabasePath,
+        Mode = SqliteOpenMode.ReadWriteCreate,
+        Cache = SqliteCacheMode.Shared,
+        Pooling = false
+    }.ToString();
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        paths.EnsureCreated();
+        BackupExistingDatabase();
+        await using var connection = await OpenAsync(cancellationToken);
+        await ExecuteAsync(connection, """
+            CREATE TABLE IF NOT EXISTS SchemaInfo (Version INTEGER NOT NULL);
+            INSERT INTO SchemaInfo(Version) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM SchemaInfo);
+            CREATE TABLE IF NOT EXISTS AppSessions (
+                SessionId TEXT PRIMARY KEY,
+                StartedUtc TEXT NOT NULL,
+                EndedUtc TEXT NULL,
+                CleanExit INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS RecoveryDrafts (
+                DraftKey TEXT PRIMARY KEY,
+                FilePath TEXT NULL,
+                TextContent TEXT NOT NULL,
+                UpdatedUtc TEXT NOT NULL,
+                SavedFileWriteUtc TEXT NULL,
+                IsNewDocument INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS DocumentMetadata (
+                DocumentId TEXT NOT NULL,
+                FilePath TEXT NOT NULL COLLATE NOCASE,
+                LastSeenUtc TEXT NOT NULL,
+                PRIMARY KEY (DocumentId, FilePath)
+            );
+            CREATE INDEX IF NOT EXISTS IX_DocumentMetadata_Path ON DocumentMetadata(FilePath);
+            """, cancellationToken);
+        var schemaVersion = await GetSchemaVersionAsync(connection, cancellationToken);
+        if (schemaVersion > CurrentSchemaVersion)
+            throw new InvalidOperationException($"The Axiom state database schema {schemaVersion} is newer than supported schema {CurrentSchemaVersion}.");
+        if (schemaVersion < 2)
+        {
+            await ExecuteAsync(connection, """
+                CREATE TABLE IF NOT EXISTS Workspaces (
+                    WorkspaceId TEXT PRIMARY KEY,
+                    RootPath TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                    DisplayName TEXT NOT NULL,
+                    CreatedUtc TEXT NOT NULL,
+                    LastOpenedUtc TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS ActiveWorkspace (
+                    SingletonId INTEGER PRIMARY KEY CHECK (SingletonId = 1),
+                    WorkspaceId TEXT NOT NULL,
+                    FOREIGN KEY (WorkspaceId) REFERENCES Workspaces(WorkspaceId) ON DELETE CASCADE
+                );
+                UPDATE SchemaInfo SET Version = 2;
+                """, cancellationToken);
+        }
+        _log.Information("database.initialized", paths.DatabasePath);
+    }
+
+    public async Task<WorkspaceRecord> OpenWorkspaceAsync(
+        string normalizedRootPath,
+        string displayName,
+        DateTimeOffset openedUtc,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(normalizedRootPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
+        var rootPath = WorkspaceService.NormalizeRootPath(normalizedRootPath);
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        var workspaceId = Guid.NewGuid();
+        await using (var upsert = connection.CreateCommand())
+        {
+            upsert.Transaction = transaction;
+            upsert.CommandText = """
+                INSERT INTO Workspaces(WorkspaceId, RootPath, DisplayName, CreatedUtc, LastOpenedUtc)
+                VALUES($id, $root, $name, $created, $opened)
+                ON CONFLICT(RootPath) DO UPDATE SET
+                    RootPath=excluded.RootPath,
+                    DisplayName=excluded.DisplayName,
+                    LastOpenedUtc=excluded.LastOpenedUtc;
+                """;
+            upsert.Parameters.AddWithValue("$id", workspaceId.ToString("D"));
+            upsert.Parameters.AddWithValue("$root", rootPath);
+            upsert.Parameters.AddWithValue("$name", displayName);
+            upsert.Parameters.AddWithValue("$created", openedUtc.ToString("O"));
+            upsert.Parameters.AddWithValue("$opened", openedUtc.ToString("O"));
+            await upsert.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        WorkspaceRecord workspace;
+        await using (var select = connection.CreateCommand())
+        {
+            select.Transaction = transaction;
+            select.CommandText = """
+                SELECT WorkspaceId, RootPath, DisplayName, CreatedUtc, LastOpenedUtc
+                FROM Workspaces
+                WHERE RootPath = $root COLLATE NOCASE;
+                """;
+            select.Parameters.AddWithValue("$root", rootPath);
+            await using var reader = await select.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken))
+                throw new InvalidOperationException("The workspace record could not be read after it was saved.");
+            workspace = ReadWorkspace(reader);
+        }
+
+        await using (var activate = connection.CreateCommand())
+        {
+            activate.Transaction = transaction;
+            activate.CommandText = """
+                INSERT INTO ActiveWorkspace(SingletonId, WorkspaceId) VALUES(1, $id)
+                ON CONFLICT(SingletonId) DO UPDATE SET WorkspaceId=excluded.WorkspaceId;
+                """;
+            activate.Parameters.AddWithValue("$id", workspace.WorkspaceId.ToString("D"));
+            await activate.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        _log.Information("workspace.opened", workspace.RootPath);
+        return workspace;
+    }
+
+    public async Task<WorkspaceRecord?> GetActiveWorkspaceAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT w.WorkspaceId, w.RootPath, w.DisplayName, w.CreatedUtc, w.LastOpenedUtc
+            FROM ActiveWorkspace a
+            INNER JOIN Workspaces w ON w.WorkspaceId = a.WorkspaceId
+            WHERE a.SingletonId = 1;
+            """;
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken) ? ReadWorkspace(reader) : null;
+    }
+
+    public async Task<string> BeginSessionAsync(CancellationToken cancellationToken = default)
+    {
+        var id = Guid.NewGuid().ToString("N");
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO AppSessions(SessionId, StartedUtc, CleanExit) VALUES ($id, $started, 0);";
+        command.Parameters.AddWithValue("$id", id);
+        command.Parameters.AddWithValue("$started", DateTimeOffset.UtcNow.ToString("O"));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+        return id;
+    }
+
+    public async Task EndSessionAsync(string sessionId, bool cleanExit, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE AppSessions SET EndedUtc=$ended, CleanExit=$clean WHERE SessionId=$id;";
+        command.Parameters.AddWithValue("$ended", DateTimeOffset.UtcNow.ToString("O"));
+        command.Parameters.AddWithValue("$clean", cleanExit ? 1 : 0);
+        command.Parameters.AddWithValue("$id", sessionId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task SaveDraftAsync(RecoveryDraft draft, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO RecoveryDrafts(DraftKey, FilePath, TextContent, UpdatedUtc, SavedFileWriteUtc, IsNewDocument)
+            VALUES($key, $path, $text, $updated, $saved, $isNew)
+            ON CONFLICT(DraftKey) DO UPDATE SET
+                FilePath=excluded.FilePath, TextContent=excluded.TextContent,
+                UpdatedUtc=excluded.UpdatedUtc, SavedFileWriteUtc=excluded.SavedFileWriteUtc,
+                IsNewDocument=excluded.IsNewDocument;
+            """;
+        command.Parameters.AddWithValue("$key", draft.DraftKey);
+        command.Parameters.AddWithValue("$path", (object?)draft.FilePath ?? DBNull.Value);
+        command.Parameters.AddWithValue("$text", draft.Text);
+        command.Parameters.AddWithValue("$updated", draft.UpdatedUtc.ToString("O"));
+        command.Parameters.AddWithValue("$saved", draft.SavedFileWriteUtc?.ToString("O") is { } saved ? saved : DBNull.Value);
+        command.Parameters.AddWithValue("$isNew", draft.IsNewDocument ? 1 : 0);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+        _log.Information("recovery.saved", draft.FilePath);
+    }
+
+    public async Task DeleteDraftAsync(string draftKey, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM RecoveryDrafts WHERE DraftKey=$key;";
+        command.Parameters.AddWithValue("$key", draftKey);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<RecoveryDraft>> GetRecoverableDraftsAsync(CancellationToken cancellationToken = default)
+    {
+        var drafts = new List<RecoveryDraft>();
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT DraftKey, FilePath, TextContent, UpdatedUtc, SavedFileWriteUtc, IsNewDocument FROM RecoveryDrafts ORDER BY UpdatedUtc DESC;";
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            drafts.Add(new RecoveryDraft(
+                reader.GetString(0),
+                reader.IsDBNull(1) ? null : reader.GetString(1),
+                reader.GetString(2),
+                DateTimeOffset.Parse(reader.GetString(3)),
+                reader.IsDBNull(4) ? null : DateTimeOffset.Parse(reader.GetString(4)),
+                reader.GetInt64(5) != 0));
+        }
+        return drafts;
+    }
+
+    public async Task RecordIdentityAsync(Guid documentId, string path, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO DocumentMetadata(DocumentId, FilePath, LastSeenUtc) VALUES($id, $path, $seen)
+            ON CONFLICT(DocumentId, FilePath) DO UPDATE SET LastSeenUtc=excluded.LastSeenUtc;
+            """;
+        command.Parameters.AddWithValue("$id", documentId.ToString("D"));
+        command.Parameters.AddWithValue("$path", Path.GetFullPath(path));
+        command.Parameters.AddWithValue("$seen", DateTimeOffset.UtcNow.ToString("O"));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task RemovePathAsync(string path, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM DocumentMetadata WHERE FilePath=$path;";
+        command.Parameters.AddWithValue("$path", Path.GetFullPath(path));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DocumentIdentityOccurrence>> GetIdentitiesAsync(CancellationToken cancellationToken = default)
+    {
+        var result = new List<DocumentIdentityOccurrence>();
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT DocumentId, FilePath FROM DocumentMetadata ORDER BY DocumentId, FilePath;";
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            result.Add(new DocumentIdentityOccurrence(Guid.Parse(reader.GetString(0)), reader.GetString(1)));
+        return result;
+    }
+
+    private async Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken)
+    {
+        var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await ExecuteAsync(connection, "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;", cancellationToken);
+        return connection;
+    }
+
+    private static async Task ExecuteAsync(SqliteConnection connection, string sql, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task<int> GetSchemaVersionAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT Version FROM SchemaInfo LIMIT 1;";
+        return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
+    }
+
+    private static WorkspaceRecord ReadWorkspace(SqliteDataReader reader) => new(
+        Guid.Parse(reader.GetString(0)),
+        reader.GetString(1),
+        reader.GetString(2),
+        DateTimeOffset.Parse(reader.GetString(3)),
+        DateTimeOffset.Parse(reader.GetString(4)));
+
+    private void BackupExistingDatabase()
+    {
+        if (!File.Exists(paths.DatabasePath)) return;
+        Directory.CreateDirectory(paths.BackupDirectory);
+        var backup = Path.Combine(paths.BackupDirectory, $"axiom-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}.db");
+        File.Copy(paths.DatabasePath, backup, false);
+        foreach (var stale in Directory.EnumerateFiles(paths.BackupDirectory, "axiom-*.db")
+                     .OrderByDescending(File.GetLastWriteTimeUtc).Skip(10))
+            File.Delete(stale);
+    }
+}

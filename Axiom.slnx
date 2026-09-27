@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Axiom.App/Axiom.App.csproj" />
+    <Project Path="src/Axiom.Core/Axiom.Core.csproj" />
+    <Project Path="src/Axiom.Infrastructure/Axiom.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Axiom.Core.Tests/Axiom.Core.Tests.csproj" />
+    <Project Path="tests/Axiom.Infrastructure.Tests/Axiom.Infrastructure.Tests.csproj" />
+  <Project Path="tests/Axiom.App.Tests/Axiom.App.Tests.csproj" />
+  </Folder>
+</Solution>
+

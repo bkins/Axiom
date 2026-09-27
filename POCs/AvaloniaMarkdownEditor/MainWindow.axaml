@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:avaloniaEdit="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
+        x:Class="AvaloniaMarkdownEditor.MainWindow"
+        x:CompileBindings="False"
+        Title="Axiom Markdown Spike — Avalonia"
+        Width="1200" Height="760" MinWidth="760" MinHeight="480">
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Padding="8" Background="#FFF2F2F2" BorderBrush="#FFD0D0D0" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Padding="14,5" Click="Open_OnClick">Open…</Button>
+          <Button Padding="14,5" Click="Save_OnClick">Save</Button>
+        </StackPanel>
+        <TextBlock x:Name="StatusText" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </Grid>
+    </Border>
+
+    <Grid ColumnDefinitions="*,5,*">
+      <avaloniaEdit:TextEditor x:Name="Editor"
+                               FontFamily="Cascadia Mono, Consolas"
+                               FontSize="15"
+                               ShowLineNumbers="True"
+                               WordWrap="True"
+                               HorizontalScrollBarVisibility="Auto"
+                               VerticalScrollBarVisibility="Auto" />
+      <GridSplitter Grid.Column="1" Width="5" ResizeDirection="Columns" Background="#FFD0D0D0" />
+      <NativeWebView x:Name="Preview" Grid.Column="2" />
+    </Grid>
+  </DockPanel>
+</Window>
