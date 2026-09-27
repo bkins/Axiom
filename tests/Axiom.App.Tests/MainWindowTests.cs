@@ -29,6 +29,11 @@ public sealed class MainWindowTests
 
             Assert.False(string.IsNullOrWhiteSpace(window.BuildIdentityForTesting.ProductVersion));
             Assert.Contains(window.BuildIdentityForTesting.ProductVersion, window.BuildIdentityForTesting.DisplayText);
+            Assert.Contains(Path.GetFileName(root), window.WorkspaceContextForTesting);
+            Assert.Equal(root, window.PathContextForTesting);
+            Assert.Contains("Ordinary Markdown", window.DocumentStateForTesting);
+            Assert.Contains("New", window.DocumentStateForTesting);
+            Assert.False(string.IsNullOrWhiteSpace(window.RecoveryContextForTesting));
             Assert.Equal(["alpha.md", "bravo.md", Path.Combine("nested", "charlie.markdown")], window.FolderItemsForTesting.OrderBy(item => item));
             var nested = Assert.Single(window.WorkspaceTreeForTesting, node => node.Name == "nested");
             Assert.False(nested.IsDocument);
@@ -36,6 +41,11 @@ public sealed class MainWindowTests
             await window.OpenDocumentAsync(alpha);
             Assert.Equal("# Café ☕\n\nAlpha", window.EditorTextForTesting);
             Assert.True(window.IsEnrollAvailableForTesting);
+            Assert.Contains("Saved", window.DocumentStateForTesting);
+            Assert.Equal(alpha, window.PathContextForTesting);
+            window.SetEditorTextForTesting(window.EditorTextForTesting + "\nEdit");
+            Assert.Contains("Unsaved", window.DocumentStateForTesting);
+            window.SetEditorTextForTesting("# Café ☕\n\nAlpha");
 
             await window.OpenDocumentAsync(bravo);
             Assert.Equal("# Bravo\n\nSecond document", window.EditorTextForTesting);

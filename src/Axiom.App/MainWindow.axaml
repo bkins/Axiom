@@ -26,10 +26,12 @@
     </Border>
 
     <Border DockPanel.Dock="Bottom" Padding="8,5" Background="#111827" BorderBrush="#374151" BorderThickness="0,1,0,0">
-      <Grid ColumnDefinitions="*,Auto,Auto">
-        <TextBlock x:Name="PathText" Text="No folder selected" TextTrimming="CharacterEllipsis" />
-        <TextBlock x:Name="RecoveryText" Grid.Column="1" Margin="16,0,0,0" Text="Recovery ready" />
-        <TextBlock x:Name="BuildIdentityText" Grid.Column="2" Margin="16,0,0,0" AutomationProperties.Name="Application version" />
+      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto">
+        <TextBlock x:Name="PathText" Grid.ColumnSpan="4" Text="No folder selected" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Current document path" />
+        <TextBlock x:Name="WorkspaceContextText" Grid.Row="1" Margin="0,3,16,0" Text="No workspace" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Active workspace" />
+        <TextBlock x:Name="DocumentStateText" Grid.Row="1" Grid.Column="1" Margin="0,3,16,0" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Document state" />
+        <TextBlock x:Name="RecoveryText" Grid.Row="1" Grid.Column="2" Margin="0,3,16,0" Text="Recovery ready" AutomationProperties.Name="Recovery state" />
+        <TextBlock x:Name="BuildIdentityText" Grid.Row="1" Grid.Column="3" Margin="0,3,0,0" AutomationProperties.Name="Application version" />
       </Grid>
     </Border>
 

@@ -140,8 +140,8 @@ public partial class MainWindow : Window
         if (discovery.SkippedDirectories.Count != 0)
             warnings.Add($"Skipped {discovery.SkippedDirectories.Count} inaccessible or linked director{(discovery.SkippedDirectories.Count == 1 ? "y" : "ies")}.");
         DuplicateWarning.Text = string.Join(Environment.NewLine, warnings);
-        PathText.Text = _folder;
         StatusText.Text = $"Opened workspace {workspace.DisplayName} with {discovery.Files.Count} Markdown file{(discovery.Files.Count == 1 ? string.Empty : "s")}.";
+        UpdateDurableStatus();
     }
 
     private async void FileTree_OnDoubleTapped(object? sender, TappedEventArgs e)
@@ -522,9 +522,18 @@ public partial class MainWindow : Window
         var name = _session.Path is null ? "Untitled" : Path.GetFileName(_session.Path);
         Title = $"{name}{(_session.IsDirty ? " *" : string.Empty)} — Axiom";
         StatusText.Text = status;
-        PathText.Text = _session.Path ?? _folder ?? "Unsaved document";
         EnrollButton.IsVisible = _session.DocumentId is null;
         UpdatePinButton();
+        UpdateDurableStatus();
+    }
+
+    private void UpdateDurableStatus()
+    {
+        WorkspaceContextText.Text = _activeWorkspace is null ? "No workspace" : $"Workspace: {_activeWorkspace.DisplayName}";
+        PathText.Text = _session.Path ?? _folder ?? "Unsaved document";
+        var identity = _session.DocumentId is null ? "Ordinary Markdown" : "Axiom document";
+        var saveState = _session.Conflict is not null ? "Conflict" : _session.IsDirty ? "Unsaved" : _session.IsNew ? "New" : "Saved";
+        DocumentStateText.Text = $"{identity} | {saveState}";
     }
 
     private void UpdatePinButton()
@@ -607,6 +616,10 @@ public partial class MainWindow : Window
     internal IReadOnlyList<WorkspacePin> WorkspacePinsForTesting => _workspacePins;
     internal Task ToggleCurrentPinForTestingAsync() => ToggleCurrentPinAsync();
     internal string PinButtonTextForTesting => PinButton.Content?.ToString() ?? string.Empty;
+    internal string WorkspaceContextForTesting => WorkspaceContextText.Text ?? string.Empty;
+    internal string DocumentStateForTesting => DocumentStateText.Text ?? string.Empty;
+    internal string PathContextForTesting => PathText.Text ?? string.Empty;
+    internal string RecoveryContextForTesting => RecoveryText.Text ?? string.Empty;
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {
