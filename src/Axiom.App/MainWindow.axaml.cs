@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private readonly WorkspaceSearchService _workspaceSearch;
     private readonly DocumentOutlineService _outline = new();
     private readonly MarkdownEditService _markdownEditing = new();
+    private readonly MarkdownListEditService _markdownListEditing = new();
     private readonly ApplicationBuildIdentity _buildIdentity = ApplicationBuildIdentity.FromAssembly(typeof(MainWindow).Assembly);
     private readonly IDocumentFileStore _files;
     private readonly IRecoveryStore _recovery;
@@ -403,6 +404,41 @@ public partial class MainWindow : Window
         return kind is not null && ApplyMarkdownEdit(kind.Value);
     }
 
+    private bool TryHandleMarkdownListKey(Key key, KeyModifiers modifiers, bool editorHasFocus)
+    {
+        if (!editorHasFocus || modifiers.HasFlag(KeyModifiers.Control) || modifiers.HasFlag(KeyModifiers.Alt)) return false;
+        var kind = key switch
+        {
+            Key.Enter when modifiers == KeyModifiers.None => MarkdownListEditKind.Continue,
+            Key.Tab when modifiers == KeyModifiers.None => MarkdownListEditKind.Indent,
+            Key.Tab when modifiers == KeyModifiers.Shift => MarkdownListEditKind.Outdent,
+            _ => (MarkdownListEditKind?)null
+        };
+        return kind is not null && ApplyMarkdownListEdit(kind.Value);
+    }
+
+    private bool ApplyMarkdownListEdit(MarkdownListEditKind kind)
+    {
+        var result = _markdownListEditing.Apply(Editor.Text, Editor.SelectionStart, Editor.SelectionLength, kind);
+        if (!result.Changed) return false;
+
+        Editor.Document.UndoStack.StartUndoGroup();
+        try
+        {
+            Editor.Document.Replace(0, Editor.Document.TextLength, result.Text);
+        }
+        finally
+        {
+            Editor.Document.UndoStack.EndUndoGroup();
+        }
+        Editor.Select(result.SelectionStart, result.SelectionLength);
+        Editor.TextArea.Caret.BringCaretToView();
+        UpdateChrome(kind == MarkdownListEditKind.Continue
+            ? "Continued Markdown list."
+            : $"{(kind == MarkdownListEditKind.Indent ? "Indented" : "Outdented")} Markdown list.");
+        return true;
+    }
+
     private static string GetMarkdownEditLabel(MarkdownEditKind kind) => kind switch
     {
         MarkdownEditKind.Heading1 => "heading 1",
@@ -636,6 +672,11 @@ public partial class MainWindow : Window
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
+        if (TryHandleMarkdownListKey(e.Key, e.KeyModifiers, Editor.IsKeyboardFocusWithin))
+        {
+            e.Handled = true;
+            return;
+        }
         if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
         if (TryHandleMarkdownShortcut(e.Key, e.KeyModifiers, Editor.IsKeyboardFocusWithin))
         {
@@ -699,6 +740,8 @@ public partial class MainWindow : Window
     internal bool ApplyMarkdownEditForTesting(MarkdownEditKind kind) => ApplyMarkdownEdit(kind);
     internal bool HandleMarkdownShortcutForTesting(Key key, KeyModifiers modifiers, bool editorHasFocus) =>
         TryHandleMarkdownShortcut(key, modifiers, editorHasFocus);
+    internal bool HandleMarkdownListKeyForTesting(Key key, KeyModifiers modifiers, bool editorHasFocus) =>
+        TryHandleMarkdownListKey(key, modifiers, editorHasFocus);
     internal bool EditorCanUndoForTesting => Editor.CanUndo;
     internal void UndoEditorForTesting() => Editor.Undo();
 

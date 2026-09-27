@@ -271,6 +271,42 @@ public sealed class MainWindowTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task MarkdownListKeysAreScopedUndoableAndParticipateInRecovery()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "list.md");
+            await File.WriteAllTextAsync(path, "paragraph\n- item");
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+            await window.OpenDocumentAsync(path);
+            window.SetEditorSelectionForTesting(4, 0);
+
+            Assert.False(window.HandleMarkdownListKeyForTesting(Key.Tab, KeyModifiers.None, editorHasFocus: true));
+            window.SetEditorSelectionForTesting(16, 0);
+
+            Assert.False(window.HandleMarkdownListKeyForTesting(Key.Enter, KeyModifiers.None, editorHasFocus: false));
+            Assert.True(window.HandleMarkdownListKeyForTesting(Key.Enter, KeyModifiers.None, editorHasFocus: true));
+            Assert.Equal("paragraph\n- item\n- ", window.EditorTextForTesting);
+            Assert.Contains("Unsaved", window.DocumentStateForTesting);
+            await window.ProtectIfNeededForTestingAsync();
+            Assert.StartsWith("Protected ", window.RecoveryContextForTesting);
+
+            window.UndoEditorForTesting();
+
+            Assert.Equal("paragraph\n- item", window.EditorTextForTesting);
+            Assert.Contains("Saved", window.DocumentStateForTesting);
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static MainWindow CreateWindow(string root)
     {
         var paths = new AppDataPaths(Path.Combine(root, "state"));
