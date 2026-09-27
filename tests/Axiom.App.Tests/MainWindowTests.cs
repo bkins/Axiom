@@ -25,6 +25,8 @@ public sealed class MainWindowTests
             await File.WriteAllTextAsync(Path.Combine(root, "ignore.txt"), "not markdown");
 
             var window = CreateWindow(root);
+            Assert.Equal(1280, window.Width);
+            Assert.Equal(800, window.Height);
             await window.LoadFolderAsync(root);
 
             Assert.False(string.IsNullOrWhiteSpace(window.BuildIdentityForTesting.ProductVersion));
