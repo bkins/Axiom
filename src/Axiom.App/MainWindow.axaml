@@ -38,6 +38,9 @@
               </MenuFlyout>
             </Button.Flyout>
           </Button>
+          <Button x:Name="InsertImageButton" AutomationProperties.Name="Insert workspace image reference"
+                  ToolTip.Tip="Save a document inside the active workspace before inserting an image"
+                  Click="InsertImage_OnClick">Image…</Button>
           <Separator Width="1" Margin="4,0" />
           <Button x:Name="EnrollButton" AutomationProperties.Name="Make Axiom Document" Click="Enroll_OnClick">Make Axiom Document</Button>
           <Button x:Name="PinButton" AutomationProperties.Name="Pin current document" Click="Pin_OnClick">Pin</Button>

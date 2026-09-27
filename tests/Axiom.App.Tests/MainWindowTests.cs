@@ -327,6 +327,43 @@ public sealed class MainWindowTests
         Assert.DoesNotContain("0,375", script);
     }
 
+    [AvaloniaFact]
+    public async Task ImageReferenceIsOneUndoableUnsavedEditAndParticipatesInRecovery()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var document = Path.Combine(root, "document.md");
+            var imageFolder = Path.Combine(root, "images");
+            var image = Path.Combine(imageFolder, "system-map.png");
+            Directory.CreateDirectory(imageFolder);
+            await File.WriteAllTextAsync(document, "Diagram: ");
+            await File.WriteAllBytesAsync(image, [1, 2, 3]);
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+            await window.OpenDocumentAsync(document);
+            window.SetEditorSelectionForTesting(9, 0);
+
+            Assert.True(window.CanInsertImageReferenceForTesting);
+            Assert.True(window.InsertImageReferenceForTesting(image));
+            Assert.Equal("Diagram: ![system map](images/system-map.png)", window.EditorTextForTesting);
+            Assert.Contains("Unsaved", window.DocumentStateForTesting);
+            await window.ProtectIfNeededForTestingAsync();
+            Assert.StartsWith("Protected ", window.RecoveryContextForTesting);
+
+            window.UndoEditorForTesting();
+
+            Assert.Equal("Diagram: ", window.EditorTextForTesting);
+            Assert.Contains("Saved", window.DocumentStateForTesting);
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static MainWindow CreateWindow(string root)
     {
         var paths = new AppDataPaths(Path.Combine(root, "state"));

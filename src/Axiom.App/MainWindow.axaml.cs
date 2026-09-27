@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly DocumentOutlineService _outline = new();
     private readonly MarkdownEditService _markdownEditing = new();
     private readonly MarkdownListEditService _markdownListEditing = new();
+    private readonly MarkdownImageReferenceService _markdownImages = new();
     private readonly ApplicationBuildIdentity _buildIdentity = ApplicationBuildIdentity.FromAssembly(typeof(MainWindow).Assembly);
     private readonly IDocumentFileStore _files;
     private readonly IRecoveryStore _recovery;
@@ -358,6 +359,67 @@ public partial class MainWindow : Window
     {
         if (sender is not Control { Tag: string value } || !Enum.TryParse<MarkdownEditKind>(value, out var kind)) return;
         ApplyMarkdownEdit(kind);
+    }
+
+    private async void InsertImage_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (!CanInsertImageReference())
+        {
+            UpdateChrome("Save the document inside the active workspace before inserting an image.");
+            return;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Insert an existing workspace image",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Supported images")
+                {
+                    Patterns = [.. MarkdownImageReferenceService.FilePickerPatterns]
+                }
+            ]
+        });
+        if (files.FirstOrDefault()?.TryGetLocalPath() is not { } imagePath) return;
+        InsertImageReference(imagePath);
+    }
+
+    private bool InsertImageReference(string imagePath)
+    {
+        if (_folder is null || _session.Path is null)
+        {
+            UpdateChrome("Save the document inside the active workspace before inserting an image.");
+            return false;
+        }
+
+        var result = _markdownImages.CreateInsertion(
+            Editor.Text,
+            Editor.SelectionStart,
+            Editor.SelectionLength,
+            _folder,
+            _session.Path,
+            imagePath);
+        if (result.Edit is not { } edit)
+        {
+            UpdateChrome(result.Error ?? "The image reference could not be inserted.");
+            return false;
+        }
+
+        Editor.Document.UndoStack.StartUndoGroup();
+        try
+        {
+            Editor.Document.Replace(0, Editor.Document.TextLength, edit.Text);
+        }
+        finally
+        {
+            Editor.Document.UndoStack.EndUndoGroup();
+        }
+        Editor.Select(edit.SelectionStart, edit.SelectionLength);
+        Editor.TextArea.Caret.BringCaretToView();
+        Editor.Focus();
+        UpdateChrome($"Inserted reference to {Path.GetFileName(imagePath)}. Save deliberately to change the Markdown file.");
+        return true;
     }
 
     private bool ApplyMarkdownEdit(MarkdownEditKind kind)
@@ -704,6 +766,22 @@ public partial class MainWindow : Window
         var identity = _session.DocumentId is null ? "Ordinary Markdown" : "Axiom document";
         var saveState = _session.Conflict is not null ? "Conflict" : _session.IsDirty ? "Unsaved" : _session.IsNew ? "New" : "Saved";
         DocumentStateText.Text = $"{identity} | {saveState}";
+        UpdateImageButton();
+    }
+
+    private bool CanInsertImageReference() =>
+        _activeWorkspace is not null &&
+        _session.Path is not null &&
+        File.Exists(_session.Path) &&
+        IsWithinFolder(_session.Path, _activeWorkspace.RootPath) &&
+        IsMarkdownPath(_session.Path);
+
+    private void UpdateImageButton()
+    {
+        InsertImageButton.IsEnabled = CanInsertImageReference();
+        ToolTip.SetTip(InsertImageButton, InsertImageButton.IsEnabled
+            ? "Insert a reference to an existing image inside this workspace"
+            : "Save a document inside the active workspace before inserting an image");
     }
 
     private void UpdatePinButton()
@@ -813,6 +891,8 @@ public partial class MainWindow : Window
         TryParsePreviewScrollRatio(result, out ratio);
     internal static string BuildPreviewScrollRestoreScriptForTesting(double ratio) =>
         BuildPreviewScrollRestoreScript(ratio);
+    internal bool InsertImageReferenceForTesting(string imagePath) => InsertImageReference(imagePath);
+    internal bool CanInsertImageReferenceForTesting => CanInsertImageReference();
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {
