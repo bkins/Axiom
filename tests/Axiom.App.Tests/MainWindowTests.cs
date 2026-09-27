@@ -68,6 +68,33 @@ public sealed class MainWindowTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task WorkspaceSearchFindsAndOpensANestedMatch()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        var nested = Path.Combine(root, "nested");
+        Directory.CreateDirectory(nested);
+        try
+        {
+            var matchPath = Path.Combine(nested, "match.md");
+            await File.WriteAllTextAsync(matchPath, "# Search\n\nA unique Needle appears here.");
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+
+            await window.SearchWorkspaceForTestingAsync("needle");
+            var result = Assert.Single(window.SearchResultsForTesting);
+            await window.OpenSearchResultForTestingAsync(result);
+
+            Assert.Equal(Path.Combine("nested", "match.md"), result.RelativePath);
+            Assert.Equal("Needle", window.EditorSelectedTextForTesting);
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static MainWindow CreateWindow(string root)
     {
         var paths = new AppDataPaths(Path.Combine(root, "state"));

@@ -13,6 +13,7 @@ public partial class MainWindow : Window
 {
     private readonly DocumentService _documents;
     private readonly WorkspaceService _workspaces;
+    private readonly WorkspaceSearchService _workspaceSearch;
     private readonly IDocumentFileStore _files;
     private readonly IRecoveryStore _recovery;
     private readonly MarkdownPreviewService _preview;
@@ -22,6 +23,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _previewTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly DispatcherTimer _recoveryTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
     private readonly ObservableCollection<WorkspaceTreeNode> _workspaceTree = [];
+    private readonly ObservableCollection<WorkspaceSearchResult> _workspaceSearchResults = [];
     private DocumentSession _session;
     private string? _folder;
     private string? _lastProtectedText;
@@ -29,6 +31,8 @@ public partial class MainWindow : Window
     private bool _previewReady;
     private bool _closingApproved;
     private IReadOnlyDictionary<Guid, IReadOnlyList<string>> _duplicates = new Dictionary<Guid, IReadOnlyList<string>>();
+    private CancellationTokenSource? _workspaceSearchCancellation;
+    private int _workspaceSearchGeneration;
 
     public MainWindow() : this(DesignComposition.Create()) { }
 
@@ -56,6 +60,7 @@ public partial class MainWindow : Window
         _documents = documents;
         _workspaces = workspaces;
         _files = files;
+        _workspaceSearch = new WorkspaceSearchService(files);
         _recovery = recovery;
         _preview = preview;
         _monitor = monitor;
@@ -65,6 +70,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         FileTree.ItemsSource = _workspaceTree;
+        WorkspaceSearchResults.ItemsSource = _workspaceSearchResults;
         Editor.TextChanged += (_, _) => EditorTextChanged();
         Preview.AdapterCreated += (_, _) => { _previewReady = true; RenderPreview(); };
         Preview.NavigationStarted += (_, args) =>
@@ -100,6 +106,9 @@ public partial class MainWindow : Window
     internal async Task LoadFolderAsync(string folder)
     {
         var normalizedFolder = WorkspaceService.NormalizeRootPath(folder);
+        _workspaceSearchCancellation?.Cancel();
+        _workspaceSearchResults.Clear();
+        WorkspaceSearchStatus.Text = string.Empty;
         var discovery = await _files.ListMarkdownFilesAsync(normalizedFolder);
         var duplicates = await _documents.FindDuplicateIdentitiesAsync(normalizedFolder);
         var workspace = await _workspaces.OpenAsync(normalizedFolder);
@@ -128,6 +137,75 @@ public partial class MainWindow : Window
         if (_folder is null || FileTree.SelectedItem is not WorkspaceTreeNode { IsDocument: true } selected) return;
         if (!await ConfirmSafeToReplaceSessionAsync()) return;
         await OpenDocumentAsync(Path.Combine(_folder, selected.RelativePath));
+    }
+
+    private async void WorkspaceSearch_OnClick(object? sender, RoutedEventArgs e) =>
+        await SearchWorkspaceAsync(WorkspaceSearchBox.Text ?? string.Empty);
+
+    private async Task SearchWorkspaceAsync(string query)
+    {
+        _workspaceSearchCancellation?.Cancel();
+        _workspaceSearchCancellation?.Dispose();
+        _workspaceSearchCancellation = new CancellationTokenSource();
+        var cancellationToken = _workspaceSearchCancellation.Token;
+        var generation = ++_workspaceSearchGeneration;
+        _workspaceSearchResults.Clear();
+        if (_folder is null)
+        {
+            WorkspaceSearchStatus.Text = "Open a workspace before searching.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            WorkspaceSearchStatus.Text = "Enter text to search the workspace.";
+            return;
+        }
+
+        WorkspaceSearchStatus.Text = "Searching...";
+        try
+        {
+            var response = await _workspaceSearch.SearchAsync(_folder, query, cancellationToken);
+            if (generation != _workspaceSearchGeneration) return;
+            foreach (var result in response.Results) _workspaceSearchResults.Add(result);
+            var skipped = response.SkippedPaths.Count == 0 ? string.Empty : $" Skipped {response.SkippedPaths.Count} unreadable path{(response.SkippedPaths.Count == 1 ? string.Empty : "s")}.";
+            WorkspaceSearchStatus.Text = response.Results.Count == 0
+                ? "No matches found." + skipped
+                : $"Found {response.Results.Count} match{(response.Results.Count == 1 ? string.Empty : "es")}." + skipped;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // A newer query or workspace selection owns the visible result state.
+        }
+        catch (Exception exception)
+        {
+            if (generation != _workspaceSearchGeneration) return;
+            WorkspaceSearchStatus.Text = "Workspace search failed.";
+            ReportError("workspace.search.failed", exception, _folder);
+        }
+    }
+
+    private async void WorkspaceSearchResults_OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (WorkspaceSearchResults.SelectedItem is WorkspaceSearchResult result)
+            await OpenSearchResultAsync(result);
+    }
+
+    private async Task OpenSearchResultAsync(WorkspaceSearchResult result)
+    {
+        if (!await ConfirmSafeToReplaceSessionAsync()) return;
+        await OpenDocumentAsync(result.FullPath);
+        if (result.MatchOffset + result.MatchedText.Length <= Editor.Text.Length &&
+            Editor.Text.AsSpan(result.MatchOffset, result.MatchedText.Length).Equals(result.MatchedText, StringComparison.OrdinalIgnoreCase))
+        {
+            Editor.Select(result.MatchOffset, result.MatchedText.Length);
+            Editor.ScrollToLine(result.LineNumber);
+            Editor.Focus();
+            UpdateChrome($"Opened search match at line {result.LineNumber}.");
+        }
+        else
+        {
+            UpdateChrome("Opened search result, but the matching text has changed.");
+        }
     }
 
     internal async Task OpenDocumentAsync(string path)
@@ -410,6 +488,10 @@ public partial class MainWindow : Window
     internal bool IsEnrollAvailableForTesting => EnrollButton.IsVisible;
 
     internal string? ActiveWorkspaceRootForTesting => _folder;
+    internal IReadOnlyList<WorkspaceSearchResult> SearchResultsForTesting => _workspaceSearchResults;
+    internal string EditorSelectedTextForTesting => Editor.SelectedText;
+    internal Task SearchWorkspaceForTestingAsync(string query) => SearchWorkspaceAsync(query);
+    internal Task OpenSearchResultForTestingAsync(WorkspaceSearchResult result) => OpenSearchResultAsync(result);
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {

@@ -36,18 +36,44 @@
         <DockPanel>
           <TextBlock DockPanel.Dock="Top" Margin="4,4,4,8" FontWeight="SemiBold" Text="Markdown files" />
           <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" Foreground="#B45309" TextWrapping="Wrap" />
-          <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped">
-            <TreeView.DataTemplates>
-              <TreeDataTemplate DataType="core:WorkspaceTreeNode" ItemsSource="{Binding Children}">
-                <TextBlock Text="{Binding Name}" />
-              </TreeDataTemplate>
-            </TreeView.DataTemplates>
-            <TreeView.Styles>
-              <Style Selector="TreeViewItem">
-                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-              </Style>
-            </TreeView.Styles>
-          </TreeView>
+          <TabControl>
+            <TabItem Header="Explorer">
+              <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped">
+                <TreeView.DataTemplates>
+                  <TreeDataTemplate DataType="core:WorkspaceTreeNode" ItemsSource="{Binding Children}">
+                    <TextBlock Text="{Binding Name}" />
+                  </TreeDataTemplate>
+                </TreeView.DataTemplates>
+                <TreeView.Styles>
+                  <Style Selector="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                  </Style>
+                </TreeView.Styles>
+              </TreeView>
+            </TabItem>
+            <TabItem Header="Search">
+              <DockPanel Margin="4">
+                <StackPanel DockPanel.Dock="Top" Spacing="6">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBox x:Name="WorkspaceSearchBox" AutomationProperties.Name="Search workspace" PlaceholderText="Find text in workspace" />
+                    <Button Grid.Column="1" Margin="6,0,0,0" AutomationProperties.Name="Run workspace search" Click="WorkspaceSearch_OnClick">Search</Button>
+                  </Grid>
+                  <TextBlock x:Name="WorkspaceSearchStatus" TextWrapping="Wrap" />
+                </StackPanel>
+                <ListBox x:Name="WorkspaceSearchResults" AutomationProperties.Name="Workspace search results" DoubleTapped="WorkspaceSearchResults_OnDoubleTapped">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate DataType="core:WorkspaceSearchResult">
+                      <StackPanel Margin="0,3">
+                        <TextBlock FontWeight="SemiBold" Text="{Binding RelativePath}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Excerpt}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Opacity="0.7" Text="{Binding LineNumber, StringFormat='Line {0}'}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+            </TabItem>
+          </TabControl>
         </DockPanel>
       </Border>
       <GridSplitter Grid.Column="1" Width="5" ResizeDirection="Columns" Background="#374151" />
