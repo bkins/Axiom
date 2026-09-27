@@ -7,7 +7,10 @@ public sealed record WorkspaceRecord(
     DateTimeOffset CreatedUtc,
     DateTimeOffset LastOpenedUtc);
 
-public sealed record WorkspacePin(string RelativePath, DateTimeOffset PinnedUtc);
+public sealed record WorkspacePin(string RelativePath, DateTimeOffset PinnedUtc)
+{
+    public override string ToString() => RelativePath;
+}
 
 public sealed class WorkspaceTreeNode(
     string name,

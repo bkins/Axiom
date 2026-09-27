@@ -48,7 +48,13 @@
                     <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Pinned" />
                     <Button Grid.Column="1" AutomationProperties.Name="Remove selected pin" Click="RemovePin_OnClick">Remove</Button>
                   </Grid>
-                  <ListBox x:Name="PinnedDocuments" MaxHeight="120" AutomationProperties.Name="Pinned documents" DoubleTapped="PinnedDocuments_OnDoubleTapped" />
+                  <ListBox x:Name="PinnedDocuments" MaxHeight="120" AutomationProperties.Name="Pinned documents" DoubleTapped="PinnedDocuments_OnDoubleTapped">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="core:WorkspacePin">
+                        <TextBlock Text="{Binding RelativePath}" TextTrimming="CharacterEllipsis" />
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
                   <Separator Margin="0,6,0,0" />
                 </StackPanel>
                 <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped">

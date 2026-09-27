@@ -51,6 +51,14 @@ public sealed class WorkspaceServiceTests
         Assert.Throws<ArgumentOutOfRangeException>(() => WorkspaceService.GetRelativeDocumentPath(root, Path.Combine(Path.GetDirectoryName(root)!, "outside.md")));
     }
 
+    [Fact]
+    public void WorkspacePinFallbackTextIsTheRelativeDocumentPath()
+    {
+        var pin = new WorkspacePin(Path.Combine("nested", "note.md"), DateTimeOffset.UtcNow);
+
+        Assert.Equal(Path.Combine("nested", "note.md"), pin.ToString());
+    }
+
     private sealed class MemoryWorkspaceStore : IWorkspaceStore
     {
         private WorkspaceRecord? _active;
