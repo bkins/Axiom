@@ -307,6 +307,26 @@ public sealed class MainWindowTests
         }
     }
 
+    [Theory]
+    [InlineData("0.625", 0.625)]
+    [InlineData("\"0.25\"", 0.25)]
+    [InlineData("1.4", 1.0)]
+    [InlineData("-0.2", 0.0)]
+    public void PreviewScrollRatiosAreParsedAndClamped(string scriptResult, double expected)
+    {
+        Assert.True(MainWindow.TryParsePreviewScrollRatioForTesting(scriptResult, out var ratio));
+        Assert.Equal(expected, ratio);
+    }
+
+    [Fact]
+    public void PreviewScrollRestorationUsesInvariantNormalizedPosition()
+    {
+        var script = MainWindow.BuildPreviewScrollRestoreScriptForTesting(0.375);
+
+        Assert.Contains("root.scrollTop = 0.375 * range", script);
+        Assert.DoesNotContain("0,375", script);
+    }
+
     private static MainWindow CreateWindow(string root)
     {
         var paths = new AppDataPaths(Path.Combine(root, "state"));

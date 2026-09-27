@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -37,6 +38,8 @@ public partial class MainWindow : Window
     private string? _lastProtectedText;
     private bool _loading;
     private bool _previewReady;
+    private double? _pendingPreviewScrollRatio;
+    private int _previewRenderGeneration;
     private bool _closingApproved;
     private IReadOnlyDictionary<Guid, IReadOnlyList<string>> _duplicates = new Dictionary<Guid, IReadOnlyList<string>>();
     private CancellationTokenSource? _workspaceSearchCancellation;
@@ -84,12 +87,13 @@ public partial class MainWindow : Window
         BuildIdentityText.Text = _buildIdentity.DisplayText;
         Editor.TextChanged += (_, _) => EditorTextChanged();
         Preview.AdapterCreated += (_, _) => { _previewReady = true; RenderPreview(); };
+        Preview.NavigationCompleted += async (_, args) => await RestorePreviewScrollAsync(args.IsSuccess);
         Preview.NavigationStarted += (_, args) =>
         {
             if (args.Request is { } uri && uri.Scheme is not "about" and not "data") args.Cancel = true;
         };
         Preview.NewWindowRequested += (_, args) => args.Handled = true;
-        _previewTimer.Tick += (_, _) => RenderPreview();
+        _previewTimer.Tick += (_, _) => RenderPreview(preservePosition: true);
         _outlineTimer.Tick += (_, _) => RenderOutline();
         _recoveryTimer.Tick += async (_, _) => await ProtectIfNeededAsync();
         _recoveryTimer.Start();
@@ -503,11 +507,72 @@ public partial class MainWindow : Window
         _outlineTimer.Start();
     }
 
-    private void RenderPreview()
+    private async void RenderPreview(bool preservePosition = false)
     {
         _previewTimer.Stop();
+        var generation = ++_previewRenderGeneration;
         if (!_previewReady) return;
+
+        double? scrollRatio = null;
+        if (preservePosition)
+        {
+            try
+            {
+                var scriptResult = await Preview.InvokeScript("(() => { const root = document.scrollingElement || document.documentElement; const range = Math.max(0, root.scrollHeight - window.innerHeight); return range === 0 ? 0 : root.scrollTop / range; })()");
+                if (TryParsePreviewScrollRatio(scriptResult, out var parsed)) scrollRatio = parsed;
+            }
+            catch (Exception exception)
+            {
+                _log.Error("preview.scroll.capture.failed", exception, _session.Path);
+            }
+        }
+
+        if (generation != _previewRenderGeneration) return;
+        _pendingPreviewScrollRatio = scrollRatio;
         Preview.NavigateToString(_preview.RenderDocument(Editor.Text, _session.Path));
+    }
+
+    private async Task RestorePreviewScrollAsync(bool navigationSucceeded)
+    {
+        if (!navigationSucceeded)
+        {
+            _pendingPreviewScrollRatio = null;
+            return;
+        }
+        if (_pendingPreviewScrollRatio is not { } ratio) return;
+        _pendingPreviewScrollRatio = null;
+
+        try
+        {
+            await Preview.InvokeScript(BuildPreviewScrollRestoreScript(ratio));
+        }
+        catch (Exception exception)
+        {
+            _log.Error("preview.scroll.restore.failed", exception, _session.Path);
+        }
+    }
+
+    private static bool TryParsePreviewScrollRatio(string? scriptResult, out double ratio)
+    {
+        if (scriptResult is null)
+        {
+            ratio = 0;
+            return false;
+        }
+        var value = scriptResult.Trim().Trim('"');
+        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out ratio) || !double.IsFinite(ratio))
+        {
+            ratio = 0;
+            return false;
+        }
+        ratio = Math.Clamp(ratio, 0, 1);
+        return true;
+    }
+
+    private static string BuildPreviewScrollRestoreScript(double ratio)
+    {
+        var normalized = Math.Clamp(ratio, 0, 1).ToString("R", CultureInfo.InvariantCulture);
+        return $"(() => {{ const root = document.scrollingElement || document.documentElement; const range = Math.max(0, root.scrollHeight - window.innerHeight); root.scrollTop = {normalized} * range; return range === 0 ? 0 : root.scrollTop / range; }})()";
     }
 
     private void RenderOutline()
@@ -744,6 +809,10 @@ public partial class MainWindow : Window
         TryHandleMarkdownListKey(key, modifiers, editorHasFocus);
     internal bool EditorCanUndoForTesting => Editor.CanUndo;
     internal void UndoEditorForTesting() => Editor.Undo();
+    internal static bool TryParsePreviewScrollRatioForTesting(string result, out double ratio) =>
+        TryParsePreviewScrollRatio(result, out ratio);
+    internal static string BuildPreviewScrollRestoreScriptForTesting(double ratio) =>
+        BuildPreviewScrollRestoreScript(ratio);
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {

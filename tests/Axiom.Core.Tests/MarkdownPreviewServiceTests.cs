@@ -1,4 +1,5 @@
 using Axiom.Core;
+using System.Diagnostics;
 
 namespace Axiom.Core.Tests;
 
@@ -49,6 +50,31 @@ public sealed class MarkdownPreviewServiceTests
 
         Assert.DoesNotContain(id.ToString("D"), html);
         Assert.Contains("<h1>Visible</h1>", html);
+    }
+
+    [Fact]
+    public void PreviewStylesCoverReadableComponentsAndConstrainOverflowInLightAndDark()
+    {
+        var html = _service.RenderDocument("# Heading\n\n![wide](wide.png)\n\n---", null);
+
+        Assert.Contains("color-scheme: light dark", html);
+        Assert.Contains("@media (prefers-color-scheme: light)", html);
+        Assert.Contains("table { display: block; max-width: 100%; overflow-x: auto;", html);
+        Assert.Contains("img { display: block; max-width: 100%; height: auto;", html);
+        Assert.Contains("script-src 'none'", html);
+    }
+
+    [Fact]
+    public void LargeDocumentRenderingRemainsBounded()
+    {
+        var markdown = string.Join('\n', Enumerable.Range(1, 10_000).Select(index => $"- [ ] Item {index}"));
+        var stopwatch = Stopwatch.StartNew();
+
+        var html = _service.RenderDocument(markdown, null);
+
+        stopwatch.Stop();
+        Assert.Contains("Item 10000", html);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), $"Rendering took {stopwatch.Elapsed}.");
     }
 }
 
