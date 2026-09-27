@@ -26,7 +26,7 @@ public sealed class MainWindowTests
 
             var window = CreateWindow(root);
             Assert.Equal(1280, window.Width);
-            Assert.Equal(800, window.Height);
+            Assert.Equal(720, window.Height);
             await window.LoadFolderAsync(root);
 
             Assert.False(string.IsNullOrWhiteSpace(window.BuildIdentityForTesting.ProductVersion));
@@ -162,6 +162,43 @@ public sealed class MainWindowTests
             File.Delete(path);
             await window.LoadFolderAsync(root);
             Assert.Single(window.WorkspacePinsForTesting);
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task UndoingBackToSavedTextClearsTheCurrentSessionsRecoveryDraft()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "recovery.md");
+            const string savedText = "# Saved";
+            await File.WriteAllTextAsync(path, savedText);
+            var paths = new AppDataPaths(Path.Combine(root, "state"));
+            paths.EnsureCreated();
+            var state = new SqliteStateStore(paths, new NullAxiomLog());
+            await state.InitializeAsync();
+            var files = new FileDocumentStore(new NullAxiomLog());
+            var documents = new DocumentService(files, state, state, new NullAxiomLog());
+            var window = new MainWindow(documents, new WorkspaceService(state), files, state, new MarkdownPreviewService(), new ExternalFileMonitor(), new NullAxiomLog(), () => Task.CompletedTask);
+            await window.LoadFolderAsync(root);
+            await window.OpenDocumentAsync(path);
+
+            window.SetEditorTextForTesting("# Temporary");
+            await window.ProtectIfNeededForTestingAsync();
+            Assert.Single(await state.GetRecoverableDraftsAsync());
+
+            window.SetEditorTextForTesting(savedText);
+            await window.ProtectIfNeededForTestingAsync();
+
+            Assert.Empty(await state.GetRecoverableDraftsAsync());
+            Assert.Equal("Recovery ready", window.RecoveryContextForTesting);
             window.Close();
         }
         finally

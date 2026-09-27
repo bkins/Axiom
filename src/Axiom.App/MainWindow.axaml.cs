@@ -418,12 +418,13 @@ public partial class MainWindow : Window
 
     private async Task ProtectIfNeededAsync()
     {
-        if (!_session.IsDirty || string.Equals(_lastProtectedText, _session.Text, StringComparison.Ordinal)) return;
+        if (string.Equals(_lastProtectedText, _session.Text, StringComparison.Ordinal)) return;
+        if (!_session.IsDirty && _lastProtectedText is null) return;
         try
         {
             await _documents.ProtectAsync(_session);
             _lastProtectedText = _session.Text;
-            RecoveryText.Text = $"Protected {DateTime.Now:T}";
+            RecoveryText.Text = _session.IsDirty ? $"Protected {DateTime.Now:T}" : "Recovery ready";
         }
         catch (Exception exception)
         {
@@ -620,6 +621,7 @@ public partial class MainWindow : Window
     internal string DocumentStateForTesting => DocumentStateText.Text ?? string.Empty;
     internal string PathContextForTesting => PathText.Text ?? string.Empty;
     internal string RecoveryContextForTesting => RecoveryText.Text ?? string.Empty;
+    internal Task ProtectIfNeededForTestingAsync() => ProtectIfNeededAsync();
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {

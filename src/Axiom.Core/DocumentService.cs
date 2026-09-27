@@ -37,7 +37,11 @@ public sealed class DocumentService(
 
     public async Task ProtectAsync(DocumentSession session, CancellationToken cancellationToken = default)
     {
-        if (!session.IsDirty) return;
+        if (!session.IsDirty)
+        {
+            await recovery.DeleteDraftAsync(session.DraftKey, cancellationToken);
+            return;
+        }
         await recovery.SaveDraftAsync(new RecoveryDraft(
             session.DraftKey,
             session.Path,

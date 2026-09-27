@@ -5,7 +5,7 @@
         x:Class="Axiom.App.MainWindow"
         x:CompileBindings="False"
         Title="Axiom"
-        Width="1280" Height="800" MinWidth="900" MinHeight="580">
+        Width="1280" Height="720" MinWidth="900" MinHeight="580">
   <DockPanel>
     <Border DockPanel.Dock="Top" Padding="10" Background="#1F2937" BorderBrush="#374151" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,*">

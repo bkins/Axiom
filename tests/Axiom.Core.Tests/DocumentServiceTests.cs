@@ -38,6 +38,23 @@ public sealed class DocumentServiceTests
     }
 
     [Fact]
+    public async Task ReturningToSavedTextClearsTheProtectedDraft()
+    {
+        var files = new MemoryFiles("C:\\docs\\one.md", "saved");
+        var recovery = new MemoryRecovery();
+        var service = new DocumentService(files, recovery, new MemoryMetadata());
+        var session = await service.OpenAsync("C:\\docs\\one.md");
+        session.UpdateText("temporary edit");
+        await service.ProtectAsync(session);
+
+        session.UpdateText("saved");
+        await service.ProtectAsync(session);
+
+        Assert.False(session.IsDirty);
+        Assert.Empty(recovery.Drafts);
+    }
+
+    [Fact]
     public async Task ExternalEditCreatesConflictWhenLocalBufferIsDirty()
     {
         var files = new MemoryFiles("C:\\docs\\one.md", "saved");
