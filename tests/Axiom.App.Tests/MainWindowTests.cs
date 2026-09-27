@@ -27,6 +27,8 @@ public sealed class MainWindowTests
             var window = CreateWindow(root);
             await window.LoadFolderAsync(root);
 
+            Assert.False(string.IsNullOrWhiteSpace(window.BuildIdentityForTesting.ProductVersion));
+            Assert.Contains(window.BuildIdentityForTesting.ProductVersion, window.BuildIdentityForTesting.DisplayText);
             Assert.Equal(["alpha.md", "bravo.md", Path.Combine("nested", "charlie.markdown")], window.FolderItemsForTesting.OrderBy(item => item));
             var nested = Assert.Single(window.WorkspaceTreeForTesting, node => node.Name == "nested");
             Assert.False(nested.IsDocument);

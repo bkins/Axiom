@@ -25,9 +25,10 @@
     </Border>
 
     <Border DockPanel.Dock="Bottom" Padding="8,5" Background="#111827" BorderBrush="#374151" BorderThickness="0,1,0,0">
-      <Grid ColumnDefinitions="*,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto">
         <TextBlock x:Name="PathText" Text="No folder selected" TextTrimming="CharacterEllipsis" />
         <TextBlock x:Name="RecoveryText" Grid.Column="1" Margin="16,0,0,0" Text="Recovery ready" />
+        <TextBlock x:Name="BuildIdentityText" Grid.Column="2" Margin="16,0,0,0" AutomationProperties.Name="Application version" />
       </Grid>
     </Border>
 

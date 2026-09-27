@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private readonly WorkspaceService _workspaces;
     private readonly WorkspaceSearchService _workspaceSearch;
     private readonly DocumentOutlineService _outline = new();
+    private readonly ApplicationBuildIdentity _buildIdentity = ApplicationBuildIdentity.FromAssembly(typeof(MainWindow).Assembly);
     private readonly IDocumentFileStore _files;
     private readonly IRecoveryStore _recovery;
     private readonly MarkdownPreviewService _preview;
@@ -75,6 +76,7 @@ public partial class MainWindow : Window
         FileTree.ItemsSource = _workspaceTree;
         WorkspaceSearchResults.ItemsSource = _workspaceSearchResults;
         DocumentOutline.ItemsSource = _outlineEntries;
+        BuildIdentityText.Text = _buildIdentity.DisplayText;
         Editor.TextChanged += (_, _) => EditorTextChanged();
         Preview.AdapterCreated += (_, _) => { _previewReady = true; RenderPreview(); };
         Preview.NavigationStarted += (_, args) =>
@@ -538,6 +540,7 @@ public partial class MainWindow : Window
     internal Task OpenSearchResultForTestingAsync(WorkspaceSearchResult result) => OpenSearchResultAsync(result);
     internal IReadOnlyList<DocumentOutlineEntry> OutlineEntriesForTesting => _outlineEntries;
     internal void NavigateToOutlineEntryForTesting(DocumentOutlineEntry entry) => NavigateToOutlineEntry(entry);
+    internal ApplicationBuildIdentity BuildIdentityForTesting => _buildIdentity;
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {
