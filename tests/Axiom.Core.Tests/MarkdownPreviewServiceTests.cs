@@ -90,5 +90,14 @@ public sealed class MarkdownPreviewServiceTests
         Assert.Contains("Item 10000", html);
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), $"Rendering took {stopwatch.Elapsed}.");
     }
+
+    [Fact]
+    public void EmptyPreviewExplainsTheNextAction()
+    {
+        var html = _service.RenderDocument(string.Empty, null);
+
+        Assert.Contains("Start typing Markdown to see a preview.", html);
+        Assert.Contains("class=\"empty-state\"", html);
+    }
 }
 

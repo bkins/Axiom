@@ -153,6 +153,7 @@ public partial class MainWindow : Window
             ApplyExpansion(node, expandedPaths);
             _workspaceTree.Add(node);
         }
+        UpdateEmptyStates();
         _duplicates = duplicates;
         await RefreshPinsAsync();
         var warnings = new List<string>();
@@ -214,6 +215,7 @@ public partial class MainWindow : Window
         _workspacePins.Clear();
         if (_activeWorkspace is not null)
             foreach (var pin in await _workspaces.GetPinsAsync(_activeWorkspace)) _workspacePins.Add(pin);
+        UpdateEmptyStates();
         UpdatePinButton();
     }
 
@@ -633,6 +635,7 @@ public partial class MainWindow : Window
     {
         if (_loading) return;
         _session.UpdateText(Editor.Text);
+        UpdateEmptyStates();
         SchedulePreview();
         ScheduleOutline();
         UpdateChrome(_session.IsDirty ? "Unsaved changes — recovery protection active" : "No unsaved changes");
@@ -826,6 +829,7 @@ public partial class MainWindow : Window
         Editor.Text = text;
         Editor.Document.UndoStack.ClearAll();
         _loading = false;
+        UpdateEmptyStates();
         RenderPreview();
         RenderOutline();
     }
@@ -863,6 +867,16 @@ public partial class MainWindow : Window
         ToolTip.SetTip(InsertImageButton, InsertImageButton.IsEnabled
             ? "Insert a reference to an existing image inside this workspace"
             : "Save a document inside the active workspace before inserting an image");
+    }
+
+    private void UpdateEmptyStates()
+    {
+        EditorEmptyState.IsVisible = string.IsNullOrEmpty(Editor.Text);
+        PinnedEmptyState.IsVisible = _workspacePins.Count == 0;
+        WorkspaceEmptyState.IsVisible = _workspaceTree.Count == 0;
+        WorkspaceEmptyState.Text = _folder is null
+            ? "Open a folder to browse Markdown documents."
+            : "This workspace contains no .md or .markdown documents.";
     }
 
     private void UpdatePinButton()
@@ -976,6 +990,19 @@ public partial class MainWindow : Window
     internal bool CanInsertImageReferenceForTesting => CanInsertImageReference();
     internal Task ApplyAppearanceForTestingAsync(AppearancePreference preference) => ApplyAppearanceAsync(preference);
     internal AppearancePreference AppearanceForTesting => _appearance;
+    internal bool PrimaryCommandsHaveAccessibleHelpForTesting => CommandPanel.Children
+        .OfType<Button>()
+        .All(button => !string.IsNullOrWhiteSpace(Avalonia.Automation.AutomationProperties.GetName(button)) &&
+            ToolTip.GetTip(button) is string { Length: > 0 });
+    internal Size MeasureTopCommandBarForTesting(double width)
+    {
+        TopCommandBar.Measure(new Size(width, double.PositiveInfinity));
+        TopCommandBar.Arrange(new Rect(0, 0, width, TopCommandBar.DesiredSize.Height));
+        return TopCommandBar.Bounds.Size;
+    }
+    internal bool EditorEmptyStateForTesting => EditorEmptyState.IsVisible;
+    internal bool WorkspaceEmptyStateForTesting => WorkspaceEmptyState.IsVisible;
+    internal bool PinnedEmptyStateForTesting => PinnedEmptyState.IsVisible;
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {

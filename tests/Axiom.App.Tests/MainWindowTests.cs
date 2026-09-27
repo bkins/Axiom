@@ -403,6 +403,31 @@ public sealed class MainWindowTests
         }
     }
 
+    [AvaloniaFact]
+    public void MinimumWindowKeepsPrimaryCommandsAndEmptyStatesUsable()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var window = CreateWindow(root);
+            var commandBarSize = window.MeasureTopCommandBarForTesting(900);
+
+            Assert.True(window.PrimaryCommandsHaveAccessibleHelpForTesting);
+            Assert.True(commandBarSize.Width <= 900);
+            Assert.True(commandBarSize.Height > 0);
+            Assert.True(window.EditorEmptyStateForTesting);
+            Assert.True(window.WorkspaceEmptyStateForTesting);
+            Assert.True(window.PinnedEmptyStateForTesting);
+
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static MainWindow CreateWindow(string root)
     {
         var paths = new AppDataPaths(Path.Combine(root, "state"));

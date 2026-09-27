@@ -20,7 +20,10 @@ public sealed class MarkdownPreviewService
     {
         // Identity is source metadata: preserve it in Markdown/editor but not in preview.
         // Fenced examples are unaffected because the marker must be on the first line.
-        var body = Markdown.ToHtml(DocumentIdCodec.RemoveCanonicalMarkerForPreview(markdown), _pipeline);
+        var previewMarkdown = DocumentIdCodec.RemoveCanonicalMarkerForPreview(markdown);
+        var body = string.IsNullOrWhiteSpace(previewMarkdown)
+            ? "<p class=\"empty-state\">Start typing Markdown to see a preview.</p>"
+            : Markdown.ToHtml(previewMarkdown, _pipeline);
         var baseElement = BuildBaseElement(documentPath);
         return $$"""
             <!doctype html>
@@ -70,6 +73,7 @@ public sealed class MarkdownPreviewService
             li:has(> input[type=checkbox]) { list-style: none; margin-left: -1.25em; }
             hr { height: 1px; margin: 1.8em 0; border: 0; background: var(--border); }
             img { display: block; max-width: 100%; height: auto; object-fit: contain; border-radius: 4px; }
+            .empty-state { margin-top: 2rem; color: var(--muted); font-style: italic; }
             @media (max-width: 640px) { body { padding: 22px 20px 48px; } }
             </style></head><body>{{body}}</body></html>
             """;
