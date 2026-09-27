@@ -95,6 +95,37 @@ public sealed class MainWindowTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task OutlineUsesTheCurrentBufferAndNavigatesDuplicateHeadingsByOffset()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "outline.md");
+            const string savedText = "# Start\n\n## Repeat\n\nText\n\n## Repeat";
+            await File.WriteAllTextAsync(path, savedText);
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+            await window.OpenDocumentAsync(path);
+
+            Assert.Equal(3, window.OutlineEntriesForTesting.Count);
+            Assert.NotEqual(window.OutlineEntriesForTesting[1].Offset, window.OutlineEntriesForTesting[2].Offset);
+            window.SetEditorTextForTesting(window.EditorTextForTesting + "\n\n### Unsaved heading");
+            Assert.Equal("Unsaved heading", window.OutlineEntriesForTesting[^1].Text);
+            var finalHeading = window.OutlineEntriesForTesting[^1];
+            window.NavigateToOutlineEntryForTesting(finalHeading);
+
+            Assert.Equal(finalHeading.Offset, window.EditorCaretOffsetForTesting);
+            window.SetEditorTextForTesting(savedText);
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static MainWindow CreateWindow(string root)
     {
         var paths = new AppDataPaths(Path.Combine(root, "state"));

@@ -14,6 +14,7 @@ public partial class MainWindow : Window
     private readonly DocumentService _documents;
     private readonly WorkspaceService _workspaces;
     private readonly WorkspaceSearchService _workspaceSearch;
+    private readonly DocumentOutlineService _outline = new();
     private readonly IDocumentFileStore _files;
     private readonly IRecoveryStore _recovery;
     private readonly MarkdownPreviewService _preview;
@@ -22,8 +23,10 @@ public partial class MainWindow : Window
     private readonly Func<Task> _markCleanExit;
     private readonly DispatcherTimer _previewTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly DispatcherTimer _recoveryTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
+    private readonly DispatcherTimer _outlineTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
     private readonly ObservableCollection<WorkspaceTreeNode> _workspaceTree = [];
     private readonly ObservableCollection<WorkspaceSearchResult> _workspaceSearchResults = [];
+    private readonly ObservableCollection<DocumentOutlineEntry> _outlineEntries = [];
     private DocumentSession _session;
     private string? _folder;
     private string? _lastProtectedText;
@@ -71,6 +74,7 @@ public partial class MainWindow : Window
 
         FileTree.ItemsSource = _workspaceTree;
         WorkspaceSearchResults.ItemsSource = _workspaceSearchResults;
+        DocumentOutline.ItemsSource = _outlineEntries;
         Editor.TextChanged += (_, _) => EditorTextChanged();
         Preview.AdapterCreated += (_, _) => { _previewReady = true; RenderPreview(); };
         Preview.NavigationStarted += (_, args) =>
@@ -79,6 +83,7 @@ public partial class MainWindow : Window
         };
         Preview.NewWindowRequested += (_, args) => args.Handled = true;
         _previewTimer.Tick += (_, _) => RenderPreview();
+        _outlineTimer.Tick += (_, _) => RenderOutline();
         _recoveryTimer.Tick += async (_, _) => await ProtectIfNeededAsync();
         _recoveryTimer.Start();
         _monitor.Changed += (_, _) => Dispatcher.UIThread.Post(async () => await HandleExternalChangeAsync());
@@ -208,6 +213,20 @@ public partial class MainWindow : Window
         }
     }
 
+    private void DocumentOutline_OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (DocumentOutline.SelectedItem is DocumentOutlineEntry entry) NavigateToOutlineEntry(entry);
+    }
+
+    private void NavigateToOutlineEntry(DocumentOutlineEntry entry)
+    {
+        if (entry.Offset < 0 || entry.Offset > Editor.Text.Length) return;
+        Editor.TextArea.Caret.Offset = entry.Offset;
+        Editor.ScrollToLine(entry.LineNumber);
+        Editor.Focus();
+        UpdateChrome($"Moved to {entry.Text} at line {entry.LineNumber}.");
+    }
+
     internal async Task OpenDocumentAsync(string path)
     {
         try
@@ -312,6 +331,7 @@ public partial class MainWindow : Window
         if (_loading) return;
         _session.UpdateText(Editor.Text);
         SchedulePreview();
+        ScheduleOutline();
         UpdateChrome(_session.IsDirty ? "Unsaved changes — recovery protection active" : "No unsaved changes");
     }
 
@@ -321,11 +341,27 @@ public partial class MainWindow : Window
         _previewTimer.Start();
     }
 
+    private void ScheduleOutline()
+    {
+        _outlineTimer.Stop();
+        _outlineTimer.Start();
+    }
+
     private void RenderPreview()
     {
         _previewTimer.Stop();
         if (!_previewReady) return;
         Preview.NavigateToString(_preview.RenderDocument(Editor.Text, _session.Path));
+    }
+
+    private void RenderOutline()
+    {
+        _outlineTimer.Stop();
+        _outlineEntries.Clear();
+        foreach (var entry in _outline.Parse(Editor.Text)) _outlineEntries.Add(entry);
+        OutlineStatus.Text = _outlineEntries.Count == 0
+            ? "No headings"
+            : $"{_outlineEntries.Count} heading{(_outlineEntries.Count == 1 ? string.Empty : "s")}";
     }
 
     private async Task ProtectIfNeededAsync()
@@ -426,6 +462,7 @@ public partial class MainWindow : Window
         Editor.Document.UndoStack.ClearAll();
         _loading = false;
         RenderPreview();
+        RenderOutline();
     }
 
     private void UpdateChrome(string status)
@@ -451,6 +488,7 @@ public partial class MainWindow : Window
         _closingApproved = true;
         _recoveryTimer.Stop();
         _previewTimer.Stop();
+        _outlineTimer.Stop();
         _monitor.Dispose();
         await _markCleanExit();
         Close();
@@ -490,8 +528,16 @@ public partial class MainWindow : Window
     internal string? ActiveWorkspaceRootForTesting => _folder;
     internal IReadOnlyList<WorkspaceSearchResult> SearchResultsForTesting => _workspaceSearchResults;
     internal string EditorSelectedTextForTesting => Editor.SelectedText;
+    internal int EditorCaretOffsetForTesting => Editor.TextArea.Caret.Offset;
+    internal void SetEditorTextForTesting(string text)
+    {
+        Editor.Text = text;
+        RenderOutline();
+    }
     internal Task SearchWorkspaceForTestingAsync(string query) => SearchWorkspaceAsync(query);
     internal Task OpenSearchResultForTestingAsync(WorkspaceSearchResult result) => OpenSearchResultAsync(result);
+    internal IReadOnlyList<DocumentOutlineEntry> OutlineEntriesForTesting => _outlineEntries;
+    internal void NavigateToOutlineEntryForTesting(DocumentOutlineEntry entry) => NavigateToOutlineEntry(entry);
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {

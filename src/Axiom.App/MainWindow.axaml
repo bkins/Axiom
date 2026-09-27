@@ -73,6 +73,21 @@
                 </ListBox>
               </DockPanel>
             </TabItem>
+            <TabItem Header="Outline">
+              <DockPanel Margin="4">
+                <TextBlock DockPanel.Dock="Top" x:Name="OutlineStatus" Margin="0,0,0,6" Text="No headings" />
+                <ListBox x:Name="DocumentOutline" AutomationProperties.Name="Document outline" DoubleTapped="DocumentOutline_OnDoubleTapped">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate DataType="core:DocumentOutlineEntry">
+                      <Grid ColumnDefinitions="32,*" Margin="0,3">
+                        <TextBlock Opacity="0.65" Text="{Binding Level, StringFormat='H{0}'}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Text}" TextTrimming="CharacterEllipsis" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+            </TabItem>
           </TabControl>
         </DockPanel>
       </Border>
