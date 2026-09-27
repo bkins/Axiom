@@ -64,6 +64,20 @@ public sealed class MarkdownPreviewServiceTests
         Assert.Contains("script-src 'none'", html);
     }
 
+    [Theory]
+    [InlineData(AppearancePreference.System, "system")]
+    [InlineData(AppearancePreference.Light, "light")]
+    [InlineData(AppearancePreference.Dark, "dark")]
+    public void PreviewCarriesTheRequestedAppearance(AppearancePreference preference, string expected)
+    {
+        var html = _service.RenderDocument("# Preview", null, preference);
+
+        Assert.Contains($"<html data-theme=\"{expected}\">", html);
+        Assert.Contains(preference == AppearancePreference.System
+            ? "@media (prefers-color-scheme: light)"
+            : $"html[data-theme=\"{expected}\"]", html);
+    }
+
     [Fact]
     public void LargeDocumentRenderingRemainsBounded()
     {

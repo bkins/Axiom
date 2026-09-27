@@ -199,6 +199,57 @@ public sealed class InfrastructureTests
         Assert.Empty(await reopened.GetPinsAsync(first));
     }
 
+    [Fact]
+    public async Task AppearancePreferencePersistsAndUnknownValuesFallBackToSystem()
+    {
+        using var temp = new TempDirectory();
+        var paths = new AppDataPaths(temp.Path);
+        var store = new SqliteStateStore(paths);
+        await store.InitializeAsync();
+
+        Assert.Equal(AppearancePreference.System, await store.GetAppearanceAsync());
+        await store.SetAppearanceAsync(AppearancePreference.Dark);
+        Assert.Equal(AppearancePreference.Dark, await new SqliteStateStore(paths).GetAppearanceAsync());
+
+        await using var connection = new SqliteConnection($"Data Source={paths.DatabasePath};Pooling=False");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE AppSettings SET SettingValue='Sepia' WHERE SettingKey='Appearance';";
+        await command.ExecuteNonQueryAsync();
+
+        Assert.Equal(AppearancePreference.System, await new SqliteStateStore(paths).GetAppearanceAsync());
+    }
+
+    [Fact]
+    public async Task VersionThreeMigrationPreservesDraftWorkspaceAndPinState()
+    {
+        using var temp = new TempDirectory();
+        var paths = new AppDataPaths(Path.Combine(temp.Path, "state"));
+        var store = new SqliteStateStore(paths);
+        await store.InitializeAsync();
+        var root = Path.Combine(temp.Path, "Workspace");
+        Directory.CreateDirectory(root);
+        var workspace = await new WorkspaceService(store).OpenAsync(root);
+        await store.AddPinAsync(workspace.WorkspaceId, "note.md", DateTimeOffset.UtcNow);
+        await store.SaveDraftAsync(new RecoveryDraft("draft", null, "preserved", DateTimeOffset.UtcNow, null, true));
+
+        await using (var connection = new SqliteConnection($"Data Source={paths.DatabasePath};Pooling=False"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "DROP TABLE AppSettings; UPDATE SchemaInfo SET Version=3;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var migrated = new SqliteStateStore(paths);
+        await migrated.InitializeAsync();
+
+        Assert.Equal(AppearancePreference.System, await migrated.GetAppearanceAsync());
+        Assert.Equal("preserved", Assert.Single(await migrated.GetRecoverableDraftsAsync()).Text);
+        Assert.Equal(workspace.WorkspaceId, (await migrated.GetActiveWorkspaceAsync())!.WorkspaceId);
+        Assert.Equal("note.md", Assert.Single(await migrated.GetPinsAsync(workspace.WorkspaceId)).RelativePath);
+    }
+
     private sealed class TempDirectory : IDisposable
     {
         public TempDirectory()

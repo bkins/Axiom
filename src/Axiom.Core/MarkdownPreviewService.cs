@@ -13,7 +13,10 @@ public sealed class MarkdownPreviewService
         .DisableHtml()
         .Build();
 
-    public string RenderDocument(string markdown, string? documentPath)
+    public string RenderDocument(
+        string markdown,
+        string? documentPath,
+        AppearancePreference appearance = AppearancePreference.System)
     {
         // Identity is source metadata: preserve it in Markdown/editor but not in preview.
         // Fenced examples are unaffected because the marker must be on the first line.
@@ -21,7 +24,7 @@ public sealed class MarkdownPreviewService
         var baseElement = BuildBaseElement(documentPath);
         return $$"""
             <!doctype html>
-            <html><head><meta charset="utf-8">
+            <html data-theme="{{appearance.ToString().ToLowerInvariant()}}"><head><meta charset="utf-8">
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src file: data:; style-src 'unsafe-inline'; font-src 'none'; media-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'; script-src 'none'">
             {{baseElement}}
             <style>
@@ -35,6 +38,14 @@ public sealed class MarkdownPreviewService
                 --page: #ffffff; --text: #1f2937; --muted: #526071; --surface: #f3f4f6;
                 --border: #cbd5e1; --accent: #1d4ed8; --quote: #6d28d9; --heading-rule: #e2e8f0;
               }
+            }
+            html[data-theme="light"] {
+              --page: #ffffff; --text: #1f2937; --muted: #526071; --surface: #f3f4f6;
+              --border: #cbd5e1; --accent: #1d4ed8; --quote: #6d28d9; --heading-rule: #e2e8f0;
+            }
+            html[data-theme="dark"] {
+              --page: #111827; --text: #e5e7eb; --muted: #a8b3c4; --surface: #1f2937;
+              --border: #4b5563; --accent: #93c5fd; --quote: #a78bfa; --heading-rule: #334155;
             }
             * { box-sizing: border-box; }
             html { background: var(--page); }

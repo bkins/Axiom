@@ -3,9 +3,9 @@ using Microsoft.Data.Sqlite;
 
 namespace Axiom.Infrastructure;
 
-public sealed class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore
+public sealed class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
     private string ConnectionString => new SqliteConnectionStringBuilder
     {
@@ -79,7 +79,41 @@ public sealed class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) 
                 UPDATE SchemaInfo SET Version = 3;
                 """, cancellationToken);
         }
+        if (schemaVersion < 4)
+        {
+            await ExecuteAsync(connection, """
+                CREATE TABLE IF NOT EXISTS AppSettings (
+                    SettingKey TEXT PRIMARY KEY,
+                    SettingValue TEXT NOT NULL
+                );
+                UPDATE SchemaInfo SET Version = 4;
+                """, cancellationToken);
+        }
         _log.Information("database.initialized", paths.DatabasePath);
+    }
+
+    public async Task<AppearancePreference> GetAppearanceAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT SettingValue FROM AppSettings WHERE SettingKey='Appearance' LIMIT 1;";
+        var value = await command.ExecuteScalarAsync(cancellationToken) as string;
+        return Enum.TryParse<AppearancePreference>(value, ignoreCase: true, out var preference) && Enum.IsDefined(preference)
+            ? preference
+            : AppearancePreference.System;
+    }
+
+    public async Task SetAppearanceAsync(AppearancePreference preference, CancellationToken cancellationToken = default)
+    {
+        if (!Enum.IsDefined(preference)) preference = AppearancePreference.System;
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO AppSettings(SettingKey, SettingValue) VALUES('Appearance', $value)
+            ON CONFLICT(SettingKey) DO UPDATE SET SettingValue=excluded.SettingValue;
+            """;
+        command.Parameters.AddWithValue("$value", preference.ToString());
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task<WorkspaceRecord> OpenWorkspaceAsync(

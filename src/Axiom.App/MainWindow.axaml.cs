@@ -1,9 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Axiom.Core;
 using Axiom.Infrastructure;
@@ -22,6 +25,7 @@ public partial class MainWindow : Window
     private readonly ApplicationBuildIdentity _buildIdentity = ApplicationBuildIdentity.FromAssembly(typeof(MainWindow).Assembly);
     private readonly IDocumentFileStore _files;
     private readonly IRecoveryStore _recovery;
+    private readonly IAppearanceStore _appearanceStore;
     private readonly MarkdownPreviewService _preview;
     private readonly ExternalFileMonitor _monitor;
     private readonly IAxiomLog _log;
@@ -45,6 +49,7 @@ public partial class MainWindow : Window
     private IReadOnlyDictionary<Guid, IReadOnlyList<string>> _duplicates = new Dictionary<Guid, IReadOnlyList<string>>();
     private CancellationTokenSource? _workspaceSearchCancellation;
     private int _workspaceSearchGeneration;
+    private AppearancePreference _appearance;
 
     public MainWindow() : this(DesignComposition.Create()) { }
 
@@ -53,6 +58,8 @@ public partial class MainWindow : Window
         composition.Workspaces,
         composition.Files,
         composition.State,
+        composition.State,
+        AppearancePreference.System,
         new MarkdownPreviewService(),
         new ExternalFileMonitor(),
         composition.Log,
@@ -64,6 +71,8 @@ public partial class MainWindow : Window
         WorkspaceService workspaces,
         IDocumentFileStore files,
         IRecoveryStore recovery,
+        IAppearanceStore appearanceStore,
+        AppearancePreference appearance,
         MarkdownPreviewService preview,
         ExternalFileMonitor monitor,
         IAxiomLog log,
@@ -74,6 +83,8 @@ public partial class MainWindow : Window
         _files = files;
         _workspaceSearch = new WorkspaceSearchService(files);
         _recovery = recovery;
+        _appearanceStore = appearanceStore;
+        _appearance = Enum.IsDefined(appearance) ? appearance : AppearancePreference.System;
         _preview = preview;
         _monitor = monitor;
         _log = log;
@@ -86,6 +97,8 @@ public partial class MainWindow : Window
         DocumentOutline.ItemsSource = _outlineEntries;
         PinnedDocuments.ItemsSource = _workspacePins;
         BuildIdentityText.Text = _buildIdentity.DisplayText;
+        SetRequestedAppearance(_appearance);
+        ActualThemeVariantChanged += (_, _) => ApplyAppearanceVisuals();
         Editor.TextChanged += (_, _) => EditorTextChanged();
         Preview.AdapterCreated += (_, _) => { _previewReady = true; RenderPreview(); };
         Preview.NavigationCompleted += async (_, args) => await RestorePreviewScrollAsync(args.IsSuccess);
@@ -103,6 +116,7 @@ public partial class MainWindow : Window
         Opened += async (_, _) => await RestoreDraftIfAvailableAsync();
         Closing += MainWindow_Closing;
         AddHandler(KeyDownEvent, Window_OnKeyDown, RoutingStrategies.Tunnel);
+        ApplyAppearanceVisuals();
         LoadSession(_session, "New unsaved document");
     }
 
@@ -385,6 +399,73 @@ public partial class MainWindow : Window
         InsertImageReference(imagePath);
     }
 
+    private async void Appearance_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: string value } ||
+            !Enum.TryParse<AppearancePreference>(value, ignoreCase: true, out var preference))
+            return;
+        await ApplyAppearanceAsync(preference);
+    }
+
+    private async Task ApplyAppearanceAsync(AppearancePreference preference)
+    {
+        if (!Enum.IsDefined(preference)) preference = AppearancePreference.System;
+        _appearance = preference;
+        SetRequestedAppearance(preference);
+        ApplyAppearanceVisuals();
+        RenderPreview(preservePosition: true);
+        try
+        {
+            await _appearanceStore.SetAppearanceAsync(preference);
+            UpdateChrome($"Using {preference} appearance.");
+        }
+        catch (Exception exception)
+        {
+            ReportError("appearance.save.failed", exception, null);
+        }
+    }
+
+    private static void SetRequestedAppearance(AppearancePreference preference)
+    {
+        if (Application.Current is null) return;
+        Application.Current.RequestedThemeVariant = preference switch
+        {
+            AppearancePreference.Light => ThemeVariant.Light,
+            AppearancePreference.Dark => ThemeVariant.Dark,
+            _ => ThemeVariant.Default
+        };
+    }
+
+    private void ApplyAppearanceVisuals()
+    {
+        var dark = _appearance == AppearancePreference.Dark ||
+            (_appearance == AppearancePreference.System && ActualThemeVariant == ThemeVariant.Dark);
+        var page = MakeBrush(dark ? "#111827" : "#FFFFFF");
+        var surface = MakeBrush(dark ? "#1F2937" : "#F3F4F6");
+        var border = MakeBrush(dark ? "#374151" : "#CBD5E1");
+        var text = MakeBrush(dark ? "#E5E7EB" : "#1F2937");
+        var warningPage = MakeBrush(dark ? "#451A03" : "#FEF3C7");
+        var warningText = MakeBrush(dark ? "#FDE68A" : "#78350F");
+
+        Background = page;
+        Foreground = text;
+        TopCommandBar.Background = surface;
+        TopCommandBar.BorderBrush = border;
+        BottomStatusBar.Background = page;
+        BottomStatusBar.BorderBrush = border;
+        WorkspaceSidebar.BorderBrush = border;
+        WorkspaceSplitter.Background = border;
+        EditorPreviewSplitter.Background = border;
+        Editor.Background = page;
+        Editor.Foreground = text;
+        ConflictBanner.Background = warningPage;
+        ConflictBanner.BorderBrush = MakeBrush(dark ? "#D97706" : "#F59E0B");
+        ConflictText.Foreground = warningText;
+        AppearanceButton.Content = $"Theme: {_appearance}";
+    }
+
+    private static SolidColorBrush MakeBrush(string value) => new(Color.Parse(value));
+
     private bool InsertImageReference(string imagePath)
     {
         if (_folder is null || _session.Path is null)
@@ -591,7 +672,7 @@ public partial class MainWindow : Window
 
         if (generation != _previewRenderGeneration) return;
         _pendingPreviewScrollRatio = scrollRatio;
-        Preview.NavigateToString(_preview.RenderDocument(Editor.Text, _session.Path));
+        Preview.NavigateToString(_preview.RenderDocument(Editor.Text, _session.Path, _appearance));
     }
 
     private async Task RestorePreviewScrollAsync(bool navigationSucceeded)
@@ -893,6 +974,8 @@ public partial class MainWindow : Window
         BuildPreviewScrollRestoreScript(ratio);
     internal bool InsertImageReferenceForTesting(string imagePath) => InsertImageReference(imagePath);
     internal bool CanInsertImageReferenceForTesting => CanInsertImageReference();
+    internal Task ApplyAppearanceForTestingAsync(AppearancePreference preference) => ApplyAppearanceAsync(preference);
+    internal AppearancePreference AppearanceForTesting => _appearance;
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {

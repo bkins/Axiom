@@ -187,7 +187,7 @@ public sealed class MainWindowTests
             await state.InitializeAsync();
             var files = new FileDocumentStore(new NullAxiomLog());
             var documents = new DocumentService(files, state, state, new NullAxiomLog());
-            var window = new MainWindow(documents, new WorkspaceService(state), files, state, new MarkdownPreviewService(), new ExternalFileMonitor(), new NullAxiomLog(), () => Task.CompletedTask);
+            var window = new MainWindow(documents, new WorkspaceService(state), files, state, state, AppearancePreference.System, new MarkdownPreviewService(), new ExternalFileMonitor(), new NullAxiomLog(), () => Task.CompletedTask);
             await window.LoadFolderAsync(root);
             await window.OpenDocumentAsync(path);
 
@@ -364,6 +364,45 @@ public sealed class MainWindowTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task AppearanceSwitchPreservesEditorStateUndoAndPersists()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "theme.md");
+            await File.WriteAllTextAsync(path, "Theme text");
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+            await window.OpenDocumentAsync(path);
+            window.SetEditorSelectionForTesting(0, 5);
+            Assert.True(window.ApplyMarkdownEditForTesting(MarkdownEditKind.Bold));
+            var text = window.EditorTextForTesting;
+            var selection = window.EditorSelectedTextForTesting;
+            var caret = window.EditorCaretOffsetForTesting;
+
+            await window.ApplyAppearanceForTestingAsync(AppearancePreference.Dark);
+            await window.ApplyAppearanceForTestingAsync(AppearancePreference.Light);
+
+            Assert.Equal(AppearancePreference.Light, window.AppearanceForTesting);
+            Assert.Equal(text, window.EditorTextForTesting);
+            Assert.Equal(selection, window.EditorSelectedTextForTesting);
+            Assert.Equal(caret, window.EditorCaretOffsetForTesting);
+            Assert.True(window.EditorCanUndoForTesting);
+            var saved = new SqliteStateStore(new AppDataPaths(Path.Combine(root, "state")));
+            Assert.Equal(AppearancePreference.Light, await saved.GetAppearanceAsync());
+
+            window.UndoEditorForTesting();
+            Assert.Equal("Theme text", window.EditorTextForTesting);
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static MainWindow CreateWindow(string root)
     {
         var paths = new AppDataPaths(Path.Combine(root, "state"));
@@ -373,6 +412,6 @@ public sealed class MainWindowTests
         state.InitializeAsync().GetAwaiter().GetResult();
         var files = new FileDocumentStore(log);
         var documents = new DocumentService(files, state, state, log);
-        return new MainWindow(documents, new WorkspaceService(state), files, state, new MarkdownPreviewService(), new ExternalFileMonitor(), log, () => Task.CompletedTask);
+        return new MainWindow(documents, new WorkspaceService(state), files, state, state, AppearancePreference.System, new MarkdownPreviewService(), new ExternalFileMonitor(), log, () => Task.CompletedTask);
     }
 }
