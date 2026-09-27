@@ -1,4 +1,5 @@
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Axiom.App;
 using Axiom.Core;
 using Axiom.Infrastructure;
@@ -199,6 +200,69 @@ public sealed class MainWindowTests
 
             Assert.Empty(await state.GetRecoverableDraftsAsync());
             Assert.Equal("Recovery ready", window.RecoveryContextForTesting);
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task FormattingActionIsOneUndoableUnsavedEditAndParticipatesInRecovery()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "format.md");
+            await File.WriteAllTextAsync(path, "Format me");
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+            await window.OpenDocumentAsync(path);
+            window.SetEditorSelectionForTesting(0, 6);
+
+            Assert.True(window.ApplyMarkdownEditForTesting(MarkdownEditKind.Bold));
+
+            Assert.Equal("**Format** me", window.EditorTextForTesting);
+            Assert.Contains("Unsaved", window.DocumentStateForTesting);
+            Assert.True(window.EditorCanUndoForTesting);
+            await window.ProtectIfNeededForTestingAsync();
+            Assert.StartsWith("Protected ", window.RecoveryContextForTesting);
+
+            window.UndoEditorForTesting();
+
+            Assert.Equal("Format me", window.EditorTextForTesting);
+            Assert.Contains("Saved", window.DocumentStateForTesting);
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task MarkdownShortcutsAreScopedToTheEditor()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "shortcuts.md");
+            await File.WriteAllTextAsync(path, "text");
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+            await window.OpenDocumentAsync(path);
+            window.SetEditorSelectionForTesting(0, 4);
+
+            Assert.False(window.HandleMarkdownShortcutForTesting(Key.B, KeyModifiers.Control, editorHasFocus: false));
+            Assert.Equal("text", window.EditorTextForTesting);
+            Assert.True(window.HandleMarkdownShortcutForTesting(Key.B, KeyModifiers.Control, editorHasFocus: true));
+            Assert.Equal("**text**", window.EditorTextForTesting);
+            Assert.False(window.HandleMarkdownShortcutForTesting(Key.B, KeyModifiers.Control | KeyModifiers.Alt, editorHasFocus: true));
+            window.UndoEditorForTesting();
+            Assert.Equal("text", window.EditorTextForTesting);
             window.Close();
         }
         finally

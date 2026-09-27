@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private readonly WorkspaceService _workspaces;
     private readonly WorkspaceSearchService _workspaceSearch;
     private readonly DocumentOutlineService _outline = new();
+    private readonly MarkdownEditService _markdownEditing = new();
     private readonly ApplicationBuildIdentity _buildIdentity = ApplicationBuildIdentity.FromAssembly(typeof(MainWindow).Assembly);
     private readonly IDocumentFileStore _files;
     private readonly IRecoveryStore _recovery;
@@ -95,7 +96,7 @@ public partial class MainWindow : Window
         _monitor.Renamed += (_, pair) => Dispatcher.UIThread.Post(() => HandleRename(pair.OldPath, pair.NewPath));
         Opened += async (_, _) => await RestoreDraftIfAvailableAsync();
         Closing += MainWindow_Closing;
-        KeyDown += Window_OnKeyDown;
+        AddHandler(KeyDownEvent, Window_OnKeyDown, RoutingStrategies.Tunnel);
         LoadSession(_session, "New unsaved document");
     }
 
@@ -348,6 +349,73 @@ public partial class MainWindow : Window
     private void Undo_OnClick(object? sender, RoutedEventArgs e) { if (Editor.CanUndo) Editor.Undo(); }
     private void Redo_OnClick(object? sender, RoutedEventArgs e) { if (Editor.CanRedo) Editor.Redo(); }
 
+    private void Format_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: string value } || !Enum.TryParse<MarkdownEditKind>(value, out var kind)) return;
+        ApplyMarkdownEdit(kind);
+    }
+
+    private bool ApplyMarkdownEdit(MarkdownEditKind kind)
+    {
+        var result = _markdownEditing.Apply(Editor.Text, Editor.SelectionStart, Editor.SelectionLength, kind);
+        if (!result.Changed)
+        {
+            UpdateChrome(SelectionTouchesIdentityLine(Editor.Text, Editor.SelectionStart, Editor.SelectionLength)
+                ? "The Axiom document identity line cannot be formatted."
+                : "No formatting change was needed.");
+            return false;
+        }
+
+        Editor.Document.UndoStack.StartUndoGroup();
+        try
+        {
+            Editor.Document.Replace(0, Editor.Document.TextLength, result.Text);
+        }
+        finally
+        {
+            Editor.Document.UndoStack.EndUndoGroup();
+        }
+        Editor.Select(result.SelectionStart, result.SelectionLength);
+        Editor.TextArea.Caret.BringCaretToView();
+        Editor.Focus();
+        UpdateChrome($"Applied {GetMarkdownEditLabel(kind)} formatting.");
+        return true;
+    }
+
+    private static bool SelectionTouchesIdentityLine(string text, int start, int length)
+    {
+        if (DocumentIdCodec.Find(text) is null) return false;
+        var newlineIndex = text.IndexOf('\n');
+        var protectedLength = newlineIndex < 0 ? text.Length : newlineIndex + 1;
+        return length == 0 ? start < protectedLength : start < protectedLength && start + length > 0;
+    }
+
+    private bool TryHandleMarkdownShortcut(Key key, KeyModifiers modifiers, bool editorHasFocus)
+    {
+        if (!editorHasFocus || !modifiers.HasFlag(KeyModifiers.Control) || modifiers.HasFlag(KeyModifiers.Alt)) return false;
+        var kind = key switch
+        {
+            Key.B => MarkdownEditKind.Bold,
+            Key.I => MarkdownEditKind.Italic,
+            Key.K => MarkdownEditKind.Link,
+            _ => (MarkdownEditKind?)null
+        };
+        return kind is not null && ApplyMarkdownEdit(kind.Value);
+    }
+
+    private static string GetMarkdownEditLabel(MarkdownEditKind kind) => kind switch
+    {
+        MarkdownEditKind.Heading1 => "heading 1",
+        MarkdownEditKind.Heading2 => "heading 2",
+        MarkdownEditKind.Heading3 => "heading 3",
+        MarkdownEditKind.UnorderedList => "bulleted list",
+        MarkdownEditKind.OrderedList => "numbered list",
+        MarkdownEditKind.TaskList => "task list",
+        MarkdownEditKind.FencedCode => "fenced code block",
+        MarkdownEditKind.InlineCode => "inline code",
+        _ => kind.ToString().ToLowerInvariant()
+    };
+
     private void Enroll_OnClick(object? sender, RoutedEventArgs e)
     {
         if (_session.DocumentId is not null) return;
@@ -569,6 +637,11 @@ public partial class MainWindow : Window
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+        if (TryHandleMarkdownShortcut(e.Key, e.KeyModifiers, Editor.IsKeyboardFocusWithin))
+        {
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.S)
         {
             await SaveDocumentAsync(e.KeyModifiers.HasFlag(KeyModifiers.Shift));
@@ -622,6 +695,12 @@ public partial class MainWindow : Window
     internal string PathContextForTesting => PathText.Text ?? string.Empty;
     internal string RecoveryContextForTesting => RecoveryText.Text ?? string.Empty;
     internal Task ProtectIfNeededForTestingAsync() => ProtectIfNeededAsync();
+    internal void SetEditorSelectionForTesting(int start, int length) => Editor.Select(start, length);
+    internal bool ApplyMarkdownEditForTesting(MarkdownEditKind kind) => ApplyMarkdownEdit(kind);
+    internal bool HandleMarkdownShortcutForTesting(Key key, KeyModifiers modifiers, bool editorHasFocus) =>
+        TryHandleMarkdownShortcut(key, modifiers, editorHasFocus);
+    internal bool EditorCanUndoForTesting => Editor.CanUndo;
+    internal void UndoEditorForTesting() => Editor.Undo();
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {

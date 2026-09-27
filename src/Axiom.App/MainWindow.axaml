@@ -18,6 +18,27 @@
           <Button AutomationProperties.Name="Undo" Click="Undo_OnClick">Undo</Button>
           <Button AutomationProperties.Name="Redo" Click="Redo_OnClick">Redo</Button>
           <Separator Width="1" Margin="4,0" />
+          <Button AutomationProperties.Name="Format Markdown" ToolTip.Tip="Format selected Markdown or insert a placeholder">Format…
+            <Button.Flyout>
+              <MenuFlyout>
+                <MenuItem Header="Bold    Ctrl+B" Tag="Bold" AutomationProperties.Name="Bold Markdown" Click="Format_OnClick" />
+                <MenuItem Header="Italic    Ctrl+I" Tag="Italic" AutomationProperties.Name="Italic Markdown" Click="Format_OnClick" />
+                <MenuItem Header="Inline code" Tag="InlineCode" AutomationProperties.Name="Inline code Markdown" Click="Format_OnClick" />
+                <MenuItem Header="Link    Ctrl+K" Tag="Link" AutomationProperties.Name="Markdown link" Click="Format_OnClick" />
+                <Separator />
+                <MenuItem Header="Paragraph" Tag="Paragraph" AutomationProperties.Name="Markdown paragraph" Click="Format_OnClick" />
+                <MenuItem Header="Heading 1" Tag="Heading1" AutomationProperties.Name="Markdown heading 1" Click="Format_OnClick" />
+                <MenuItem Header="Heading 2" Tag="Heading2" AutomationProperties.Name="Markdown heading 2" Click="Format_OnClick" />
+                <MenuItem Header="Heading 3" Tag="Heading3" AutomationProperties.Name="Markdown heading 3" Click="Format_OnClick" />
+                <Separator />
+                <MenuItem Header="Bulleted list" Tag="UnorderedList" AutomationProperties.Name="Markdown bulleted list" Click="Format_OnClick" />
+                <MenuItem Header="Numbered list" Tag="OrderedList" AutomationProperties.Name="Markdown numbered list" Click="Format_OnClick" />
+                <MenuItem Header="Task list" Tag="TaskList" AutomationProperties.Name="Markdown task list" Click="Format_OnClick" />
+                <MenuItem Header="Fenced code block" Tag="FencedCode" AutomationProperties.Name="Markdown fenced code block" Click="Format_OnClick" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+          <Separator Width="1" Margin="4,0" />
           <Button x:Name="EnrollButton" AutomationProperties.Name="Make Axiom Document" Click="Enroll_OnClick">Make Axiom Document</Button>
           <Button x:Name="PinButton" AutomationProperties.Name="Pin current document" Click="Pin_OnClick">Pin</Button>
         </StackPanel>
