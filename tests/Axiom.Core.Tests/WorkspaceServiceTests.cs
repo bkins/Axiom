@@ -41,6 +41,16 @@ public sealed class WorkspaceServiceTests
         Assert.All(alpha.Children, node => Assert.True(node.IsDocument));
     }
 
+    [Fact]
+    public void PinPathMustBeMarkdownInsideTheWorkspace()
+    {
+        var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "AxiomWorkspaceTests", Guid.NewGuid().ToString("N")));
+
+        Assert.Equal(Path.Combine("nested", "note.md"), WorkspaceService.GetRelativeDocumentPath(root, Path.Combine(root, "nested", "note.md")));
+        Assert.Throws<ArgumentOutOfRangeException>(() => WorkspaceService.GetRelativeDocumentPath(root, Path.Combine(root, "note.txt")));
+        Assert.Throws<ArgumentOutOfRangeException>(() => WorkspaceService.GetRelativeDocumentPath(root, Path.Combine(Path.GetDirectoryName(root)!, "outside.md")));
+    }
+
     private sealed class MemoryWorkspaceStore : IWorkspaceStore
     {
         private WorkspaceRecord? _active;
@@ -53,5 +63,10 @@ public sealed class WorkspaceServiceTests
 
         public Task<WorkspaceRecord?> GetActiveWorkspaceAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(_active);
+
+        public Task<IReadOnlyList<WorkspacePin>> GetPinsAsync(Guid workspaceId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<WorkspacePin>>([]);
+        public Task AddPinAsync(Guid workspaceId, string relativePath, DateTimeOffset pinnedUtc, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task RemovePinAsync(Guid workspaceId, string relativePath, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

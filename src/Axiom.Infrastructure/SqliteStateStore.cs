@@ -5,7 +5,7 @@ namespace Axiom.Infrastructure;
 
 public sealed class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
     private string ConnectionString => new SqliteConnectionStringBuilder
     {
@@ -64,6 +64,19 @@ public sealed class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) 
                     FOREIGN KEY (WorkspaceId) REFERENCES Workspaces(WorkspaceId) ON DELETE CASCADE
                 );
                 UPDATE SchemaInfo SET Version = 2;
+                """, cancellationToken);
+        }
+        if (schemaVersion < 3)
+        {
+            await ExecuteAsync(connection, """
+                CREATE TABLE IF NOT EXISTS WorkspacePins (
+                    WorkspaceId TEXT NOT NULL,
+                    RelativePath TEXT NOT NULL COLLATE NOCASE,
+                    PinnedUtc TEXT NOT NULL,
+                    PRIMARY KEY (WorkspaceId, RelativePath),
+                    FOREIGN KEY (WorkspaceId) REFERENCES Workspaces(WorkspaceId) ON DELETE CASCADE
+                );
+                UPDATE SchemaInfo SET Version = 3;
                 """, cancellationToken);
         }
         _log.Information("database.initialized", paths.DatabasePath);
@@ -145,6 +158,43 @@ public sealed class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) 
             """;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         return await reader.ReadAsync(cancellationToken) ? ReadWorkspace(reader) : null;
+    }
+
+    public async Task<IReadOnlyList<WorkspacePin>> GetPinsAsync(Guid workspaceId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT RelativePath, PinnedUtc FROM WorkspacePins WHERE WorkspaceId=$id ORDER BY RelativePath COLLATE NOCASE;";
+        command.Parameters.AddWithValue("$id", workspaceId.ToString("D"));
+        var pins = new List<WorkspacePin>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            pins.Add(new WorkspacePin(reader.GetString(0), DateTimeOffset.Parse(reader.GetString(1))));
+        return pins;
+    }
+
+    public async Task AddPinAsync(Guid workspaceId, string relativePath, DateTimeOffset pinnedUtc, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO WorkspacePins(WorkspaceId, RelativePath, PinnedUtc) VALUES($id, $path, $pinned)
+            ON CONFLICT(WorkspaceId, RelativePath) DO UPDATE SET PinnedUtc=excluded.PinnedUtc;
+            """;
+        command.Parameters.AddWithValue("$id", workspaceId.ToString("D"));
+        command.Parameters.AddWithValue("$path", relativePath);
+        command.Parameters.AddWithValue("$pinned", pinnedUtc.ToString("O"));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task RemovePinAsync(Guid workspaceId, string relativePath, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM WorkspacePins WHERE WorkspaceId=$id AND RelativePath=$path COLLATE NOCASE;";
+        command.Parameters.AddWithValue("$id", workspaceId.ToString("D"));
+        command.Parameters.AddWithValue("$path", relativePath);
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task<string> BeginSessionAsync(CancellationToken cancellationToken = default)

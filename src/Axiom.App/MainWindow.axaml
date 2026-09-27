@@ -19,6 +19,7 @@
           <Button AutomationProperties.Name="Redo" Click="Redo_OnClick">Redo</Button>
           <Separator Width="1" Margin="4,0" />
           <Button x:Name="EnrollButton" AutomationProperties.Name="Make Axiom Document" Click="Enroll_OnClick">Make Axiom Document</Button>
+          <Button x:Name="PinButton" AutomationProperties.Name="Pin current document" Click="Pin_OnClick">Pin</Button>
         </StackPanel>
         <TextBlock x:Name="StatusText" Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
       </Grid>
@@ -39,18 +40,28 @@
           <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" Foreground="#B45309" TextWrapping="Wrap" />
           <TabControl>
             <TabItem Header="Explorer">
-              <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped">
-                <TreeView.DataTemplates>
-                  <TreeDataTemplate DataType="core:WorkspaceTreeNode" ItemsSource="{Binding Children}">
-                    <TextBlock Text="{Binding Name}" />
-                  </TreeDataTemplate>
-                </TreeView.DataTemplates>
-                <TreeView.Styles>
-                  <Style Selector="TreeViewItem">
-                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-                  </Style>
-                </TreeView.Styles>
-              </TreeView>
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Pinned" />
+                    <Button Grid.Column="1" AutomationProperties.Name="Remove selected pin" Click="RemovePin_OnClick">Remove</Button>
+                  </Grid>
+                  <ListBox x:Name="PinnedDocuments" MaxHeight="120" AutomationProperties.Name="Pinned documents" DoubleTapped="PinnedDocuments_OnDoubleTapped" />
+                  <Separator Margin="0,6,0,0" />
+                </StackPanel>
+                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped">
+                  <TreeView.DataTemplates>
+                    <TreeDataTemplate DataType="core:WorkspaceTreeNode" ItemsSource="{Binding Children}">
+                      <TextBlock Text="{Binding Name}" />
+                    </TreeDataTemplate>
+                  </TreeView.DataTemplates>
+                  <TreeView.Styles>
+                    <Style Selector="TreeViewItem">
+                      <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                    </Style>
+                  </TreeView.Styles>
+                </TreeView>
+              </DockPanel>
             </TabItem>
             <TabItem Header="Search">
               <DockPanel Margin="4">

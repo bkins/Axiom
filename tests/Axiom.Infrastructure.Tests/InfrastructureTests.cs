@@ -172,6 +172,33 @@ public sealed class InfrastructureTests
         Assert.Equal(2, Convert.ToInt32(await versionCommand.ExecuteScalarAsync()));
     }
 
+    [Fact]
+    public async Task WorkspacePinsPersistPerWorkspaceAndCanBeRemoved()
+    {
+        using var temp = new TempDirectory();
+        var paths = new AppDataPaths(Path.Combine(temp.Path, "state"));
+        var store = new SqliteStateStore(paths);
+        await store.InitializeAsync();
+        var service = new WorkspaceService(store);
+        var firstRoot = Path.Combine(temp.Path, "First");
+        var secondRoot = Path.Combine(temp.Path, "Second");
+        Directory.CreateDirectory(firstRoot);
+        Directory.CreateDirectory(secondRoot);
+        var first = await service.OpenAsync(firstRoot);
+        var second = await service.OpenAsync(secondRoot);
+
+        await service.PinAsync(first, Path.Combine(firstRoot, "note.md"));
+        await service.PinAsync(second, Path.Combine(secondRoot, "other.markdown"));
+        var reopened = new WorkspaceService(new SqliteStateStore(paths));
+        var firstPins = await reopened.GetPinsAsync(first);
+        var secondPins = await reopened.GetPinsAsync(second);
+        await reopened.RemovePinAsync(first, Assert.Single(firstPins));
+
+        Assert.Equal("note.md", Assert.Single(firstPins).RelativePath);
+        Assert.Equal("other.markdown", Assert.Single(secondPins).RelativePath);
+        Assert.Empty(await reopened.GetPinsAsync(first));
+    }
+
     private sealed class TempDirectory : IDisposable
     {
         public TempDirectory()

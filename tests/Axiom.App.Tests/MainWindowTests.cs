@@ -128,6 +128,36 @@ public sealed class MainWindowTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task OrdinaryMarkdownCanBePinnedWithoutChangingTheFile()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomUiTests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "ordinary.md");
+            const string text = "# Ordinary\n\nNo identity marker.";
+            await File.WriteAllTextAsync(path, text);
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+            await window.OpenDocumentAsync(path);
+
+            await window.ToggleCurrentPinForTestingAsync();
+
+            Assert.Equal("ordinary.md", Assert.Single(window.WorkspacePinsForTesting).RelativePath);
+            Assert.Equal("Unpin", window.PinButtonTextForTesting);
+            Assert.Equal(text, await File.ReadAllTextAsync(path));
+            File.Delete(path);
+            await window.LoadFolderAsync(root);
+            Assert.Single(window.WorkspacePinsForTesting);
+            window.Close();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static MainWindow CreateWindow(string root)
     {
         var paths = new AppDataPaths(Path.Combine(root, "state"));

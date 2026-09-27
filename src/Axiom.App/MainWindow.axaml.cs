@@ -28,8 +28,10 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<WorkspaceTreeNode> _workspaceTree = [];
     private readonly ObservableCollection<WorkspaceSearchResult> _workspaceSearchResults = [];
     private readonly ObservableCollection<DocumentOutlineEntry> _outlineEntries = [];
+    private readonly ObservableCollection<WorkspacePin> _workspacePins = [];
     private DocumentSession _session;
     private string? _folder;
+    private WorkspaceRecord? _activeWorkspace;
     private string? _lastProtectedText;
     private bool _loading;
     private bool _previewReady;
@@ -76,6 +78,7 @@ public partial class MainWindow : Window
         FileTree.ItemsSource = _workspaceTree;
         WorkspaceSearchResults.ItemsSource = _workspaceSearchResults;
         DocumentOutline.ItemsSource = _outlineEntries;
+        PinnedDocuments.ItemsSource = _workspacePins;
         BuildIdentityText.Text = _buildIdentity.DisplayText;
         Editor.TextChanged += (_, _) => EditorTextChanged();
         Preview.AdapterCreated += (_, _) => { _previewReady = true; RenderPreview(); };
@@ -122,6 +125,7 @@ public partial class MainWindow : Window
 
         var expandedPaths = Traverse(_workspaceTree).Where(node => node.IsExpanded).Select(node => node.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
         _folder = workspace.RootPath;
+        _activeWorkspace = workspace;
         _workspaceTree.Clear();
         foreach (var node in WorkspaceTreeBuilder.Build(_folder, discovery.Files))
         {
@@ -129,6 +133,7 @@ public partial class MainWindow : Window
             _workspaceTree.Add(node);
         }
         _duplicates = duplicates;
+        await RefreshPinsAsync();
         var warnings = new List<string>();
         if (_duplicates.Count != 0)
             warnings.Add($"Identity warning: {_duplicates.Count} copied document ID{(_duplicates.Count == 1 ? string.Empty : "s")} must be made distinct when opened.");
@@ -144,6 +149,51 @@ public partial class MainWindow : Window
         if (_folder is null || FileTree.SelectedItem is not WorkspaceTreeNode { IsDocument: true } selected) return;
         if (!await ConfirmSafeToReplaceSessionAsync()) return;
         await OpenDocumentAsync(Path.Combine(_folder, selected.RelativePath));
+    }
+
+    private async void Pin_OnClick(object? sender, RoutedEventArgs e) => await ToggleCurrentPinAsync();
+
+    private async Task ToggleCurrentPinAsync()
+    {
+        if (_activeWorkspace is null || _session.Path is null || !IsWithinFolder(_session.Path, _activeWorkspace.RootPath)) return;
+        var relativePath = WorkspaceService.GetRelativeDocumentPath(_activeWorkspace.RootPath, _session.Path);
+        if (_workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase)))
+            await _workspaces.UnpinAsync(_activeWorkspace, _session.Path);
+        else
+            await _workspaces.PinAsync(_activeWorkspace, _session.Path);
+        await RefreshPinsAsync();
+        UpdateChrome(_workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase))
+            ? $"Pinned {relativePath}."
+            : $"Unpinned {relativePath}.");
+    }
+
+    private async void RemovePin_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_activeWorkspace is null || PinnedDocuments.SelectedItem is not WorkspacePin pin) return;
+        await _workspaces.RemovePinAsync(_activeWorkspace, pin);
+        await RefreshPinsAsync();
+        UpdateChrome($"Removed pin {pin.RelativePath}.");
+    }
+
+    private async void PinnedDocuments_OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (_activeWorkspace is null || PinnedDocuments.SelectedItem is not WorkspacePin pin) return;
+        var path = Path.Combine(_activeWorkspace.RootPath, pin.RelativePath);
+        if (!await _files.ExistsAsync(path))
+        {
+            UpdateChrome($"Pinned document is missing: {pin.RelativePath}. Remove the pin when it is no longer needed.");
+            return;
+        }
+        if (!await ConfirmSafeToReplaceSessionAsync()) return;
+        await OpenDocumentAsync(path);
+    }
+
+    private async Task RefreshPinsAsync()
+    {
+        _workspacePins.Clear();
+        if (_activeWorkspace is not null)
+            foreach (var pin in await _workspaces.GetPinsAsync(_activeWorkspace)) _workspacePins.Add(pin);
+        UpdatePinButton();
     }
 
     private async void WorkspaceSearch_OnClick(object? sender, RoutedEventArgs e) =>
@@ -474,6 +524,16 @@ public partial class MainWindow : Window
         StatusText.Text = status;
         PathText.Text = _session.Path ?? _folder ?? "Unsaved document";
         EnrollButton.IsVisible = _session.DocumentId is null;
+        UpdatePinButton();
+    }
+
+    private void UpdatePinButton()
+    {
+        var canPin = _activeWorkspace is not null && _session.Path is not null && IsWithinFolder(_session.Path, _activeWorkspace.RootPath) && IsMarkdownPath(_session.Path);
+        PinButton.IsVisible = canPin;
+        if (!canPin) return;
+        var relativePath = WorkspaceService.GetRelativeDocumentPath(_activeWorkspace!.RootPath, _session.Path!);
+        PinButton.Content = _workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase)) ? "Unpin" : "Pin";
     }
 
     private void ReportError(string eventName, Exception exception, string? path)
@@ -517,6 +577,9 @@ public partial class MainWindow : Window
         return relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
     }
 
+    private static bool IsMarkdownPath(string path) =>
+        path.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase);
+
     // These members are intentionally internal: the headless UI suite exercises the
     // same controls and application paths without making a testing API public.
     internal IReadOnlyList<string> FolderItemsForTesting => Traverse(_workspaceTree)
@@ -541,6 +604,9 @@ public partial class MainWindow : Window
     internal IReadOnlyList<DocumentOutlineEntry> OutlineEntriesForTesting => _outlineEntries;
     internal void NavigateToOutlineEntryForTesting(DocumentOutlineEntry entry) => NavigateToOutlineEntry(entry);
     internal ApplicationBuildIdentity BuildIdentityForTesting => _buildIdentity;
+    internal IReadOnlyList<WorkspacePin> WorkspacePinsForTesting => _workspacePins;
+    internal Task ToggleCurrentPinForTestingAsync() => ToggleCurrentPinAsync();
+    internal string PinButtonTextForTesting => PinButton.Content?.ToString() ?? string.Empty;
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {
