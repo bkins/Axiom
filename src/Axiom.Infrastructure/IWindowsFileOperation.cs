@@ -20,7 +20,7 @@ internal interface IWindowsFileOperation
     [PreserveSig] int MoveItems(nint items, nint folder);
     [PreserveSig] int CopyItem(nint item, nint folder, nint name, nint sink);
     [PreserveSig] int CopyItems(nint items, nint folder);
-    [PreserveSig] int DeleteItem([MarshalAs(UnmanagedType.Interface)] object item, nint sink);
+    [PreserveSig] int DeleteItem([MarshalAs(UnmanagedType.Interface)] IWindowsShellItem item, nint sink);
     [PreserveSig] int DeleteItems(nint items);
     [PreserveSig] int NewItem(nint folder, uint attributes, nint name, nint template, nint sink);
     [PreserveSig] int PerformOperations();
