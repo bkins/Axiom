@@ -10,6 +10,8 @@ internal sealed class ChoiceDialog : Window
         Title = title;
         Width = 540;
         MinHeight = 190;
+        MaxHeight = 580;
+        SizeToContent = SizeToContent.Height;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
@@ -25,7 +27,7 @@ internal sealed class ChoiceDialog : Window
             Margin = new Avalonia.Thickness(22),
             Children =
             {
-                new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap },
+                new ScrollViewer { MaxHeight = 400, Content = new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap } },
                 buttons
             }
         };

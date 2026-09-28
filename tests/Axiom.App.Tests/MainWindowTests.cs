@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Axiom.App.Tests;
 
-public sealed class MainWindowTests
+public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
     public async Task FolderListingOpeningSwitchingAndUnicodeAreTestableWithoutANativeDesktop()

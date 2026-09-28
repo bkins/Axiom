@@ -113,7 +113,7 @@ public partial class MainWindow : Window
         _recoveryTimer.Start();
         _monitor.Changed += (_, _) => Dispatcher.UIThread.Post(async () => await HandleExternalChangeAsync());
         _monitor.Renamed += (_, pair) => Dispatcher.UIThread.Post(() => HandleRename(pair.OldPath, pair.NewPath));
-        Opened += async (_, _) => await RestoreDraftIfAvailableAsync();
+        Opened += async (_, _) => { await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); };
         Closing += MainWindow_Closing;
         AddHandler(KeyDownEvent, Window_OnKeyDown, RoutingStrategies.Tunnel);
         ApplyAppearanceVisuals();
@@ -126,7 +126,7 @@ public partial class MainWindow : Window
         if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return;
         try
         {
-            await LoadFolderAsync(folder);
+            await SwitchWorkspaceAsync(folder);
         }
         catch (Exception exception)
         {
@@ -138,6 +138,7 @@ public partial class MainWindow : Window
     {
         var normalizedFolder = WorkspaceService.NormalizeRootPath(folder);
         _workspaceSearchCancellation?.Cancel();
+        ++_workspaceSearchGeneration;
         _workspaceSearchResults.Clear();
         WorkspaceSearchStatus.Text = string.Empty;
         var discovery = await _files.ListMarkdownFilesAsync(normalizedFolder);
@@ -148,7 +149,7 @@ public partial class MainWindow : Window
         _folder = workspace.RootPath;
         _activeWorkspace = workspace;
         _workspaceTree.Clear();
-        foreach (var node in WorkspaceTreeBuilder.Build(_folder, discovery.Files))
+        foreach (var node in WorkspaceTreeBuilder.Build(_folder, discovery.Files, WorkspaceFolderDiscovery.List(_folder)))
         {
             ApplyExpansion(node, expandedPaths);
             _workspaceTree.Add(node);
@@ -334,6 +335,7 @@ public partial class MainWindow : Window
 
     private async Task<bool> SaveDocumentAsync(bool forceSaveAs)
     {
+        if (_mutationBlocked) { UpdateChrome("Resolve pending file operations before saving; your buffer remains protected."); return false; }
         try
         {
             if (forceSaveAs || _session.Path is null)

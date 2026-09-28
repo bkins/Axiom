@@ -19,6 +19,16 @@
             <Button.Flyout>
               <MenuFlyout>
                 <MenuItem Header="Open Folder…" AutomationProperties.Name="Open folder" ToolTip.Tip="Open an existing Markdown workspace" Click="OpenFolder_OnClick" />
+                <MenuItem Header="Remembered Workspaces…" AutomationProperties.Name="Remembered workspaces" Click="WorkspaceCatalog_OnClick" />
+                <Separator />
+                <MenuItem Header="New Workspace Document…" Tag="Create" Click="ManageDocument_OnClick" />
+                <MenuItem Header="New Folder…" Tag="CreateFolder" Click="ManageDocument_OnClick" />
+                <MenuItem Header="Rename Document…" Tag="Rename" Click="ManageDocument_OnClick" />
+                <MenuItem Header="Move Document…" Tag="Move" Click="ManageDocument_OnClick" />
+                <MenuItem Header="Duplicate Document…" Tag="Duplicate" Click="ManageDocument_OnClick" />
+                <MenuItem Header="Delete Document to Recycle Bin…" Tag="Recycle" Click="ManageDocument_OnClick" />
+                <MenuItem Header="Make Axiom Documents…" Click="BulkEnroll_OnClick" />
+                <Separator />
                 <MenuItem Header="New    Ctrl+N" AutomationProperties.Name="New document" ToolTip.Tip="Create a new unsaved Markdown document" Click="New_OnClick" />
                 <MenuItem Header="Save    Ctrl+S" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
                 <MenuItem Header="Save As…    Ctrl+Shift+S" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />

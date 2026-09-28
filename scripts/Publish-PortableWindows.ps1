@@ -2,12 +2,13 @@
 param(
     [string]$Runtime = 'win-x64',
     [string]$ReleaseVersion,
-    [string]$CommitId
+    [string]$CommitId,
+    [string]$OutputDirectory
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$outputPath = Join-Path $repoRoot ("artifacts\Axiom-" + $Runtime)
+$outputPath = if ([string]::IsNullOrWhiteSpace($OutputDirectory)) { Join-Path $repoRoot ("artifacts\Axiom-" + $Runtime) } else { [IO.Path]::GetFullPath($OutputDirectory) }
 $propsPath = Join-Path $repoRoot 'Directory.Build.props'
 [xml]$props = Get-Content -LiteralPath $propsPath -Raw
 $authoritativeVersion = [string]$props.Project.PropertyGroup.AxiomVersion
@@ -36,6 +37,8 @@ dotnet publish (Join-Path $repoRoot 'src\Axiom.App\Axiom.App.csproj') `
     -o $outputPath
 
 if ($LASTEXITCODE -ne 0) { throw 'Portable publish failed.' }
+$testLauncher = "@echo off`r`nset `"AXIOM_STATE_ROOT=%LOCALAPPDATA%\Axiom-Test-$resolvedVersion`"`r`nstart `"Axiom $resolvedVersion test`" `"%~dp0Axiom.App.exe`"`r`n"
+Set-Content -LiteralPath (Join-Path $outputPath 'Test-Axiom.cmd') -Value $testLauncher -Encoding ascii
 [pscustomobject]@{
     OutputPath = $outputPath
     Version = $resolvedVersion

@@ -27,10 +27,22 @@ public sealed class WorkspaceTreeNode(
 
 public static class WorkspaceTreeBuilder
 {
-    public static IReadOnlyList<WorkspaceTreeNode> Build(string workspaceRoot, IEnumerable<string> markdownPaths)
+    public static IReadOnlyList<WorkspaceTreeNode> Build(string workspaceRoot, IEnumerable<string> markdownPaths, IEnumerable<string>? folderPaths = null)
     {
         var root = WorkspaceService.NormalizeRootPath(workspaceRoot);
         var tree = new MutableFolder(string.Empty, string.Empty);
+        foreach (var folderPath in folderPaths ?? [])
+        {
+            var relative = Path.GetRelativePath(root, Path.GetFullPath(folderPath));
+            if (Path.IsPathRooted(relative) || relative == "." || relative == ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)) continue;
+            var folder = tree;
+            var currentPath = string.Empty;
+            foreach (var part in relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+            {
+                currentPath = string.IsNullOrEmpty(currentPath) ? part : Path.Combine(currentPath, part);
+                folder = folder.GetOrAddFolder(part, currentPath);
+            }
+        }
         foreach (var markdownPath in markdownPaths)
         {
             var fullPath = Path.GetFullPath(markdownPath);

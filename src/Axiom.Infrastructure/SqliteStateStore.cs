@@ -3,9 +3,9 @@ using Microsoft.Data.Sqlite;
 
 namespace Axiom.Infrastructure;
 
-public sealed class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore
+public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore, IDocumentMutationStore, IWorkspaceCatalogStore
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
     private string ConnectionString => new SqliteConnectionStringBuilder
     {
@@ -87,6 +87,16 @@ public sealed class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) 
                     SettingValue TEXT NOT NULL
                 );
                 UPDATE SchemaInfo SET Version = 4;
+                """, cancellationToken);
+        }
+        if (schemaVersion < 5)
+        {
+            await ExecuteAsync(connection, """
+                CREATE TABLE IF NOT EXISTS DocumentMutations (
+                    OperationId TEXT PRIMARY KEY,
+                    IntentJson TEXT NOT NULL
+                );
+                UPDATE SchemaInfo SET Version = 5;
                 """, cancellationToken);
         }
         _log.Information("database.initialized", paths.DatabasePath);

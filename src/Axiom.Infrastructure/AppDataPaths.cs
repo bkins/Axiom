@@ -4,7 +4,7 @@ public sealed class AppDataPaths
 {
     public AppDataPaths(string? root = null)
     {
-        Root = root ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Axiom");
+        Root = root ?? Environment.GetEnvironmentVariable("AXIOM_STATE_ROOT") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Axiom");
         DatabasePath = Path.Combine(Root, "State", "axiom.db");
         BackupDirectory = Path.Combine(Root, "State", "Backups");
         LogDirectory = Path.Combine(Root, "Logs");
