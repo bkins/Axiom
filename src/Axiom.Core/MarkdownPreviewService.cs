@@ -1,8 +1,5 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using Markdig;
-using Markdig.Extensions.Tables;
-using Markdig.Extensions.TaskLists;
 
 namespace Axiom.Core;
 
@@ -20,11 +17,7 @@ public sealed partial class MarkdownPreviewService
             [".bmp"] = "image/bmp",
             [".svg"] = "image/svg+xml"
         };
-    private readonly MarkdownPipeline _pipeline = new MarkdownPipelineBuilder()
-        .UsePipeTables()
-        .UseTaskLists()
-        .DisableHtml()
-        .Build();
+    private readonly MarkdownStructureService _structure = new();
 
     public string RenderDocument(
         string markdown,
@@ -32,12 +25,20 @@ public sealed partial class MarkdownPreviewService
         AppearancePreference appearance = AppearancePreference.System,
         string? workspaceRoot = null)
     {
+        return RenderDocument(_structure.Parse(markdown), documentPath, appearance, workspaceRoot);
+    }
+
+    public string RenderDocument(DocumentStructure document
+                               , string? documentPath
+                               , AppearancePreference appearance = AppearancePreference.System
+                               , string? workspaceRoot = null)
+    {
         // Identity is source metadata: preserve it in Markdown/editor but not in preview.
         // Fenced examples are unaffected because the marker must be on the first line.
-        var previewMarkdown = DocumentIdCodec.RemoveCanonicalMarkerForPreview(markdown);
+        var previewMarkdown = DocumentIdCodec.RemoveCanonicalMarkerForPreview(document.SourceText);
         var body = string.IsNullOrWhiteSpace(previewMarkdown)
             ? "<p class=\"empty-state\">Start typing Markdown to see a preview.</p>"
-            : Markdown.ToHtml(previewMarkdown, _pipeline);
+            : MarkdownStructureService.RenderHtml(document);
         body = EmbedWorkspaceImages(body, documentPath, workspaceRoot);
         var baseElement = BuildBaseElement(documentPath);
         return $$"""

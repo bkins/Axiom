@@ -20,6 +20,8 @@ public partial class MainWindow : Window
     private readonly WorkspaceService _workspaces;
     private readonly WorkspaceSearchService _workspaceSearch;
     private readonly DocumentOutlineService _outline = new();
+    private readonly MarkdownStructureService _structureParser = new();
+    private DocumentStructure? _structure;
     private readonly MarkdownEditService _markdownEditing = new();
     private readonly MarkdownListEditService _markdownListEditing = new();
     private readonly MarkdownImageReferenceService _markdownImages = new();
@@ -710,7 +712,7 @@ public partial class MainWindow : Window
 
         if (generation != _previewRenderGeneration) return;
         _pendingPreviewScrollRatio = scrollRatio;
-        Preview.NavigateToString(_preview.RenderDocument(Editor.Text, _session.Path, _appearance, _activeWorkspace?.RootPath));
+        Preview.NavigateToString(_preview.RenderDocument(GetCurrentStructure(), _session.Path, _appearance, _activeWorkspace?.RootPath));
     }
 
     private async Task RestorePreviewScrollAsync(bool navigationSucceeded)
@@ -760,7 +762,7 @@ public partial class MainWindow : Window
     {
         _outlineTimer.Stop();
         _outlineEntries.Clear();
-        foreach (var entry in _outline.Parse(Editor.Text)) _outlineEntries.Add(entry);
+        foreach (var entry in _outline.Parse(GetCurrentStructure())) _outlineEntries.Add(entry);
         OutlineStatus.Text = _outlineEntries.Count == 0
             ? "No headings"
             : $"{_outlineEntries.Count} heading{(_outlineEntries.Count == 1 ? string.Empty : "s")}";
@@ -850,12 +852,20 @@ public partial class MainWindow : Window
 
     private void LoadSession(DocumentSession session, string status)
     {
+        _structure = null;
         _session = session;
         _lastProtectedText = null;
         ConflictBanner.IsVisible = session.Conflict is not null;
         SetEditorText(session.Text);
         _monitor.Watch(session.Path);
         UpdateChrome(status);
+    }
+
+    private DocumentStructure GetCurrentStructure()
+    {
+        if (_structure is null || !string.Equals(_structure.SourceText, Editor.Text, StringComparison.Ordinal))
+            _structure = _structureParser.Parse(Editor.Text, _structure);
+        return _structure;
     }
 
     private void SetEditorText(string text)

@@ -25,7 +25,7 @@ public sealed class MarkdownPreviewServiceTests
             <script>alert('no')</script>
             """, null);
 
-        Assert.Contains("<h1>Heading</h1>", html);
+        Assert.Contains("<h1 id=\"heading\">Heading</h1>", html);
         Assert.Contains("type=\"checkbox\"", html);
         Assert.Contains("li.task-list-item, li:has(input[type=checkbox]) { list-style: none;", html);
         Assert.Contains("<table>", html);
@@ -96,7 +96,7 @@ public sealed class MarkdownPreviewServiceTests
         var html = _service.RenderDocument($"<!-- axiom:documentId={id:D} -->\n\n# Visible", null);
 
         Assert.DoesNotContain(id.ToString("D"), html);
-        Assert.Contains("<h1>Visible</h1>", html);
+        Assert.Contains("<h1 id=\"visible\">Visible</h1>", html);
     }
 
     [Fact]
