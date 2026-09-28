@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -101,6 +102,11 @@ public partial class MainWindow : Window
         SetRequestedAppearance(_appearance);
         ActualThemeVariantChanged += (_, _) => ApplyAppearanceVisuals();
         Editor.TextChanged += (_, _) => EditorTextChanged();
+        Preview.EnvironmentRequested += (_, args) =>
+        {
+            if (args is WindowsWebView2EnvironmentRequestedEventArgs windows)
+                windows.UserDataFolder = Path.Combine(_operationalPaths.Root, "PreviewCache", _buildIdentity.InformationalVersion);
+        };
         Preview.AdapterCreated += (_, _) => { _previewReady = true; RenderPreview(); };
         Preview.NavigationCompleted += async (_, args) => await RestorePreviewScrollAsync(args.IsSuccess);
         Preview.NavigationStarted += (_, args) =>
