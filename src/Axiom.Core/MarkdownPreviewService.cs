@@ -70,7 +70,7 @@ public sealed class MarkdownPreviewService
             th,td { border: 1px solid var(--border); padding: .45em .7em; text-align: left; }
             th { background: var(--surface); }
             input[type=checkbox] { margin: 0 .5em 0 0; accent-color: var(--quote); }
-            li:has(> input[type=checkbox]) { list-style: none; margin-left: -1.25em; }
+            li.task-list-item, li:has(input[type=checkbox]) { list-style: none; margin-left: -1.25em; }
             hr { height: 1px; margin: 1.8em 0; border: 0; background: var(--border); }
             img { display: block; max-width: 100%; height: auto; object-fit: contain; border-radius: 4px; }
             .empty-state { margin-top: 2rem; color: var(--muted); font-style: italic; }

@@ -27,6 +27,7 @@ public sealed class MarkdownPreviewServiceTests
 
         Assert.Contains("<h1>Heading</h1>", html);
         Assert.Contains("type=\"checkbox\"", html);
+        Assert.Contains("li.task-list-item, li:has(input[type=checkbox]) { list-style: none;", html);
         Assert.Contains("<table>", html);
         Assert.Contains("language-csharp", html);
         Assert.DoesNotContain("<script>alert", html);

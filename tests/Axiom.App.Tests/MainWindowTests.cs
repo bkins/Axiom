@@ -271,6 +271,15 @@ public sealed class MainWindowTests
         }
     }
 
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    public void EditorCommandsExcludeNestedSearchTextBoxes(bool editorContainsFocus, bool focusedElementIsTextBox, bool expected)
+    {
+        Assert.Equal(expected, MainWindow.IsEditorCommandTarget(editorContainsFocus, focusedElementIsTextBox));
+    }
+
     [AvaloniaFact]
     public async Task MarkdownListKeysAreScopedUndoableAndParticipateInRecovery()
     {

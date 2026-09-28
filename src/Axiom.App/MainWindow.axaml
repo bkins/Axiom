@@ -53,9 +53,11 @@
               </MenuFlyout>
             </Button.Flyout>
           </Button>
-          <Button x:Name="InsertImageButton" AutomationProperties.Name="Insert workspace image reference"
-                  ToolTip.Tip="Save a document inside the active workspace before inserting an image"
-                  Click="InsertImage_OnClick">Image…</Button>
+          <Border x:Name="InsertImageCommandHost" Background="Transparent"
+                  ToolTip.Tip="Save a document inside the active workspace before inserting an image">
+            <Button x:Name="InsertImageButton" AutomationProperties.Name="Insert workspace image reference"
+                    Click="InsertImage_OnClick">Image…</Button>
+          </Border>
           <Button x:Name="AppearanceButton" AutomationProperties.Name="Choose appearance" ToolTip.Tip="Choose System, Light, or Dark appearance">Theme: System
             <Button.Flyout>
               <MenuFlyout>

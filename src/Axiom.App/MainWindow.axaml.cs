@@ -357,7 +357,13 @@ public partial class MainWindow : Window
             _lastProtectedText = null;
             _monitor.Watch(_session.Path);
             UpdateChrome($"Saved {Path.GetFileName(_session.Path)} at {DateTime.Now:T}");
-            if (_folder is not null && _session.Path is not null && IsWithinFolder(_session.Path, _folder)) await LoadFolderAsync(_folder);
+            if (_session.Path is not null)
+            {
+                if (_folder is not null && IsWithinFolder(_session.Path, _folder))
+                    await LoadFolderAsync(_folder);
+                else if (_activeWorkspace is null && Path.GetDirectoryName(_session.Path) is { } savedFolder)
+                    await LoadFolderAsync(savedFolder);
+            }
             return true;
         }
         catch (Exception exception)
@@ -385,10 +391,12 @@ public partial class MainWindow : Window
             return;
         }
 
+        var workspaceFolder = await StorageProvider.TryGetFolderFromPathAsync(_activeWorkspace!.RootPath);
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Insert an existing workspace image",
             AllowMultiple = false,
+            SuggestedStartLocation = workspaceFolder,
             FileTypeFilter =
             [
                 new FilePickerFileType("Supported images")
@@ -397,8 +405,17 @@ public partial class MainWindow : Window
                 }
             ]
         });
-        if (files.FirstOrDefault()?.TryGetLocalPath() is not { } imagePath) return;
-        InsertImageReference(imagePath);
+        var selectedFile = files.FirstOrDefault();
+        if (selectedFile is null) return;
+        if (selectedFile.TryGetLocalPath() is not { } imagePath)
+        {
+            const string message = "The selected image is not available as a local workspace file.";
+            UpdateChrome(message);
+            await ChoiceDialog.ShowAsync(this, "Image not inserted", message, "OK");
+            return;
+        }
+        if (!InsertImageReference(imagePath))
+            await ChoiceDialog.ShowAsync(this, "Image not inserted", StatusText.Text ?? "The image reference could not be inserted.", "OK");
     }
 
     private async void Appearance_OnClick(object? sender, RoutedEventArgs e)
@@ -552,6 +569,15 @@ public partial class MainWindow : Window
         };
         return kind is not null && ApplyMarkdownEdit(kind.Value);
     }
+
+    private bool IsEditorCommandTarget()
+    {
+        var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
+        return IsEditorCommandTarget(Editor.IsKeyboardFocusWithin, focused is TextBox);
+    }
+
+    internal static bool IsEditorCommandTarget(bool editorContainsFocus, bool focusedElementIsTextBox) =>
+        editorContainsFocus && !focusedElementIsTextBox;
 
     private bool TryHandleMarkdownListKey(Key key, KeyModifiers modifiers, bool editorHasFocus)
     {
@@ -864,7 +890,7 @@ public partial class MainWindow : Window
     private void UpdateImageButton()
     {
         InsertImageButton.IsEnabled = CanInsertImageReference();
-        ToolTip.SetTip(InsertImageButton, InsertImageButton.IsEnabled
+        ToolTip.SetTip(InsertImageCommandHost, InsertImageButton.IsEnabled
             ? "Insert a reference to an existing image inside this workspace"
             : "Save a document inside the active workspace before inserting an image");
     }
@@ -910,13 +936,14 @@ public partial class MainWindow : Window
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (TryHandleMarkdownListKey(e.Key, e.KeyModifiers, Editor.IsKeyboardFocusWithin))
+        var editorIsCommandTarget = IsEditorCommandTarget();
+        if (TryHandleMarkdownListKey(e.Key, e.KeyModifiers, editorIsCommandTarget))
         {
             e.Handled = true;
             return;
         }
         if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
-        if (TryHandleMarkdownShortcut(e.Key, e.KeyModifiers, Editor.IsKeyboardFocusWithin))
+        if (TryHandleMarkdownShortcut(e.Key, e.KeyModifiers, editorIsCommandTarget))
         {
             e.Handled = true;
             return;
