@@ -39,6 +39,25 @@ dotnet publish (Join-Path $repoRoot 'src\Axiom.App\Axiom.App.csproj') `
 if ($LASTEXITCODE -ne 0) { throw 'Portable publish failed.' }
 $testLauncher = "@echo off`r`nset `"AXIOM_STATE_ROOT=%LOCALAPPDATA%\Axiom-Test-$resolvedVersion`"`r`nstart `"Axiom $resolvedVersion test`" `"%~dp0Axiom.App.exe`"`r`n"
 Set-Content -LiteralPath (Join-Path $outputPath 'Test-Axiom.cmd') -Value $testLauncher -Encoding ascii
+$schemaSource = Get-Content -LiteralPath (Join-Path $repoRoot 'src\Axiom.Infrastructure\SqliteStateStore.cs') -Raw
+$schemaMatch = [regex]::Match($schemaSource, 'CurrentSchemaVersion\s*=\s*(\d+)')
+if (-not $schemaMatch.Success) { throw 'Could not read authoritative state schema version.' }
+$manifestPath = Join-Path $outputPath 'payload-manifest.json'
+if (Test-Path -LiteralPath $manifestPath) { Remove-Item -LiteralPath $manifestPath }
+$payloadFiles = @(Get-ChildItem -LiteralPath $outputPath -Recurse -File | Sort-Object FullName | ForEach-Object {
+    [ordered]@{ RelativePath = [IO.Path]::GetRelativePath($outputPath, $_.FullName).Replace('\','/'); Length = $_.Length; Sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }
+})
+$manifest = [ordered]@{
+    FormatVersion = 1
+    Version = $resolvedVersion
+    InformationalVersion = $informationalVersion
+    CommitId = $CommitId.ToLowerInvariant()
+    Branch = (& git -C $repoRoot branch --show-current)
+    BuiltUtc = [DateTimeOffset]::UtcNow.ToString('O')
+    SchemaVersion = [int]$schemaMatch.Groups[1].Value
+    Files = $payloadFiles
+}
+$manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding utf8
 [pscustomobject]@{
     OutputPath = $outputPath
     Version = $resolvedVersion

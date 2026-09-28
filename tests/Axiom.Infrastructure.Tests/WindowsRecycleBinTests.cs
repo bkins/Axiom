@@ -14,7 +14,8 @@ public sealed class WindowsRecycleBinTests
         {
             try { if (OperatingSystem.IsWindowsVersionAtLeast(6, 2)) RecycleRoundTrip(); }
             catch (Exception exception) { failure = exception; }
-        }) { IsBackground = true };
+        })
+        { IsBackground = true };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Recycle/restore did not finish within 20 seconds.");

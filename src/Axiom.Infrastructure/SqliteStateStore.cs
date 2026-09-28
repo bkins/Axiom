@@ -6,6 +6,7 @@ namespace Axiom.Infrastructure;
 public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore, IDocumentMutationStore, IWorkspaceCatalogStore
 {
     public const int CurrentSchemaVersion = 5;
+    public AppDataPaths Paths => paths;
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
     private string ConnectionString => new SqliteConnectionStringBuilder
     {
@@ -384,7 +385,7 @@ public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log 
         if (!File.Exists(paths.DatabasePath)) return;
         Directory.CreateDirectory(paths.BackupDirectory);
         var backup = Path.Combine(paths.BackupDirectory, $"axiom-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}.db");
-        File.Copy(paths.DatabasePath, backup, false);
+        StateMaintenanceService.BackupDatabase(paths.DatabasePath, backup);
         foreach (var stale in Directory.EnumerateFiles(paths.BackupDirectory, "axiom-*.db")
                      .OrderByDescending(File.GetLastWriteTimeUtc).Skip(10))
             File.Delete(stale);

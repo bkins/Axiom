@@ -77,6 +77,17 @@
               </MenuFlyout>
             </Button.Flyout>
           </Button>
+          <Button AutomationProperties.Name="Operational tools" ToolTip.Tip="Inspect diagnostics, state, builds, and portable updates">Tools…
+            <Button.Flyout>
+              <MenuFlyout>
+                <MenuItem Header="Diagnostics…" Click="Diagnostics_OnClick" />
+                <MenuItem Header="State Maintenance…" Click="Maintenance_OnClick" />
+                <MenuItem Header="Install Portable Update…" Click="InstallUpdate_OnClick" />
+                <MenuItem Header="Switch Portable Version…" Tag="Switch" Click="InstallUpdate_OnClick" />
+                <MenuItem Header="About Axiom…" Click="About_OnClick" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
           <Button x:Name="EnrollButton" AutomationProperties.Name="Make Axiom Document" ToolTip.Tip="Assign a stable Axiom document identity" Click="Enroll_OnClick">Make Axiom Document</Button>
           <Button x:Name="PinButton" AutomationProperties.Name="Pin current document" ToolTip.Tip="Pin or unpin the current workspace document" Click="Pin_OnClick">Pin</Button>
         </WrapPanel>

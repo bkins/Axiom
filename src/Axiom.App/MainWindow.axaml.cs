@@ -83,6 +83,7 @@ public partial class MainWindow : Window
         _files = files;
         _workspaceSearch = new WorkspaceSearchService(files);
         _recovery = recovery;
+        _operationalPaths = (recovery as SqliteStateStore)?.Paths ?? new AppDataPaths();
         _appearanceStore = appearanceStore;
         _appearance = Enum.IsDefined(appearance) ? appearance : AppearancePreference.System;
         _preview = preview;

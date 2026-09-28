@@ -11,6 +11,7 @@ internal static class Program
     {
         if (args.FirstOrDefault() == "--recovery-probe") return RunRecoveryProbe(args);
         if (args.FirstOrDefault() == "--verify-recovery") return VerifyRecovery(args);
+        if (args.FirstOrDefault() == "--verify-package") return PortablePackageProbe.Run(args);
         return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
