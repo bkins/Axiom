@@ -12,7 +12,7 @@ public sealed class WindowsRecycleBin : IRecycleBin
             throw new IOException("This location does not support safe recycling. The document was retained.");
         var shellType = Type.GetTypeFromCLSID(new Guid("3AD05575-8857-4850-9277-11B85BDB8E09"), true)!;
         var operation = (IWindowsFileOperation)Activator.CreateInstance(shellType)!;
-        object? item = null;
+        IWindowsShellItem? item = null;
         try
         {
             var shellItemId = new Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE");
@@ -32,5 +32,5 @@ public sealed class WindowsRecycleBin : IRecycleBin
     }
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = true)]
-    private static extern int SHCreateItemFromParsingName(string path, nint bindingContext, ref Guid interfaceId, [MarshalAs(UnmanagedType.Interface)] out object item);
+    private static extern int SHCreateItemFromParsingName(string path, nint bindingContext, ref Guid interfaceId, [MarshalAs(UnmanagedType.Interface)] out IWindowsShellItem item);
 }
