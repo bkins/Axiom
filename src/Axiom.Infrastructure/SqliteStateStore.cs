@@ -5,6 +5,7 @@ namespace Axiom.Infrastructure;
 
 public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore, IDocumentMutationStore, IWorkspaceCatalogStore
 {
+    public AppDataPaths Paths => paths;
     public const int CurrentSchemaVersion = 5;
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
     private string ConnectionString => new SqliteConnectionStringBuilder
