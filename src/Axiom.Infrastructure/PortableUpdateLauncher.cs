@@ -25,10 +25,8 @@ public static class PortableUpdateLauncher
         var start = new ProcessStartInfo("powershell.exe")
         {
             UseShellExecute = false
-                      ,
-            CreateNoWindow = true
-                      ,
-            WindowStyle = ProcessWindowStyle.Hidden
+            , CreateNoWindow = true
+            , WindowStyle = ProcessWindowStyle.Hidden
         };
         foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script }) start.ArgumentList.Add(argument);
         using var process = Process.Start(start) ?? throw new IOException("The restart helper could not be started.");

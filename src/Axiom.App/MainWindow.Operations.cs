@@ -35,10 +35,8 @@ public partial class MainWindow
             var file = await window!.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Export Axiom state backup (choose a new file)"
-                         ,
-                SuggestedFileName = $"axiom-backup-{DateTime.Now:yyyyMMdd-HHmmss}.db"
-                         ,
-                DefaultExtension = "db"
+                , SuggestedFileName = $"axiom-backup-{DateTime.Now:yyyyMMdd-HHmmss}.db"
+                , DefaultExtension = "db"
             });
             if (file?.TryGetLocalPath() is not { } path) return "Backup cancelled; no files changed.";
             var result = await service.ExportBackupAsync(path);
@@ -75,11 +73,9 @@ public partial class MainWindow
             var versions = Path.Combine(_operationalPaths.Root, "Versions");
             var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
-                Title = rollback ? "Choose an installed Axiom version" : "Choose a portable Axiom package"
-                            ,
-                AllowMultiple = false
-                            ,
-                SuggestedStartLocation = rollback && Directory.Exists(versions) ? await StorageProvider.TryGetFolderFromPathAsync(versions) : null
+                Title = rollback ? "Choose a retained portable Axiom version" : "Choose a portable Axiom package"
+                , AllowMultiple = false
+                , SuggestedStartLocation = rollback && Directory.Exists(versions) ? await StorageProvider.TryGetFolderFromPathAsync(versions) : null
             });
             if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } source) return;
             var service = new PortablePackageService(_operationalPaths);
@@ -90,20 +86,24 @@ public partial class MainWindow
             PortablePackageService.EnsureSchemaCompatible(manifest.SchemaVersion, inspection.SchemaVersion);
             if (inspection.PendingOperations > 0) throw new IOException("Resolve pending file operations before switching versions.");
             if (!rollback && Version.Parse(manifest.Version) <= Version.Parse(_buildIdentity.ProductVersion))
-                throw new IOException("An update must be newer. Use Switch Installed Version for a retained older package.");
+                throw new IOException("An update must be newer. Use Switch Portable Version for a retained older package.");
             if (await ChoiceDialog.ShowAsync(this, "Verified package", $"Version: {manifest.InformationalVersion}\nBranch: {manifest.Branch}\nBuilt UTC: {manifest.BuiltUtc:u}\nSource: {source}\n\n{(rollback ? "Switch to this retained version" : "Install into a new version folder")}? Restart keeps state at {_operationalPaths.Root}. Existing binaries remain for rollback.", "Continue", "Cancel") != "Continue") return;
             if (!await ConfirmSafeToReplaceSessionAsync()) return;
             var destination = rollback ? source : await Task.Run(() => service.InstallAsync(source, inspection.SchemaVersion));
             await service.ValidateAsync(destination);
             if (await ChoiceDialog.ShowAsync(this, "Version ready", $"Verified version is ready at {destination}. Restart now?", "Restart", "Later") != "Restart")
             {
-                UpdateChrome("Version installed. Use Switch Installed Version when ready to restart.");
+                UpdateChrome("Version installed. Use Switch Portable Version when ready to restart.");
                 return;
             }
             if (!await ConfirmSafeToReplaceSessionAsync()) return;
             await _markCleanExit();
             PortableUpdateLauncher.ScheduleRestart(destination, _operationalPaths.Root);
             _closingApproved = true;
+            _recoveryTimer.Stop();
+            _previewTimer.Stop();
+            _outlineTimer.Stop();
+            _monitor.Dispose();
             Close();
         }
         catch (Exception exception)

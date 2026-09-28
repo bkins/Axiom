@@ -62,9 +62,7 @@ public sealed class StateMaintenanceService(AppDataPaths paths)
     private static SqliteConnection OpenReadOnly(string path) => new(new SqliteConnectionStringBuilder
     {
         DataSource = path
-          ,
-        Mode = SqliteOpenMode.ReadOnly
-          ,
-        Pooling = false
+        , Mode = SqliteOpenMode.ReadOnly
+        , Pooling = false
     }.ToString());
 }

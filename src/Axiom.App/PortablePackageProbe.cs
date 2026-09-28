@@ -20,6 +20,7 @@ internal static class PortablePackageProbe
             var maintenance = new StateMaintenanceService(paths);
             var backup = maintenance.ExportBackupAsync(Path.Combine(paths.Root, "verified-backup.db")).GetAwaiter().GetResult();
             File.WriteAllText(args[3], JsonSerializer.Serialize(new { manifest.InformationalVersion, PayloadFiles = manifest.Files.Count, Installed = installed, Backup = backup, Inspection = maintenance.InspectAsync().GetAwaiter().GetResult() }));
+            if (args[0] == "--verify-and-restart-package") PortableUpdateLauncher.ScheduleRestart(installed, paths.Root);
             return 0;
         }
         catch (Exception exception)
