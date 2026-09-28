@@ -1,12 +1,25 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using Markdig;
 using Markdig.Extensions.Tables;
 using Markdig.Extensions.TaskLists;
 
 namespace Axiom.Core;
 
-public sealed class MarkdownPreviewService
+public sealed partial class MarkdownPreviewService
 {
+    private const long MaximumEmbeddedImageBytes = 20 * 1024 * 1024;
+    private static readonly IReadOnlyDictionary<string, string> ImageMediaTypes =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [".png"] = "image/png",
+            [".jpg"] = "image/jpeg",
+            [".jpeg"] = "image/jpeg",
+            [".gif"] = "image/gif",
+            [".webp"] = "image/webp",
+            [".bmp"] = "image/bmp",
+            [".svg"] = "image/svg+xml"
+        };
     private readonly MarkdownPipeline _pipeline = new MarkdownPipelineBuilder()
         .UsePipeTables()
         .UseTaskLists()
@@ -16,7 +29,8 @@ public sealed class MarkdownPreviewService
     public string RenderDocument(
         string markdown,
         string? documentPath,
-        AppearancePreference appearance = AppearancePreference.System)
+        AppearancePreference appearance = AppearancePreference.System,
+        string? workspaceRoot = null)
     {
         // Identity is source metadata: preserve it in Markdown/editor but not in preview.
         // Fenced examples are unaffected because the marker must be on the first line.
@@ -24,6 +38,7 @@ public sealed class MarkdownPreviewService
         var body = string.IsNullOrWhiteSpace(previewMarkdown)
             ? "<p class=\"empty-state\">Start typing Markdown to see a preview.</p>"
             : Markdown.ToHtml(previewMarkdown, _pipeline);
+        body = EmbedWorkspaceImages(body, documentPath, workspaceRoot);
         var baseElement = BuildBaseElement(documentPath);
         return $$"""
             <!doctype html>
@@ -87,4 +102,45 @@ public sealed class MarkdownPreviewService
         var uri = new Uri(directory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar).AbsoluteUri;
         return $"<base href=\"{WebUtility.HtmlEncode(uri)}\">";
     }
+
+    private static string EmbedWorkspaceImages(string html, string? documentPath, string? workspaceRoot)
+    {
+        if (string.IsNullOrWhiteSpace(documentPath) || string.IsNullOrWhiteSpace(workspaceRoot)) return html;
+        var documentDirectory = Path.GetDirectoryName(Path.GetFullPath(documentPath));
+        if (documentDirectory is null) return html;
+        var root = WorkspaceService.NormalizeRootPath(workspaceRoot);
+
+        return ImageSourceRegex().Replace(html, match =>
+        {
+            try
+            {
+                var source = WebUtility.HtmlDecode(match.Groups["source"].Value);
+                if (Uri.TryCreate(source, UriKind.Absolute, out _)) return match.Value;
+                var pathOnly = source.Split(['?', '#'], 2)[0];
+                var relativePath = Uri.UnescapeDataString(pathOnly).Replace('/', Path.DirectorySeparatorChar);
+                var imagePath = Path.GetFullPath(Path.Combine(documentDirectory, relativePath));
+                if (!IsWithin(root, imagePath) || !File.Exists(imagePath)) return match.Value;
+                if (!ImageMediaTypes.TryGetValue(Path.GetExtension(imagePath), out var mediaType)) return match.Value;
+                var info = new FileInfo(imagePath);
+                if (info.Length > MaximumEmbeddedImageBytes) return match.Value;
+                var dataUri = $"data:{mediaType};base64,{Convert.ToBase64String(File.ReadAllBytes(imagePath))}";
+                return match.Groups["prefix"].Value + dataUri + match.Groups["suffix"].Value;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            {
+                return match.Value;
+            }
+        });
+    }
+
+    private static bool IsWithin(string root, string candidate)
+    {
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (candidate.Equals(root, comparison)) return true;
+        var prefix = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return candidate.StartsWith(prefix, comparison);
+    }
+
+    [GeneratedRegex("(?<prefix><img\\s+[^>]*?src=\\\")(?<source>[^\\\"]+)(?<suffix>\\\"[^>]*>)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ImageSourceRegex();
 }

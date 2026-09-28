@@ -701,7 +701,7 @@ public partial class MainWindow : Window
 
         if (generation != _previewRenderGeneration) return;
         _pendingPreviewScrollRatio = scrollRatio;
-        Preview.NavigateToString(_preview.RenderDocument(Editor.Text, _session.Path, _appearance));
+        Preview.NavigateToString(_preview.RenderDocument(Editor.Text, _session.Path, _appearance, _activeWorkspace?.RootPath));
     }
 
     private async Task RestorePreviewScrollAsync(bool navigationSucceeded)

@@ -44,6 +44,52 @@ public sealed class MarkdownPreviewServiceTests
     }
 
     [Fact]
+    public void EmbedsExistingWorkspaceImageForStringNavigatedPreview()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"AxiomPreviewImages-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var document = Path.Combine(root, "Test.md");
+            var image = Path.Combine(root, "Screenshot one.png");
+            File.WriteAllText(document, "![Screenshot](Screenshot%20one.png)");
+            File.WriteAllBytes(image, [1, 2, 3, 4]);
+
+            var html = _service.RenderDocument(File.ReadAllText(document), document, workspaceRoot: root);
+
+            Assert.Contains("src=\"data:image/png;base64,AQIDBA==\"", html);
+            Assert.DoesNotContain("src=\"Screenshot%20one.png\"", html);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DoesNotEmbedImageOutsideWorkspace()
+    {
+        var parent = Path.Combine(Path.GetTempPath(), $"AxiomPreviewImages-{Guid.NewGuid():N}");
+        var root = Path.Combine(parent, "workspace");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var document = Path.Combine(root, "Test.md");
+            var image = Path.Combine(parent, "outside.png");
+            File.WriteAllBytes(image, [1, 2, 3, 4]);
+
+            var html = _service.RenderDocument("![Outside](../outside.png)", document, workspaceRoot: root);
+
+            Assert.Contains("src=\"../outside.png\"", html);
+            Assert.DoesNotContain("data:image/png", html);
+        }
+        finally
+        {
+            Directory.Delete(parent, recursive: true);
+        }
+    }
+
+    [Fact]
     public void HidesOnlyTheCanonicalDocumentMarkerFromPreview()
     {
         var id = Guid.NewGuid();
