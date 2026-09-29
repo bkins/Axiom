@@ -8,6 +8,22 @@ namespace Axiom.Infrastructure.Tests;
 public sealed class OperationalServicesTests
 {
     [Fact]
+    public async Task WorkspaceSelectionExplainsPackageRequirementWithoutChangingDocuments()
+    {
+        using var fixture = new MutationTestWorkspace();
+        var document = Path.Combine(fixture.Root, "notes.md");
+        await File.WriteAllTextAsync(document, "protected Markdown");
+        var error = await Assert.ThrowsAsync<IOException>(() => new PortablePackageService(fixture.State.Paths).ValidateAsync(fixture.Root));
+        Assert.Contains("not a published Axiom application package", error.Message);
+        Assert.Contains("payload-manifest.json", error.Message);
+        Assert.Contains("Markdown workspace", error.Message);
+        Assert.Equal("protected Markdown", await File.ReadAllTextAsync(document));
+        Assert.False(Directory.Exists(Path.Combine(fixture.State.Paths.Root, "Versions")));
+        Assert.Throws<IOException>(() => PortablePackageService.GetPackageDirectory(document));
+        Assert.Equal(fixture.Root, PortablePackageService.GetPackageDirectory(Path.Combine(fixture.Root, PortablePackageService.ManifestName)));
+    }
+
+    [Fact]
     public async Task OnlineBackupIncludesLiveWalContentAndNeverOverwritesDestination()
     {
         using var fixture = new MutationTestWorkspace();

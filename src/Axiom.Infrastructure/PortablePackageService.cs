@@ -8,11 +8,21 @@ public sealed class PortablePackageService(AppDataPaths paths, Func<string, stri
     public const string ManifestName = "payload-manifest.json";
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
+    public static string GetPackageDirectory(string manifestPath)
+    {
+        var fullPath = Path.GetFullPath(manifestPath);
+        if (!Path.GetFileName(fullPath).Equals(ManifestName, StringComparison.OrdinalIgnoreCase))
+            throw new IOException("Choose payload-manifest.json inside a published Axiom application package, beside Axiom.App.exe. Markdown documents and workspace folders are not application packages.");
+        return Path.GetDirectoryName(fullPath)!;
+    }
+
     public async Task<PortablePackageManifest> ValidateAsync(string directory, CancellationToken cancellationToken = default)
     {
         var root = Path.GetFullPath(directory);
         var manifestPath = Path.Combine(root, ManifestName);
         WorkspaceFileOperations.ValidateAncestors(root, manifestPath);
+        if (!File.Exists(manifestPath))
+            throw new IOException($"This folder is not a published Axiom application package: {root}\nChoose the package containing {ManifestName} and Axiom.App.exe, rather than your Markdown workspace. If the download is a ZIP, extract it first.");
         await using var stream = File.OpenRead(manifestPath);
         if (stream.Length > 2_000_000) throw new IOException("The payload manifest is too large.");
         var manifest = await JsonSerializer.DeserializeAsync<PortablePackageManifest>(stream, JsonOptions, cancellationToken) ?? throw new IOException("The payload manifest is empty.");
