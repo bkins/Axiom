@@ -124,7 +124,11 @@ public partial class MainWindow : Window
         _recoveryTimer.Start();
         _monitor.Changed += (_, path) => Dispatcher.UIThread.Post(async () => await HandleExternalChangeAsync(path));
         _monitor.Renamed += (_, pair) => Dispatcher.UIThread.Post(() => HandleRename(pair.OldPath, pair.NewPath));
-        Opened += async (_, _) => { await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); };
+        Opened += async (_, _) =>
+        {
+            try { await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); }
+            finally { _startupCompleted.TrySetResult(); }
+        };
         Closing += MainWindow_Closing;
         AddHandler(KeyDownEvent, Window_OnKeyDown, RoutingStrategies.Tunnel);
         ApplyAppearanceVisuals();
@@ -368,6 +372,7 @@ public partial class MainWindow : Window
         var session = tab.Session;
         await _recoveryGate.WaitAsync();
         var editorEnabled = Editor.IsEnabled;
+        var tabsEnabled = DocumentTabs.IsEnabled;
         Editor.IsEnabled = false;
         DocumentTabs.IsEnabled = false;
         try
@@ -418,7 +423,7 @@ public partial class MainWindow : Window
         finally
         {
             Editor.IsEnabled = editorEnabled;
-            DocumentTabs.IsEnabled = true;
+            DocumentTabs.IsEnabled = tabsEnabled;
             _recoveryGate.Release();
         }
     }
@@ -812,6 +817,34 @@ public partial class MainWindow : Window
         await _recoveryGate.WaitAsync();
         try
         {
+            if (_recovery is IBatchRecoveryStore batch)
+            {
+                var snapshots = _tabs.Where(tab =>
+                        !string.Equals(tab.LastProtectedText, tab.Session.Text, StringComparison.Ordinal)
+                        && (tab.Session.IsDirty || tab.LastProtectedText is not null))
+                    .Select(tab => new RecoveryProtectionSnapshot(tab, tab.Session.Text,
+                        tab.Session.IsDirty ? new RecoveryDraft(tab.Session.DraftKey, tab.Session.Path,
+                            tab.Session.Text, DateTimeOffset.UtcNow, tab.Session.LastKnownWriteUtc, tab.Session.IsNew) : null))
+                    .ToArray();
+                if (snapshots.Length == 0) return;
+                try
+                {
+                    await batch.ApplyDraftsAsync(snapshots.Where(item => item.Draft is not null).Select(item => item.Draft!).ToArray(),
+                        snapshots.Where(item => item.Draft is null).Select(item => item.Tab.Session.DraftKey).ToArray());
+                    foreach (var snapshot in snapshots)
+                    {
+                        snapshot.Tab.LastProtectedText = snapshot.Text;
+                        snapshot.Tab.RecoveryStatus = snapshot.Draft is not null ? $"Protected {DateTime.Now:T}" : "Recovery ready";
+                    }
+                }
+                catch (Exception exception)
+                {
+                    foreach (var snapshot in snapshots) snapshot.Tab.RecoveryStatus = "Recovery protection failed";
+                    _log.Error("recovery.save.failed", exception);
+                }
+                RecoveryText.Text = _activeTab.RecoveryStatus;
+                return;
+            }
             foreach (var tab in _tabs.ToArray())
             {
                 var session = tab.Session;
@@ -929,7 +962,7 @@ public partial class MainWindow : Window
                 _selectingTab = false;
             }
             _initialPlaceholder = false;
-            await LoadSessionAsync(DocumentSession.Recover(draft, savedText), "Recovered protected work. The saved file has not been overwritten.");
+            await LoadRecoveredSessionAsync(DocumentSession.Recover(draft, savedText));
         }
     }
 
@@ -1040,24 +1073,27 @@ public partial class MainWindow : Window
         StatusText.Text = exception.Message;
     }
 
-    private async void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
+    private async void MainWindow_Closing(object? sender, WindowClosingEventArgs eventArgs)
     {
         if (_closingApproved) return;
-        e.Cancel = true;
-        if (!await ConfirmAllTabsAsync()) return;
-        _closingApproved = true;
-        _recoveryTimer.Stop();
-        _previewTimer.Stop();
-        _outlineTimer.Stop();
-        _monitor.Dispose();
-        _workspaceRefreshTimer.Stop();
-        _workspaceChanges.Dispose();
-        await _markCleanExit();
-        Close();
+        eventArgs.Cancel = true;
+        await RunSessionTransitionAsync(async () =>
+        {
+            await _markCleanExit();
+            _closingApproved = true;
+            _recoveryTimer.Stop();
+            _previewTimer.Stop();
+            _outlineTimer.Stop();
+            _monitor.Dispose();
+            _workspaceRefreshTimer.Stop();
+            _workspaceChanges.Dispose();
+            Close();
+        });
     }
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
+        if (_sessionTransitionRunning) return;
         if (TryHandleCommandMenuKey(e)) return;
         var editorIsCommandTarget = IsEditorCommandTarget();
         if (TryHandleMarkdownListKey(e.Key, e.KeyModifiers, editorIsCommandTarget))

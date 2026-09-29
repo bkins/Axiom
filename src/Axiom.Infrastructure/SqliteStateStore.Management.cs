@@ -19,10 +19,14 @@ public sealed partial class SqliteStateStore
     public async Task ForgetWorkspaceAsync(Guid workspaceId, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken);
+        await using var transaction = connection.BeginTransaction();
         await using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM Workspaces WHERE WorkspaceId=$id;";
+        command.Transaction = transaction;
+        command.CommandText = "DELETE FROM Workspaces WHERE WorkspaceId=$id; DELETE FROM AppSettings WHERE SettingKey=$sessionKey;";
         command.Parameters.AddWithValue("$id", workspaceId.ToString("D"));
+        command.Parameters.AddWithValue("$sessionKey", SessionSettingKey(workspaceId));
         await command.ExecuteNonQueryAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task PrepareMutationAsync(DocumentMutationIntent intent, CancellationToken cancellationToken = default)

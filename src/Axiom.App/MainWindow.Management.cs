@@ -21,7 +21,7 @@ public partial class MainWindow
             _mutationBlocked = (await ManagementState.GetPendingMutationsAsync()).Count > 0;
             if (await _workspaces.GetActiveAsync() is { } active)
             {
-                try { await LoadFolderAsync(active.RootPath); }
+                try { await LoadFolderAsync(active.RootPath); await RestoreCleanSessionAsync(); }
                 catch (Exception exception) { ReportError("workspace.restore.failed", exception, active.RootPath); }
             }
         }
@@ -44,21 +44,27 @@ public partial class MainWindow
             var workspace = choice.Value.Workspace;
             if (await ChoiceDialog.ShowAsync(this, "Forget workspace", $"Forget {workspace.RootPath}? Only its remembered record and pins are removed. Files, identities, and protected drafts remain.", "Forget", "Cancel") != "Forget") return;
             var active = _activeWorkspace?.WorkspaceId == workspace.WorkspaceId;
-            if (active && !await ConfirmAllTabsAsync()) return;
-            await ManagementState.ForgetWorkspaceAsync(workspace.WorkspaceId);
             if (active)
             {
-                _workspaceSearchCancellation?.Cancel();
-                ++_workspaceSearchGeneration;
-                _workspaceSearchResults.Clear();
-                _activeWorkspace = null;
-                _folder = null;
-                _workspaceChanges.Watch(null);
-                _workspaceTree.Clear();
-                _workspacePins.Clear();
-                ResetTabs("Workspace forgotten; its files remain on disk.");
+                await RunSessionTransitionAsync(async () =>
+                {
+                    await ManagementState.ForgetWorkspaceAsync(workspace.WorkspaceId);
+                    _workspaceSearchCancellation?.Cancel();
+                    ++_workspaceSearchGeneration;
+                    _workspaceSearchResults.Clear();
+                    _activeWorkspace = null;
+                    _folder = null;
+                    _workspaceChanges.Watch(null);
+                    _workspaceTree.Clear();
+                    _workspacePins.Clear();
+                    ResetTabs("Workspace forgotten; its files remain on disk.");
+                });
             }
-            else UpdateChrome("Workspace forgotten; its files remain on disk.");
+            else
+            {
+                await ManagementState.ForgetWorkspaceAsync(workspace.WorkspaceId);
+                UpdateChrome("Workspace forgotten; its files remain on disk.");
+            }
         }
         catch (Exception exception) { ReportError("workspace.catalog.failed", exception, null); }
     }
@@ -68,10 +74,12 @@ public partial class MainWindow
         // Validate before asking to discard the old buffer.
         await _files.ListMarkdownFilesAsync(root);
         if (_folder is not null && WorkspaceService.NormalizeRootPath(root).Equals(_folder, StringComparison.OrdinalIgnoreCase)) return true;
-        if (!await ConfirmAllTabsAsync()) return false;
-        await LoadFolderAsync(root);
-        ResetTabs("Workspace opened; choose a Markdown document.");
-        return true;
+        return await RunSessionTransitionAsync(async () =>
+        {
+            await LoadFolderAsync(root);
+            ResetTabs("Workspace opened; choose a Markdown document.");
+            await RestoreCleanSessionAsync();
+        });
     }
 
     private async void ManageDocument_OnClick(object? sender, RoutedEventArgs eventArgs)
@@ -88,6 +96,9 @@ public partial class MainWindow
             _session.Path is not null && IsWithinFolder(_session.Path, workspace.RootPath) ? Path.GetRelativePath(workspace.RootPath, _session.Path) : null;
         var isCreation = kind is DocumentMutationKind.Create or DocumentMutationKind.CreateFolder;
         if (!isCreation && sourceRelative is null) { UpdateChrome("Select a workspace document first."); return; }
+        if (_sessionTransitionRunning) return;
+        _sessionTransitionRunning = true;
+        SetSessionCommandsEnabled(false);
         try
         {
             var destinationRelative = (string?)null;
@@ -137,8 +148,8 @@ public partial class MainWindow
             try
             {
                 var path = await operations.ExecuteAsync(workspace, kind, sourceRelative, destinationRelative, reviewedHash);
-                if (affectsActive && kind is DocumentMutationKind.Rename or DocumentMutationKind.Move && path is not null) _session.UpdatePath(path);
-                if (affectsActive && kind == DocumentMutationKind.Recycle) await CloseTabAsync(_activeTab);
+                if (affectedTab is not null && kind is DocumentMutationKind.Rename or DocumentMutationKind.Move && path is not null) affectedTab.Session.UpdatePath(path);
+                if (affectedTab is not null && kind == DocumentMutationKind.Recycle) await CloseTabAsync(affectedTab);
                 await LoadFolderAsync(workspace.RootPath);
                 if (kind == DocumentMutationKind.Create && path is not null) await OpenDocumentAsync(path);
                 else if (kind == DocumentMutationKind.Duplicate && path is not null &&
@@ -153,6 +164,12 @@ public partial class MainWindow
             _mutationBlocked = (await ManagementState.GetPendingMutationsAsync()).Count > 0;
             ReportError("document.management.failed", exception, sourceRelative);
             await ChoiceDialog.ShowAsync(this, "Operation not completed", exception.Message, "OK");
+        }
+        finally
+        {
+            _sessionTransitionRunning = false;
+            SetSessionCommandsEnabled(true);
+            RefreshDocumentMonitors();
         }
     }
 

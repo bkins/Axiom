@@ -4,13 +4,21 @@ using Axiom.Core;
 
 namespace Axiom.App;
 
-internal sealed class DocumentTab(DocumentSession session, int untitledNumber) : INotifyPropertyChanged
+internal sealed class DocumentTab : INotifyPropertyChanged
 {
     private string _label = string.Empty;
 
-    public DocumentSession Session { get; } = session;
-    public TextDocument Document { get; } = new(session.Text);
-    public int UntitledNumber { get; } = untitledNumber;
+    public DocumentTab(DocumentSession session, int untitledNumber)
+    {
+        Session = session;
+        UntitledNumber = untitledNumber;
+        Document = new TextDocument(session.Text);
+        Document.Changed += (_, _) => Session.UpdateText(Document.Text);
+    }
+
+    public DocumentSession Session { get; }
+    public TextDocument Document { get; }
+    public int UntitledNumber { get; }
     public int CaretOffset { get; set; }
     public int SelectionStart { get; set; }
     public int SelectionLength { get; set; }
@@ -21,6 +29,7 @@ internal sealed class DocumentTab(DocumentSession session, int untitledNumber) :
     public string RecoveryStatus { get; set; } = "Recovery ready";
     public bool IsMissing { get; set; }
     public DocumentStructure? Structure { get; set; }
+    public bool HasPendingScrollRestore { get; set; }
 
     public string Label
     {

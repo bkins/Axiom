@@ -103,15 +103,21 @@ public partial class MainWindow
                 UpdateChrome($"This app is still running. Version ready at {destination}. Use Tools → Switch Portable Version and choose its payload-manifest.json when ready.");
                 return;
             }
-            if (!await ConfirmAllTabsAsync()) return;
-            await _markCleanExit();
-            PortableUpdateLauncher.ScheduleRestart(destination, _operationalPaths.Root);
-            _closingApproved = true;
-            _recoveryTimer.Stop();
-            _previewTimer.Stop();
-            _outlineTimer.Stop();
-            _monitor.Dispose();
-            Close();
+            await RunSessionTransitionAsync(async () =>
+            {
+                if (_mutationBlocked || ManagementState is not null && (await ManagementState.GetPendingMutationsAsync()).Count > 0)
+                    throw new IOException("Resolve pending file operations before switching versions.");
+                await _markCleanExit();
+                PortableUpdateLauncher.ScheduleRestart(destination, _operationalPaths.Root);
+                _closingApproved = true;
+                _recoveryTimer.Stop();
+                _previewTimer.Stop();
+                _outlineTimer.Stop();
+                _monitor.Dispose();
+                _workspaceRefreshTimer.Stop();
+                _workspaceChanges.Dispose();
+                Close();
+            });
         }
         catch (Exception exception)
         {

@@ -13,6 +13,11 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = AppComposition.CreateMainWindow();
+            if (MultiBufferRecoveryProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await MultiBufferRecoveryProbe.StartAsync(window);
+            }
         }
         base.OnFrameworkInitializationCompleted();
     }

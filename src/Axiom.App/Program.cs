@@ -12,6 +12,10 @@ internal static class Program
         if (args.FirstOrDefault() == "--recovery-probe") return RunRecoveryProbe(args);
         if (args.FirstOrDefault() == "--verify-recovery") return VerifyRecovery(args);
         if (args.FirstOrDefault() is "--verify-package" or "--verify-and-restart-package") return PortablePackageProbe.Run(args);
+        if (args.FirstOrDefault() == "--verify-multi-buffer-recovery" && args.Length == 3)
+            return MultiBufferRecoveryProbe.Verify(args[1], args[2]);
+        if (args.FirstOrDefault() == "--multi-buffer-recovery-probe" && args.Length == 2)
+            MultiBufferRecoveryProbe.Configure(args[1]);
         return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

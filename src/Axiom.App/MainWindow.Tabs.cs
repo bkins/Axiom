@@ -34,7 +34,7 @@ public partial class MainWindow
 
     private async void DocumentTabs_OnSelectionChanged(object? sender, SelectionChangedEventArgs eventArgs)
     {
-        if (!_selectingTab && DocumentTabs.SelectedItem is DocumentTab tab)
+        if (!_selectingTab && !_sessionTransitionRunning && DocumentTabs.SelectedItem is DocumentTab tab)
             await SelectTabAsync(tab);
     }
 
@@ -67,8 +67,11 @@ public partial class MainWindow
         tab.CaretOffset = Editor.CaretOffset;
         tab.SelectionStart = Editor.SelectionStart;
         tab.SelectionLength = Editor.SelectionLength;
-        tab.HorizontalOffset = Editor.TextArea.TextView.HorizontalOffset;
-        tab.VerticalOffset = Editor.TextArea.TextView.VerticalOffset;
+        if (!tab.HasPendingScrollRestore)
+        {
+            tab.HorizontalOffset = Editor.TextArea.TextView.HorizontalOffset;
+            tab.VerticalOffset = Editor.TextArea.TextView.VerticalOffset;
+        }
         tab.Structure = _structure;
     }
 
@@ -85,12 +88,14 @@ public partial class MainWindow
         Editor.UpdateLayout();
         Editor.ScrollToHorizontalOffset(tab.HorizontalOffset);
         Editor.ScrollToVerticalOffset(tab.VerticalOffset);
+        tab.HasPendingScrollRestore = true;
         Dispatcher.UIThread.Post(() =>
         {
             if (_activeTab != tab || _closingApproved || !IsVisible) return;
             Editor.UpdateLayout();
             Editor.TextArea.TextView.EnsureVisualLines();
             ((ILogicalScrollable)Editor.TextArea.TextView).Offset = new Avalonia.Vector(tab.HorizontalOffset, tab.VerticalOffset);
+            tab.HasPendingScrollRestore = false;
         }, DispatcherPriority.Loaded);
         _loading = false;
         _selectingTab = true;
@@ -110,6 +115,32 @@ public partial class MainWindow
         var tab = AddTab(session);
         await SelectTabAsync(tab);
         UpdateChrome(status);
+    }
+
+    private async Task LoadRecoveredSessionAsync(DocumentSession session)
+    {
+        if (session.Path is { } path && FindTab(path) is { } existing)
+        {
+            if (existing.Session.IsDirty)
+            {
+                UpdateChrome("This path already has unsaved edits open. The protected draft remains available for later recovery.");
+                return;
+            }
+            var recovered = new DocumentTab(session, existing.UntitledNumber);
+            recovered.CaretOffset = existing.CaretOffset;
+            recovered.SelectionStart = existing.SelectionStart;
+            recovered.SelectionLength = existing.SelectionLength;
+            recovered.HorizontalOffset = existing.HorizontalOffset;
+            recovered.VerticalOffset = existing.VerticalOffset;
+            recovered.PreviewScrollRatio = existing.PreviewScrollRatio;
+            _selectingTab = true;
+            _tabs[_tabs.IndexOf(existing)] = recovered;
+            _selectingTab = false;
+            await SelectTabAsync(recovered);
+            UpdateChrome("Recovered protected work in its existing tab. The saved file has not been overwritten.");
+            return;
+        }
+        await LoadSessionAsync(session, "Recovered protected work. The saved file has not been overwritten.");
     }
 
     private void ResetTabs(string status)
