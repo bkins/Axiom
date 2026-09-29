@@ -117,6 +117,22 @@
           <TextBlock DockPanel.Dock="Top" Margin="4,4,4,8" FontWeight="SemiBold" Text="Markdown files" />
           <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" Foreground="#B45309" TextWrapping="Wrap" />
           <TabControl>
+            <TabItem Header="Relations" AutomationProperties.Name="Explicit document relationships">
+              <DockPanel Margin="4">
+                <StackPanel DockPanel.Dock="Top" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button x:Name="RelationshipAdd" Content="Add…" Click="RelationshipAdd_OnClick" />
+                    <Button Content="Edit…" Click="RelationshipEdit_OnClick" />
+                    <Button Content="Remove…" Click="RelationshipRemove_OnClick" />
+                  </StackPanel>
+                  <Button Content="Refresh identities" Click="ClassificationRefresh_OnClick" />
+                  <TextBlock x:Name="RelationshipStatus" TextWrapping="Wrap" />
+                </StackPanel>
+                <ListBox x:Name="Relationships" AutomationProperties.Name="Incoming and outgoing explicit relationships" DoubleTapped="Relationships_OnDoubleTapped" KeyDown="Relationships_OnKeyDown">
+                  <ListBox.ItemTemplate><DataTemplate DataType="core:RelationshipView"><TextBlock Text="{Binding Display}" TextWrapping="Wrap" Margin="0,4" /></DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+            </TabItem>
             <TabItem Header="Metadata" AutomationProperties.Name="Document metadata">
               <ScrollViewer>
                 <StackPanel Margin="4" Spacing="6">

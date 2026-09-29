@@ -95,6 +95,7 @@ public partial class MainWindow : Window
         _session = documents.NewDocument();
         InitializeComponent();
         InitializeClassification();
+        InitializeRelationships();
         InitializeBacklinks();
         InitializeWorkspaceRefresh();
         AddHandler(KeyUpEvent, Window_OnKeyUp, RoutingStrategies.Tunnel);

@@ -5,7 +5,7 @@ namespace Axiom.Infrastructure;
 
 public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore, IDocumentMutationStore, IWorkspaceCatalogStore
 {
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
     public AppDataPaths Paths => paths;
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
     private string ConnectionString => new SqliteConnectionStringBuilder
@@ -112,6 +112,25 @@ public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log 
                     Revision INTEGER NOT NULL
                 );
                 UPDATE SchemaInfo SET Version = 6;
+                COMMIT;
+                """, cancellationToken);
+        }
+        if (schemaVersion < 7)
+        {
+            await ExecuteAsync(connection, """
+                BEGIN IMMEDIATE;
+                CREATE TABLE IF NOT EXISTS DocumentRelationships (
+                    RelationshipId TEXT PRIMARY KEY,
+                    SourceId TEXT NOT NULL,
+                    TargetId TEXT NOT NULL,
+                    Kind TEXT NOT NULL,
+                    KindKey TEXT NOT NULL,
+                    Note TEXT NULL,
+                    Revision INTEGER NOT NULL,
+                    UNIQUE(SourceId, TargetId, KindKey),
+                    CHECK(SourceId <> TargetId)
+                );
+                UPDATE SchemaInfo SET Version = 7;
                 COMMIT;
                 """, cancellationToken);
         }

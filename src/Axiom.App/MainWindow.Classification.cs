@@ -40,6 +40,7 @@ public partial class MainWindow
         _classificationCancellation?.Cancel();
         ++_classificationGeneration;
         _classificationCatalog = null;
+        _relationships = [];
         _classificationResults.Clear();
     }
 
@@ -56,8 +57,10 @@ public partial class MainWindow
         try
         {
             var catalog = await Task.Run(() => _classificationService.DiscoverAsync(root, token), token);
+            var relationships = _recovery is IConnectedMetadataStore connected ? await connected.GetRelationshipsAsync(token) : [];
             if (generation != _classificationGeneration || root != _folder) return;
             _classificationCatalog = catalog;
+            _relationships = relationships;
             ApplyClassificationFilter();
             UpdateMetadataPanel();
         }
@@ -91,6 +94,7 @@ public partial class MainWindow
             MetadataFields.IsEnabled = eligible && !_metadataApplying;
         }
         finally { _panelLoading = false; }
+        RefreshRelationshipViews();
     }
 
     private async Task<bool> ResolvePendingMetadataAsync()
@@ -180,8 +184,8 @@ public partial class MainWindow
         if (_folder is null || !await ResolvePendingMetadataAsync()) return;
         await RefreshClassificationAsync();
         if (_classificationCatalog is null) return;
-        var transfer = MetadataTransferService.Export(_classificationCatalog);
-        if (await ChoiceDialog.ShowAsync(this, "Review metadata export", $"Export {transfer.Records.Length} unique saved identities. Skip {_classificationCatalog.Documents.Count - transfer.Records.Length} ordinary/ambiguous/incomplete documents. Markdown and recovery text are excluded.", "Export", "Cancel") != "Export") return;
+        var transfer = MetadataTransferService.Export(_classificationCatalog, _relationships);
+        if (await ChoiceDialog.ShowAsync(this, "Review metadata export", $"Export {transfer.Records.Length} unique saved identities and {transfer.Relationships?.Length ?? 0} relationships in format version 2. Skip {_classificationCatalog.Documents.Count - transfer.Records.Length} ordinary/ambiguous/incomplete documents. Unresolved relationship endpoints retain their IDs. Markdown and recovery text are excluded.", "Export", "Cancel") != "Export") return;
         var selected = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { Title = "Export metadata", SuggestedFileName = "axiom-metadata.json", DefaultExtension = "json" });
         if (selected?.TryGetLocalPath() is not { } path) return;
         if (File.Exists(path) && await ChoiceDialog.ShowAsync(this, "Replace metadata export", path, "Replace", "Cancel") != "Replace") return;
@@ -199,8 +203,8 @@ public partial class MainWindow
             var transfer = await MetadataTransferService.ReadAsync(path);
             await RefreshClassificationAsync();
             if (_classificationCatalog is not { } evidence) return;
-            var proposals = MetadataTransferService.Preview(transfer, evidence);
-            await new MetadataImportWindow(proposals, changes => Task.Run(() => _classificationService.ApplyAsync(evidence, changes))).ShowDialog(this);
+            var proposals = MetadataTransferService.Preview(transfer, evidence, _relationships);
+            await new MetadataImportWindow(proposals, (changes, relationships) => Task.Run(() => _classificationService.ApplyConnectedAsync(evidence, changes, relationships))).ShowDialog(this);
             await RefreshClassificationAsync();
         }
         catch (Exception exception) { ReportError("metadata.import.failed", exception, path); }

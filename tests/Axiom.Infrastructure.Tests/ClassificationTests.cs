@@ -91,11 +91,11 @@ public sealed class ClassificationTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE DocumentClassification; UPDATE SchemaInfo SET Version=5;";
+            command.CommandText = "DROP TABLE DocumentClassification; DROP TABLE IF EXISTS DocumentRelationships; UPDATE SchemaInfo SET Version=5;";
             await command.ExecuteNonQueryAsync();
         }
         await fixture.State.InitializeAsync();
-        Assert.Equal(6, (await new StateMaintenanceService(fixture.State.Paths).InspectAsync()).SchemaVersion);
+        Assert.Equal(SqliteStateStore.CurrentSchemaVersion, (await new StateMaintenanceService(fixture.State.Paths).InspectAsync()).SchemaVersion);
         Assert.Single(await fixture.State.GetRecoverableDraftsAsync());
         Assert.Single(await fixture.State.GetPinsAsync(fixture.Workspace.WorkspaceId));
         Assert.Single(await fixture.State.GetIdentitiesAsync());

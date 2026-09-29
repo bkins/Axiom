@@ -42,15 +42,21 @@ public sealed class ClassificationService(IDocumentFileStore files, IDocumentMet
     }
 
     public async Task ApplyAsync(ClassificationCatalog evidence, IReadOnlyList<ClassificationChange> changes, CancellationToken cancellationToken = default)
+        => await ApplyConnectedAsync(evidence, changes, [], cancellationToken);
+
+    public async Task ApplyConnectedAsync(ClassificationCatalog evidence, IReadOnlyList<ClassificationChange> changes, IReadOnlyList<RelationshipChange> relationships, CancellationToken cancellationToken = default)
     {
         var current = await DiscoverAsync(evidence.Root, cancellationToken);
-        foreach (var change in changes)
+        var affected = changes.Select(change => change.Value.DocumentId).Concat(relationships.Where(change => !change.Delete).SelectMany(change => new[] { change.Value.SourceId, change.Value.TargetId })).Distinct();
+        foreach (var id in affected)
         {
-            var before = evidence.Find(change.Value.DocumentId);
-            var now = current.Find(change.Value.DocumentId);
+            var before = evidence.Find(id);
+            var now = current.Find(id);
             if (before is null || now is null || before.RelativePath != now.RelativePath || before.ContentHash != now.ContentHash)
                 throw new InvalidOperationException("Document identity or file evidence changed. Refresh the proposal.");
         }
-        await store.ApplyClassificationsAsync(changes, cancellationToken);
+        if (store is IConnectedMetadataStore connected) await connected.ApplyConnectedMetadataAsync(changes, relationships, cancellationToken);
+        else if (relationships.Count != 0) throw new InvalidOperationException("Relationship storage is unavailable.");
+        else await store.ApplyClassificationsAsync(changes, cancellationToken);
     }
 }

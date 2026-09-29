@@ -9,4 +9,6 @@ internal sealed record ConnectedDocumentsProbeResult(string Machine
                                                    , bool MarkdownUnchanged
                                                    , bool CleanStartupRestored
                                                    , bool MetadataPanelApplied = false
-                                                   , bool MetadataImportApplied = false);
+                                                   , bool MetadataImportApplied = false
+                                                   , bool RelationshipCreatedAndFollowed = false
+                                                   , bool RelationshipImportApplied = false);

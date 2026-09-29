@@ -18,12 +18,13 @@ public sealed partial class SqliteStateStore : IClassificationStore
         return (IReadOnlyList<DocumentClassification>)values;
     }, cancellationToken);
 
-    public Task ApplyClassificationsAsync(IReadOnlyList<ClassificationChange> changes, CancellationToken cancellationToken = default) => Task.Run(async () =>
+    public Task ApplyClassificationsAsync(IReadOnlyList<ClassificationChange> changes, CancellationToken cancellationToken = default) =>
+        ApplyConnectedMetadataAsync(changes, [], cancellationToken);
+
+    private static async Task WriteClassificationsAsync(SqliteConnection connection, SqliteTransaction transaction, IReadOnlyList<ClassificationChange> changes, CancellationToken cancellationToken)
     {
         if (changes.Select(change => change.Value.DocumentId).Distinct().Count() != changes.Count) throw new ArgumentException("Duplicate document IDs.");
         var normalized = changes.Select(change => change with { Value = ClassificationPolicy.Normalize(change.Value) }).ToArray();
-        await using var connection = await OpenAsync(cancellationToken);
-        await using var transaction = connection.BeginTransaction();
         foreach (var change in normalized)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -46,7 +47,5 @@ public sealed partial class SqliteStateStore : IClassificationStore
             write.Parameters.AddWithValue("$revision", checked(revision + 1));
             await write.ExecuteNonQueryAsync(cancellationToken);
         }
-        cancellationToken.ThrowIfCancellationRequested();
-        await transaction.CommitAsync(cancellationToken);
-    }, cancellationToken);
+    }
 }

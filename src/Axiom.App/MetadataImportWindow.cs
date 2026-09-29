@@ -9,6 +9,9 @@ namespace Axiom.App;
 internal sealed class MetadataImportWindow : Window
 {
     public MetadataImportWindow(IReadOnlyList<MetadataImportProposal> proposals, Func<IReadOnlyList<ClassificationChange>, Task> apply)
+        : this(proposals, (classifications, _) => apply(classifications)) { }
+
+    public MetadataImportWindow(IReadOnlyList<MetadataImportProposal> proposals, Func<IReadOnlyList<ClassificationChange>, IReadOnlyList<RelationshipChange>, Task> apply)
     {
         Title = "Review metadata import";
         Width = 760;
@@ -32,7 +35,8 @@ internal sealed class MetadataImportWindow : Window
             try
             {
                 var selected = proposals.Where(proposal => proposal.Replace && proposal.Change is not null).Select(proposal => proposal.Change!).ToArray();
-                await apply(selected);
+                var relations = proposals.Where(proposal => proposal.Replace && proposal.RelationshipChange is not null).Select(proposal => proposal.RelationshipChange!).ToArray();
+                await apply(selected, relations);
                 Close();
             }
             catch (Exception exception) { status.Text = exception.Message + " No replacements committed. Cancel and refresh the preview."; }

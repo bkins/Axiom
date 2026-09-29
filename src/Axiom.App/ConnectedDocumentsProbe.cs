@@ -49,7 +49,8 @@ internal static class ConnectedDocumentsProbe
             var workspace = await Task.Run(() => LinkIndexBenchmarkProbe.GenerateAsync(root, 1000));
             var source = Path.Combine(workspace, "native-source.md");
             var target = Path.Combine(workspace, "native-target.md");
-            const string sourceText = "# Source\n\n[Follow](native-target.md#destination)\n";
+            var sourceId = Guid.NewGuid();
+            var sourceText = DocumentIdCodec.Enroll("# Source\n\n[Follow](native-target.md#destination)\n", sourceId);
             var targetText = string.Concat(Enumerable.Repeat("Paragraph before the heading.\n\n", 100)) + "# Destination\n\nTarget body\n"
                 + string.Concat(Enumerable.Repeat("Paragraph after the heading.\n\n", 100));
             var metadataId = Guid.NewGuid();
@@ -115,12 +116,50 @@ internal static class ConnectedDocumentsProbe
             await importWindow.ShowDialog(window);
             if ((await state.GetClassificationsAsync()).Single(value => value.DocumentId == metadataId).Type != "Decision")
                 throw new IOException("Native reviewed metadata import did not commit.");
+            evidence = await Task.Run(() => classificationService.DiscoverAsync(workspace));
+            var relationEditor = new RelationshipEditorWindow(metadataId, evidence.Documents.Where(document => document.DocumentId == sourceId).ToArray(), null,
+                change => Task.Run(() => classificationService.ApplyConnectedAsync(evidence, [], [change])));
+            relationEditor.Opened += async (_, _) =>
+            {
+                await Task.Delay(100);
+                try
+                {
+                    relationEditor.GetLogicalDescendants().OfType<TextBox>().Single(box => box.Name == "RelationshipNote").Text = "Native related note";
+                    relationEditor.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ApplyRelationship").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+                catch (Exception exception) { File.WriteAllText(Path.Combine(root, "error.txt"), exception.ToString()); relationEditor.Close(); }
+            };
+            await relationEditor.ShowDialog(window);
+            var relationship = (await state.GetRelationshipsAsync()).Single();
+            await window.FollowRelationshipAsync(relationship);
+            if (window.PathContextForTesting != source) throw new IOException("Native outgoing relationship did not navigate.");
+            await window.FollowRelationshipAsync(relationship);
+            if (window.PathContextForTesting != target) throw new IOException("Native incoming relationship did not navigate.");
+            evidence = await Task.Run(() => classificationService.DiscoverAsync(workspace));
+            transferred = MetadataTransferService.Export(evidence, await state.GetRelationshipsAsync());
+            await MetadataTransferService.WriteAsync(Path.Combine(root, "connected-metadata-v2.json"), transferred);
+            transferred = await MetadataTransferService.ReadAsync(Path.Combine(root, "connected-metadata-v2.json"));
+            transferred = transferred with { Relationships = transferred.Relationships!.Select(item => item with { Note = "Imported relation note" }).ToArray() };
+            proposals = MetadataTransferService.Preview(transferred, evidence, await state.GetRelationshipsAsync());
+            var relationImport = new MetadataImportWindow(proposals, (changes, relations) => Task.Run(() => classificationService.ApplyConnectedAsync(evidence, changes, relations)));
+            relationImport.Opened += async (_, _) =>
+            {
+                await Task.Delay(100);
+                try
+                {
+                    relationImport.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "Replace" + relationship.RelationshipId.ToString("N")).IsChecked = true;
+                    relationImport.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ApplyImport").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+                catch (Exception exception) { File.WriteAllText(Path.Combine(root, "error.txt"), exception.ToString()); relationImport.Close(); }
+            };
+            await relationImport.ShowDialog(window);
+            if (AssertRelationshipNote(await state.GetRelationshipsAsync()) != "Imported relation note") throw new IOException("Native relationship import did not commit.");
             window.SetEditorSelectionForTesting(targetText.IndexOf("# Destination", StringComparison.Ordinal), 0);
             var record = (await state.GetActiveWorkspaceAsync())!;
             var index = (await state.GetLinkIndexAsync(record.WorkspaceId))!;
             var unchanged = await File.ReadAllTextAsync(source) == sourceText && await File.ReadAllTextAsync(target) == targetText;
             if (!unchanged) throw new IOException("Native workflow changed saved Markdown.");
-            var report = new ConnectedDocumentsProbeResult(Environment.MachineName, true, true, index.Documents.Count, samples.Count, p95, unchanged, false, true, true);
+            var report = new ConnectedDocumentsProbeResult(Environment.MachineName, true, true, index.Documents.Count, samples.Count, p95, unchanged, false, true, true, true, true);
             await File.WriteAllTextAsync(Path.Combine(root, "capture-result.json"), JsonSerializer.Serialize(report));
             window.Closed += (_, _) =>
             {
@@ -146,4 +185,6 @@ internal static class ConnectedDocumentsProbe
             await Task.Delay(50);
         }
     }
+
+    private static string? AssertRelationshipNote(IReadOnlyList<DocumentRelationship> relationships) => relationships.Single().Note;
 }
