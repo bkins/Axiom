@@ -2,6 +2,22 @@ namespace Axiom.Core.Tests;
 
 public sealed class WorkspaceMutationPolicyTests
 {
+    [Fact]
+    public void MovePickerRetainsNameAndAllowsWorkspaceRootOrNestedFolder()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "workspace");
+        Assert.Equal(Path.Combine("café", "☕.markdown"), WorkspaceMutationPolicy.MoveDestination(root, "old/☕.markdown", Path.Combine(root, "café")));
+        Assert.Equal("☕.markdown", WorkspaceMutationPolicy.MoveDestination(root, "old/☕.markdown", root));
+    }
+
+    [Fact]
+    public void MovePickerRejectsSiblingWorkspaceAndEscapingSource()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "workspace");
+        Assert.Throws<ArgumentException>(() => WorkspaceMutationPolicy.MoveDestination(root, "a.md", root + "-other"));
+        Assert.Throws<ArgumentException>(() => WorkspaceMutationPolicy.MoveDestination(root, "../a.md", root));
+    }
+
     [Theory]
     [InlineData("../escape.md")]
     [InlineData("nested/../escape.md")]

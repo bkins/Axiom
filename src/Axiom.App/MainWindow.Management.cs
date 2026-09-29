@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Axiom.Core;
 using Axiom.Infrastructure;
 
@@ -52,6 +53,7 @@ public partial class MainWindow
                 _workspaceSearchResults.Clear();
                 _activeWorkspace = null;
                 _folder = null;
+                _workspaceChanges.Watch(null);
                 _workspaceTree.Clear();
                 _workspacePins.Clear();
                 LoadSession(_documents.NewDocument(), "Workspace forgotten; its files remain on disk.");
@@ -88,7 +90,19 @@ public partial class MainWindow
         try
         {
             var destinationRelative = (string?)null;
-            if (kind != DocumentMutationKind.Recycle)
+            if (kind == DocumentMutationKind.Move)
+            {
+                var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                {
+                    Title                  = "Move document — choose a folder inside this workspace"
+                  , AllowMultiple          = false
+                  , SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(
+                      Path.GetDirectoryName(Path.Combine(workspace.RootPath, sourceRelative!))!)
+                });
+                if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return;
+                destinationRelative = WorkspaceMutationPolicy.MoveDestination(workspace.RootPath, sourceRelative!, folder);
+            }
+            else if (kind != DocumentMutationKind.Recycle)
             {
                 var selectedFolder = selected is { IsDocument: false } ? selected.RelativePath : Path.GetDirectoryName(selected?.RelativePath) ?? "";
                 var initial = kind switch
