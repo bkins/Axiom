@@ -20,10 +20,18 @@ internal sealed class BulkEnrollmentWindow : Window
         MinHeight = 360;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var status = new TextBlock { Text = "Reviewing workspace…", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
-        var list = new ListBox { SelectionMode = SelectionMode.Multiple };
-        Avalonia.Automation.AutomationProperties.SetName(list, "Enrollment preview; select files with Ctrl or Shift");
-        var selectAll = new Button { Content = "Select all eligible", IsEnabled = false };
-        var clear = new Button { Content = "Clear selection" };
+        var list = new ListBox { Name = "EnrollmentFiles", SelectionMode = SelectionMode.Multiple | SelectionMode.Toggle };
+        Avalonia.Automation.AutomationProperties.SetName(list, "Enrollment preview; click or press Space to toggle files");
+        var instructions = new TextBlock
+        {
+            Text         = "Bulk enrollment selects files here, separately from the explorer. Click each row to add/remove it; use Space on a focused row or Shift for a range. Review the selected count, then Apply."
+          , TextWrapping = Avalonia.Media.TextWrapping.Wrap
+          , Margin       = new Avalonia.Thickness(0, 0, 0, 8)
+        };
+        var selectionStatus = new TextBlock { Name = "EnrollmentSelectionStatus", Text = "0 files selected", Margin = new Avalonia.Thickness(0, 5) };
+        list.SelectionChanged += (_, _) => selectionStatus.Text = $"{list.SelectedItems!.Count} files selected";
+        var selectAll = new Button { Name = "SelectAllEligible", Content = "Select all eligible", IsEnabled = false };
+        var clear = new Button { Name = "ClearEnrollmentSelection", Content = "Clear selection" };
         var apply = new Button { Content = "Apply — save selected files…", IsEnabled = false };
         var cancel = new Button { Content = "Cancel / Close" };
         var progress = new Progress<string>(message => status.Text = message);
@@ -69,7 +77,9 @@ internal sealed class BulkEnrollmentWindow : Window
         Closing += (_, eventArgs) => { if (_running) { _cancellation.Cancel(); eventArgs.Cancel = true; } };
         var buttons = new WrapPanel { Orientation = Orientation.Horizontal, Children = { selectAll, clear, apply, cancel } };
         foreach (var button in buttons.Children.OfType<Button>()) button.Margin = new Avalonia.Thickness(0, 5, 8, 5);
-        Content = new DockPanel { Margin = new Avalonia.Thickness(18), Children = { status, buttons, list } };
+        var heading = new StackPanel { Children = { instructions, status, selectionStatus } };
+        Content = new DockPanel { Margin = new Avalonia.Thickness(18), Children = { heading, buttons, list } };
+        DockPanel.SetDock(heading, Dock.Top);
         DockPanel.SetDock(status, Dock.Top);
         DockPanel.SetDock(buttons, Dock.Bottom);
 

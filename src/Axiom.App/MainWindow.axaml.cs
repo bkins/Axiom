@@ -92,6 +92,8 @@ public partial class MainWindow : Window
         _markCleanExit = markCleanExit;
         _session = documents.NewDocument();
         InitializeComponent();
+        InitializeWorkspaceRefresh();
+        AddHandler(KeyUpEvent, Window_OnKeyUp, RoutingStrategies.Tunnel);
 
         FileTree.ItemsSource = _workspaceTree;
         WorkspaceSearchResults.ItemsSource = _workspaceSearchResults;
@@ -143,6 +145,7 @@ public partial class MainWindow : Window
 
     internal async Task LoadFolderAsync(string folder)
     {
+        ++_workspaceRefreshGeneration;
         var normalizedFolder = WorkspaceService.NormalizeRootPath(folder);
         _workspaceSearchCancellation?.Cancel();
         ++_workspaceSearchGeneration;
@@ -155,6 +158,7 @@ public partial class MainWindow : Window
         var expandedPaths = Traverse(_workspaceTree).Where(node => node.IsExpanded).Select(node => node.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
         _folder = workspace.RootPath;
         _activeWorkspace = workspace;
+        _workspaceChanges.Watch(_folder);
         _workspaceTree.Clear();
         foreach (var node in WorkspaceTreeBuilder.Build(_folder, discovery.Files, WorkspaceFolderDiscovery.List(_folder)))
         {
@@ -939,12 +943,15 @@ public partial class MainWindow : Window
         _previewTimer.Stop();
         _outlineTimer.Stop();
         _monitor.Dispose();
+        _workspaceRefreshTimer.Stop();
+        _workspaceChanges.Dispose();
         await _markCleanExit();
         Close();
     }
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
+        if (TryHandleCommandMenuKey(e)) return;
         var editorIsCommandTarget = IsEditorCommandTarget();
         if (TryHandleMarkdownListKey(e.Key, e.KeyModifiers, editorIsCommandTarget))
         {
