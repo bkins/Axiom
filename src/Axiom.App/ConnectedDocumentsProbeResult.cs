@@ -7,4 +7,6 @@ internal sealed record ConnectedDocumentsProbeResult(string Machine
                                                    , int NativeEditSamples
                                                    , double EditToBufferP95Milliseconds
                                                    , bool MarkdownUnchanged
-                                                   , bool CleanStartupRestored);
+                                                   , bool CleanStartupRestored
+                                                   , bool MetadataPanelApplied = false
+                                                   , bool MetadataImportApplied = false);

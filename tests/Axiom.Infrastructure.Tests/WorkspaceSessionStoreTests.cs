@@ -35,7 +35,7 @@ public sealed class WorkspaceSessionStoreTests
         await fixture.State.RecordIdentityAsync(Guid.NewGuid(), Path.Combine(fixture.Root, "enrolled.md"));
         await fixture.State.SetAppearanceAsync(AppearancePreference.Dark);
         var service = new StateMaintenanceService(fixture.State.Paths);
-        Assert.Equal(5, (await service.InspectAsync()).SchemaVersion);
+        Assert.Equal(SqliteStateStore.CurrentSchemaVersion, (await service.InspectAsync()).SchemaVersion);
         var backup = await service.ExportBackupAsync(Path.Combine(fixture.Root, "backup.db"));
         var isolated = new AppDataPaths(Path.Combine(fixture.Root, "restored"));
         isolated.EnsureCreated();

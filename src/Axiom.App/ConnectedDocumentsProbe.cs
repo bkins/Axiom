@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Axiom.Core;
 using Axiom.Infrastructure;
 
@@ -50,6 +52,8 @@ internal static class ConnectedDocumentsProbe
             const string sourceText = "# Source\n\n[Follow](native-target.md#destination)\n";
             var targetText = string.Concat(Enumerable.Repeat("Paragraph before the heading.\n\n", 100)) + "# Destination\n\nTarget body\n"
                 + string.Concat(Enumerable.Repeat("Paragraph after the heading.\n\n", 100));
+            var metadataId = Guid.NewGuid();
+            targetText = DocumentIdCodec.Enroll(targetText, metadataId);
             await File.WriteAllTextAsync(source, sourceText);
             await File.WriteAllTextAsync(target, targetText);
             if (!await window.SwitchWorkspaceAsync(workspace)) throw new IOException("Could not open the native workload workspace.");
@@ -80,12 +84,43 @@ internal static class ConnectedDocumentsProbe
             if (p95 >= 50) throw new IOException($"Native edit-to-buffer p95 {p95:F2} ms exceeds the 50 ms target.");
             await window.ConfirmAllTabsForTestingAsync();
             await window.OpenDocumentAsync(target);
+            await window.RefreshClassificationAsync();
+            window.FindControl<TextBox>("MetadataTags")!.Text = "Native tag\nSecond";
+            window.FindControl<TextBox>("MetadataType")!.Text = "Note";
+            window.FindControl<TextBox>("MetadataAliases")!.Text = "Native alternate name";
+            if (!await window.ApplyMetadataAsync()) throw new IOException("Native metadata panel did not apply.");
+            var classificationService = new ClassificationService(new FileDocumentStore(), state, state);
+            var evidence = await Task.Run(() => classificationService.DiscoverAsync(workspace));
+            var exported = MetadataTransferService.Export(evidence);
+            var transferPath = Path.Combine(root, "metadata.json");
+            await MetadataTransferService.WriteAsync(transferPath, exported);
+            var transferred = await MetadataTransferService.ReadAsync(transferPath);
+            transferred = transferred with { Records = transferred.Records.Select(item => item with { Type = "Decision" }).ToArray() };
+            var proposals = MetadataTransferService.Preview(transferred, evidence);
+            var importWindow = new MetadataImportWindow(proposals, changes => Task.Run(() => classificationService.ApplyAsync(evidence, changes)));
+            importWindow.Opened += async (_, _) =>
+            {
+                await Task.Delay(100);
+                try
+                {
+                    importWindow.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "Replace" + metadataId.ToString("N")).IsChecked = true;
+                    importWindow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ApplyImport").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+                catch (Exception exception)
+                {
+                    File.WriteAllText(Path.Combine(root, "error.txt"), exception.ToString());
+                    importWindow.Close();
+                }
+            };
+            await importWindow.ShowDialog(window);
+            if ((await state.GetClassificationsAsync()).Single(value => value.DocumentId == metadataId).Type != "Decision")
+                throw new IOException("Native reviewed metadata import did not commit.");
             window.SetEditorSelectionForTesting(targetText.IndexOf("# Destination", StringComparison.Ordinal), 0);
             var record = (await state.GetActiveWorkspaceAsync())!;
             var index = (await state.GetLinkIndexAsync(record.WorkspaceId))!;
             var unchanged = await File.ReadAllTextAsync(source) == sourceText && await File.ReadAllTextAsync(target) == targetText;
             if (!unchanged) throw new IOException("Native workflow changed saved Markdown.");
-            var report = new ConnectedDocumentsProbeResult(Environment.MachineName, true, true, index.Documents.Count, samples.Count, p95, unchanged, false);
+            var report = new ConnectedDocumentsProbeResult(Environment.MachineName, true, true, index.Documents.Count, samples.Count, p95, unchanged, false, true, true);
             await File.WriteAllTextAsync(Path.Combine(root, "capture-result.json"), JsonSerializer.Serialize(report));
             window.Closed += (_, _) =>
             {

@@ -1,4 +1,5 @@
 using Avalonia.Headless.XUnit;
+using Axiom.Infrastructure;
 using Xunit;
 
 namespace Axiom.App.Tests;
@@ -16,7 +17,7 @@ public sealed partial class MainWindowTests
             var text = await window.GetAboutInformationAsync();
             Assert.Contains(window.BuildIdentityForTesting.InformationalVersion, text);
             Assert.Contains(Path.Combine(root, "state"), text);
-            Assert.Contains("Supported state schema: 5", text);
+            Assert.Contains($"Supported state schema: {SqliteStateStore.CurrentSchemaVersion}", text);
             Assert.Contains("development build", text);
             Assert.True(window.PrimaryCommandsHaveAccessibleHelpForTesting);
             window.Close();

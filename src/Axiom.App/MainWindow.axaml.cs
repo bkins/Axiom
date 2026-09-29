@@ -94,6 +94,7 @@ public partial class MainWindow : Window
         _markCleanExit = markCleanExit;
         _session = documents.NewDocument();
         InitializeComponent();
+        InitializeClassification();
         InitializeBacklinks();
         InitializeWorkspaceRefresh();
         AddHandler(KeyUpEvent, Window_OnKeyUp, RoutingStrategies.Tunnel);
@@ -171,6 +172,7 @@ public partial class MainWindow : Window
         var expandedPaths = Traverse(_workspaceTree).Where(node => node.IsExpanded).Select(node => node.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
         _folder = workspace.RootPath;
         _activeWorkspace = workspace;
+        BeginClassificationWorkspace();
         BeginBacklinkWorkspace(workspace.RootPath);
         _workspaceChanges.Watch(_folder);
         _workspaceTree.Clear();
@@ -190,7 +192,9 @@ public partial class MainWindow : Window
         DuplicateWarning.Text = string.Join(Environment.NewLine, warnings);
         StatusText.Text = $"Opened workspace {workspace.DisplayName} with {discovery.Files.Count} Markdown file{(discovery.Files.Count == 1 ? string.Empty : "s")}.";
         UpdateDurableStatus();
+        UpdateMetadataPanel();
         ScheduleBacklinkRebuild();
+        await RefreshClassificationAsync();
     }
 
     private async void FileTree_OnDoubleTapped(object? sender, TappedEventArgs e)
@@ -328,6 +332,7 @@ public partial class MainWindow : Window
 
     internal async Task OpenDocumentAsync(string path)
     {
+        if (!await ResolvePendingMetadataAsync()) return;
         try
         {
             path = Path.GetFullPath(path);
@@ -367,6 +372,7 @@ public partial class MainWindow : Window
 
     private async void New_OnClick(object? sender, RoutedEventArgs e)
     {
+        if (!await ResolvePendingMetadataAsync()) return;
         _initialPlaceholder = false;
         await LoadSessionAsync(_documents.NewDocument(), "New unsaved document");
     }
@@ -1039,6 +1045,7 @@ public partial class MainWindow : Window
         EnrollButton.IsVisible = _session.DocumentId is null;
         UpdatePinButton();
         UpdateDurableStatus();
+        UpdateMetadataPanel();
     }
 
     private void UpdateDurableStatus()
@@ -1105,13 +1112,15 @@ public partial class MainWindow : Window
             _monitor.Dispose();
             _workspaceRefreshTimer.Stop();
             _workspaceChanges.Dispose();
+            _classificationCancellation?.Cancel();
+            ++_classificationGeneration;
             Close();
         });
     }
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_sessionTransitionRunning || _navigationRunning) return;
+        if (_sessionTransitionRunning || _navigationRunning || _metadataApplying) return;
         if (e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Left or Key.Right)
         {
             e.Handled = true;

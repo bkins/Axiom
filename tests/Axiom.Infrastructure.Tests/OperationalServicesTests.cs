@@ -155,7 +155,7 @@ public sealed class OperationalServicesTests
             var bytes = await File.ReadAllBytesAsync(path);
             files.Add(new PortablePackageFile(Path.GetFileName(path), bytes.Length, WorkspaceFileOperations.Hash(bytes)));
         }
-        var manifest = new PortablePackageManifest(1, "1.0.4", "1.0.4+1234567", "1234567", "benny/test", DateTimeOffset.UtcNow, 5, files);
+        var manifest = new PortablePackageManifest(1, "1.0.4", "1.0.4+1234567", "1234567", "benny/test", DateTimeOffset.UtcNow, SqliteStateStore.CurrentSchemaVersion, files);
         await File.WriteAllTextAsync(Path.Combine(source, PortablePackageService.ManifestName), JsonSerializer.Serialize(manifest));
         return source;
     }

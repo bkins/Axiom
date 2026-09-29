@@ -52,6 +52,13 @@ public partial class MainWindow
         try
         {
             if (!_tabs.Contains(tab) || tab == _activeTab) return;
+            if (!await ResolvePendingMetadataAsync())
+            {
+                _selectingTab = true;
+                DocumentTabs.SelectedItem = _activeTab;
+                _selectingTab = false;
+                return;
+            }
             var previous = _activeTab;
             CaptureEditorState(previous);
             ++_previewRenderGeneration;
@@ -120,6 +127,7 @@ public partial class MainWindow
         RefreshDocumentMonitors();
         UpdateChrome(status);
         RefreshIncomingReferences();
+        UpdateMetadataPanel();
     }
 
     private async Task LoadSessionAsync(DocumentSession session, string status)
@@ -196,6 +204,7 @@ public partial class MainWindow
 
     private async Task<bool> CloseTabAsync(DocumentTab tab)
     {
+        if (!await ResolvePendingMetadataAsync()) return false;
         if (!_tabs.Contains(tab)) return true;
         await SelectTabAsync(tab);
         if (!_tabs.Contains(tab) || _activeTab != tab) return false;
@@ -216,6 +225,7 @@ public partial class MainWindow
 
     private async Task<bool> ConfirmAllTabsAsync()
     {
+        if (!await ResolvePendingMetadataAsync()) return false;
         var original = _activeTab;
         foreach (var tab in _tabs.ToArray())
         {

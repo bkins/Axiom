@@ -5,7 +5,7 @@ namespace Axiom.Infrastructure;
 
 public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore, IDocumentMutationStore, IWorkspaceCatalogStore
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
     public AppDataPaths Paths => paths;
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
     private string ConnectionString => new SqliteConnectionStringBuilder
@@ -98,6 +98,21 @@ public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log 
                     IntentJson TEXT NOT NULL
                 );
                 UPDATE SchemaInfo SET Version = 5;
+                """, cancellationToken);
+        }
+        if (schemaVersion < 6)
+        {
+            await ExecuteAsync(connection, """
+                BEGIN IMMEDIATE;
+                CREATE TABLE IF NOT EXISTS DocumentClassification (
+                    DocumentId TEXT PRIMARY KEY,
+                    TagsJson TEXT NOT NULL,
+                    Type TEXT NULL,
+                    AliasesJson TEXT NOT NULL,
+                    Revision INTEGER NOT NULL
+                );
+                UPDATE SchemaInfo SET Version = 6;
+                COMMIT;
                 """, cancellationToken);
         }
         _log.Information("database.initialized", paths.DatabasePath);

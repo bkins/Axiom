@@ -3,7 +3,8 @@ param(
     [string]$Runtime = 'win-x64',
     [string]$ReleaseVersion,
     [string]$CommitId,
-    [string]$OutputDirectory
+    [string]$OutputDirectory,
+    [string]$TestStateName
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,6 +18,8 @@ if (-not [string]::IsNullOrWhiteSpace($ReleaseVersion) -and $ReleaseVersion -ne 
     throw "Requested version $ReleaseVersion contradicts authoritative AxiomVersion $authoritativeVersion."
 }
 $resolvedVersion = $authoritativeVersion
+if ([string]::IsNullOrWhiteSpace($TestStateName)) { $TestStateName = "Axiom-Test-$resolvedVersion" }
+if ($TestStateName -notmatch '^[A-Za-z0-9][A-Za-z0-9.-]{0,80}$' -or $TestStateName -match '\.\.') { throw 'TestStateName must be a single safe folder name.' }
 
 if ([string]::IsNullOrWhiteSpace($CommitId)) {
     $CommitId = (& git -C $repoRoot rev-parse --short=12 HEAD 2>$null)
@@ -37,7 +40,7 @@ dotnet publish (Join-Path $repoRoot 'src\Axiom.App\Axiom.App.csproj') `
     -o $outputPath
 
 if ($LASTEXITCODE -ne 0) { throw 'Portable publish failed.' }
-$testLauncher = "@echo off`r`nset `"AXIOM_STATE_ROOT=%LOCALAPPDATA%\Axiom-Test-$resolvedVersion`"`r`nstart `"Axiom $resolvedVersion test`" `"%~dp0Axiom.App.exe`"`r`n"
+$testLauncher = "@echo off`r`nset `"AXIOM_STATE_ROOT=%LOCALAPPDATA%\$TestStateName`"`r`nstart `"Axiom $resolvedVersion test`" `"%~dp0Axiom.App.exe`"`r`n"
 Set-Content -LiteralPath (Join-Path $outputPath 'Test-Axiom.cmd') -Value $testLauncher -Encoding ascii
 $schemaSource = Get-Content -LiteralPath (Join-Path $repoRoot 'src\Axiom.Infrastructure\SqliteStateStore.cs') -Raw
 $schemaMatch = [regex]::Match($schemaSource, 'CurrentSchemaVersion\s*=\s*(\d+)')

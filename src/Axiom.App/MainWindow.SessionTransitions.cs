@@ -11,7 +11,7 @@ public partial class MainWindow
         SetSessionCommandsEnabled(false);
         try
         {
-            if (!await ConfirmAllTabsAsync() || !await PersistCleanSessionAsync()) return false;
+            if (!await ResolvePendingMetadataAsync() || !await ConfirmAllTabsAsync() || !await PersistCleanSessionAsync()) return false;
             if (_tabs.Any(tab => tab.Session.IsDirty)) return false;
             await continuation();
             return true;

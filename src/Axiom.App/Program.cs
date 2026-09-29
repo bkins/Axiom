@@ -10,6 +10,7 @@ internal static class Program
     public static int Main(string[] args)
     {
         if (args.FirstOrDefault() == "--benchmark-link-index" && args.Length == 3) return LinkIndexBenchmarkProbe.Run(args[1], args[2]);
+        if (args.FirstOrDefault() == "--benchmark-classification" && args.Length == 3) return ClassificationBenchmarkProbe.Run(args[1], args[2]);
         if (args.FirstOrDefault() == "--recovery-probe") return RunRecoveryProbe(args);
         if (args.FirstOrDefault() == "--verify-recovery") return VerifyRecovery(args);
         if (args.FirstOrDefault() is "--verify-package" or "--verify-and-restart-package") return PortablePackageProbe.Run(args);

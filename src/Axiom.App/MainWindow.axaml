@@ -117,6 +117,47 @@
           <TextBlock DockPanel.Dock="Top" Margin="4,4,4,8" FontWeight="SemiBold" Text="Markdown files" />
           <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" Foreground="#B45309" TextWrapping="Wrap" />
           <TabControl>
+            <TabItem Header="Metadata" AutomationProperties.Name="Document metadata">
+              <ScrollViewer>
+                <StackPanel Margin="4" Spacing="6">
+                  <Button Content="Refresh saved identities" Click="ClassificationRefresh_OnClick" />
+                  <TextBlock x:Name="MetadataStatus" TextWrapping="Wrap" />
+                  <StackPanel x:Name="MetadataFields" Spacing="6" IsEnabled="False">
+                    <TextBlock Text="Tags (one per line)" />
+                    <TextBox x:Name="MetadataTags" AcceptsReturn="True" MinHeight="50" MaxHeight="100" AutomationProperties.Name="Document tags" />
+                    <TextBlock Text="Type (optional)" />
+                    <TextBox x:Name="MetadataType" AutomationProperties.Name="Document type" />
+                    <TextBlock Text="Aliases (one per line)" />
+                    <TextBox x:Name="MetadataAliases" AcceptsReturn="True" MinHeight="50" MaxHeight="100" AutomationProperties.Name="Document aliases" />
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Button Content="Apply" Click="MetadataApply_OnClick" />
+                      <Button Content="Cancel" Click="MetadataCancel_OnClick" />
+                    </StackPanel>
+                  </StackPanel>
+                  <Separator />
+                  <Button Content="Export metadata…" Click="MetadataExport_OnClick" />
+                  <Button Content="Import metadata…" Click="MetadataImport_OnClick" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Classify" AutomationProperties.Name="Classification and alias search">
+              <DockPanel Margin="4">
+                <StackPanel DockPanel.Dock="Top" Spacing="6">
+                  <TextBox x:Name="FilterTags" AcceptsReturn="True" PlaceholderText="All tags; one per line" AutomationProperties.Name="Filter by tags" />
+                  <TextBox x:Name="FilterType" PlaceholderText="Exact type (optional)" AutomationProperties.Name="Filter by type" />
+                  <TextBox x:Name="FilterText" PlaceholderText="Filename or alias" AutomationProperties.Name="Find filename or alias" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Filter" Click="ClassificationFilter_OnClick" />
+                    <Button Content="Clear" Click="ClassificationClear_OnClick" />
+                    <Button Content="Refresh" Click="ClassificationRefresh_OnClick" />
+                  </StackPanel>
+                  <TextBlock x:Name="ClassificationStatus" TextWrapping="Wrap" />
+                </StackPanel>
+                <ListBox x:Name="ClassificationResults" AutomationProperties.Name="Classified documents" DoubleTapped="ClassificationResults_OnDoubleTapped" KeyDown="ClassificationResults_OnKeyDown">
+                  <ListBox.ItemTemplate><DataTemplate DataType="core:ClassifiedDocument"><TextBlock Text="{Binding RelativePath}" TextTrimming="CharacterEllipsis" /></DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+            </TabItem>
             <TabItem Header="Files" AutomationProperties.Name="Workspace explorer" ToolTip.Tip="Browse Markdown documents and pins">
               <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
