@@ -71,13 +71,20 @@ public partial class MainWindow
         try
         {
             var versions = Path.Combine(_operationalPaths.Root, "Versions");
-            var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            if (await ChoiceDialog.ShowAsync(this, rollback ? "Switch Axiom version" : "Install Axiom update",
+                    "Choose payload-manifest.json inside a published Axiom application package. This is the folder containing Axiom.App.exe, not your Markdown workspace.\n\n" +
+                    (rollback ? "You may choose an older compatible package or return to a newer retained package." : "Choose a package with a higher version number than the running app.") +
+                    "\n\nAxiom checks the package before asking for confirmation. Cancel leaves this app running. Restart is offered after confirmation; Later keeps this app running.",
+                    "Choose package…", "Cancel") != "Choose package…") return;
+            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = rollback ? "Choose a retained portable Axiom version" : "Choose a portable Axiom package"
-                , AllowMultiple = false
-                , SuggestedStartLocation = rollback && Directory.Exists(versions) ? await StorageProvider.TryGetFolderFromPathAsync(versions) : null
+                Title                    = "Choose payload-manifest.json in the Axiom application package"
+              , AllowMultiple            = false
+              , FileTypeFilter           = [new FilePickerFileType("Axiom package manifest") { Patterns = [PortablePackageService.ManifestName] }]
+              , SuggestedStartLocation   = rollback && Directory.Exists(versions) ? await StorageProvider.TryGetFolderFromPathAsync(versions) : null
             });
-            if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } source) return;
+            if (files.FirstOrDefault()?.TryGetLocalPath() is not { } selectedManifest) return;
+            var source = PortablePackageService.GetPackageDirectory(selectedManifest);
             var service = new PortablePackageService(_operationalPaths);
             UpdateChrome("Verifying portable package…");
             var manifest = await Task.Run(() => service.ValidateAsync(source));
@@ -93,7 +100,7 @@ public partial class MainWindow
             await service.ValidateAsync(destination);
             if (await ChoiceDialog.ShowAsync(this, "Version ready", $"Verified version is ready at {destination}. Restart now?", "Restart", "Later") != "Restart")
             {
-                UpdateChrome("Version installed. Use Switch Portable Version when ready to restart.");
+                UpdateChrome($"This app is still running. Version ready at {destination}. Use Tools → Switch Portable Version and choose its payload-manifest.json when ready.");
                 return;
             }
             if (!await ConfirmSafeToReplaceSessionAsync()) return;

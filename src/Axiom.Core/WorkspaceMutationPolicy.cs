@@ -2,6 +2,20 @@ namespace Axiom.Core;
 
 public static class WorkspaceMutationPolicy
 {
+    public static string MoveDestination(string root, string sourceRelativePath, string selectedFolder)
+    {
+        var source = Resolve(root, sourceRelativePath);
+        var normalizedRoot = WorkspaceService.NormalizeRootPath(root);
+        var folderRelative = Path.GetRelativePath(normalizedRoot, Path.GetFullPath(selectedFolder));
+        if (Path.IsPathRooted(folderRelative) || folderRelative == ".." ||
+            folderRelative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            throw new ArgumentException("Choose a destination folder inside the active workspace.");
+        var destination = Path.Combine(Path.GetFullPath(selectedFolder), Path.GetFileName(source));
+        var relative = Path.GetRelativePath(normalizedRoot, destination);
+        Resolve(root, relative);
+        return relative;
+    }
+
     public static string Resolve(string root, string relativePath, bool document = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
