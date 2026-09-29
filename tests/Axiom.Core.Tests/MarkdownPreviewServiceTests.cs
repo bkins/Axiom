@@ -119,7 +119,7 @@ public sealed class MarkdownPreviewServiceTests
     {
         var html = _service.RenderDocument("# Preview", null, preference);
 
-        Assert.Contains($"<html data-theme=\"{expected}\">", html);
+        Assert.Contains($"<html data-theme=\"{expected}\"", html);
         Assert.Contains(preference == AppearancePreference.System
             ? "@media (prefers-color-scheme: light)"
             : $"html[data-theme=\"{expected}\"]", html);

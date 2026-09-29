@@ -96,7 +96,7 @@ public partial class MainWindow
             _session.Path is not null && IsWithinFolder(_session.Path, workspace.RootPath) ? Path.GetRelativePath(workspace.RootPath, _session.Path) : null;
         var isCreation = kind is DocumentMutationKind.Create or DocumentMutationKind.CreateFolder;
         if (!isCreation && sourceRelative is null) { UpdateChrome("Select a workspace document first."); return; }
-        if (_sessionTransitionRunning) return;
+        if (_sessionTransitionRunning || _navigationRunning) return;
         _sessionTransitionRunning = true;
         SetSessionCommandsEnabled(false);
         try

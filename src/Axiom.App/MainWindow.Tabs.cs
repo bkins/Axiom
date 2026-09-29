@@ -34,7 +34,7 @@ public partial class MainWindow
 
     private async void DocumentTabs_OnSelectionChanged(object? sender, SelectionChangedEventArgs eventArgs)
     {
-        if (!_selectingTab && !_sessionTransitionRunning && DocumentTabs.SelectedItem is DocumentTab tab)
+        if (!_selectingTab && !_sessionTransitionRunning && !_navigationRunning && DocumentTabs.SelectedItem is DocumentTab tab)
             await SelectTabAsync(tab);
     }
 
@@ -77,6 +77,9 @@ public partial class MainWindow
 
     private void ActivateTab(DocumentTab tab, string status)
     {
+        _previewLinkToken = null;
+        _previewLinkStructure = null;
+        _pendingHeadingFragment = null;
         _loading = true;
         _activeTab = tab;
         _session = tab.Session;
@@ -145,6 +148,9 @@ public partial class MainWindow
 
     private void ResetTabs(string status)
     {
+        _backLocations.Clear();
+        _forwardLocations.Clear();
+        UpdateNavigationCommands();
         _selectingTab = true;
         _tabs.Clear();
         var tab = AddTab(_documents.NewDocument());

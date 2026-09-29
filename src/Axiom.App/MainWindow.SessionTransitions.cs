@@ -6,7 +6,7 @@ public partial class MainWindow
 
     private async Task<bool> RunSessionTransitionAsync(Func<Task> continuation)
     {
-        if (_sessionTransitionRunning) return false;
+        if (_sessionTransitionRunning || _navigationRunning) return false;
         _sessionTransitionRunning = true;
         SetSessionCommandsEnabled(false);
         try

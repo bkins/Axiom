@@ -115,6 +115,12 @@ public partial class MainWindow : Window
         Preview.NavigationCompleted += async (_, args) => await RestorePreviewScrollAsync(args.IsSuccess);
         Preview.NavigationStarted += (_, args) =>
         {
+            if (args.Request is { Scheme: "axiom-link" } link)
+            {
+                args.Cancel = true;
+                Dispatcher.UIThread.Post(async () => await HandlePreviewLinkAsync(link));
+                return;
+            }
             if (args.Request is { } uri && uri.Scheme is not "about" and not "data") args.Cancel = true;
         };
         Preview.NewWindowRequested += (_, args) => args.Handled = true;
@@ -756,7 +762,9 @@ public partial class MainWindow : Window
         if (generation != _previewRenderGeneration) return;
         if (scrollRatio is { } captured) _activeTab.PreviewScrollRatio = captured;
         _pendingPreviewScrollRatio = scrollRatio ?? _activeTab.PreviewScrollRatio;
-        Preview.NavigateToString(_preview.RenderDocument(GetCurrentStructure(), _session.Path, _appearance, _activeWorkspace?.RootPath));
+        _previewLinkToken = Guid.NewGuid().ToString("N");
+        _previewLinkStructure = GetCurrentStructure();
+        Preview.NavigateToString(_preview.RenderDocument(_previewLinkStructure, _session.Path, _appearance, _activeWorkspace?.RootPath, _previewLinkToken));
     }
 
     private async Task RestorePreviewScrollAsync(bool navigationSucceeded)
@@ -764,6 +772,12 @@ public partial class MainWindow : Window
         if (!navigationSucceeded)
         {
             _pendingPreviewScrollRatio = null;
+            return;
+        }
+        if (_pendingHeadingFragment is { Length: > 0 })
+        {
+            _pendingPreviewScrollRatio = null;
+            await RestoreHeadingFragmentAsync();
             return;
         }
         if (_pendingPreviewScrollRatio is not { } ratio) return;
@@ -1093,7 +1107,19 @@ public partial class MainWindow : Window
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_sessionTransitionRunning) return;
+        if (_sessionTransitionRunning || _navigationRunning) return;
+        if (e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Left or Key.Right)
+        {
+            e.Handled = true;
+            await NavigateHistoryAsync(e.Key == Key.Right);
+            return;
+        }
+        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.Enter && IsEditorCommandTarget())
+        {
+            e.Handled = true;
+            await FollowEditorLinkAsync();
+            return;
+        }
         if (TryHandleCommandMenuKey(e)) return;
         var editorIsCommandTarget = IsEditorCommandTarget();
         if (TryHandleMarkdownListKey(e.Key, e.KeyModifiers, editorIsCommandTarget))

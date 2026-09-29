@@ -16,6 +16,8 @@
               <Setter Property="Margin" Value="0,0,7,6" />
             </Style>
           </WrapPanel.Styles>
+          <Button x:Name="BackButton" Content="Back" AutomationProperties.Name="Navigate back" ToolTip.Tip="Return to the previous document location: Alt+Left" IsEnabled="False" Click="Back_OnClick" />
+          <Button x:Name="ForwardButton" Content="Forward" AutomationProperties.Name="Navigate forward" ToolTip.Tip="Return to the next document location: Alt+Right" IsEnabled="False" Click="Forward_OnClick" />
           <Button x:Name="FileCommandsButton" AutomationProperties.Name="File commands" ToolTip.Tip="File commands: Alt+F; Alt or F10 focuses this button">File…
             <Button.Flyout>
               <MenuFlyout>
@@ -33,6 +35,7 @@
                 <Separator />
                 <MenuItem Header="New    Ctrl+N" AutomationProperties.Name="New document" ToolTip.Tip="Create a new unsaved Markdown document" Click="New_OnClick" />
                 <MenuItem Header="Close Tab    Ctrl+W" AutomationProperties.Name="Close current document tab" Click="CloseActiveTab_OnClick" />
+                <MenuItem Header="Follow Markdown Link    Ctrl+Enter" AutomationProperties.Name="Follow Markdown link at editor caret" Click="FollowLink_OnClick" />
                 <MenuItem Header="Save    Ctrl+S" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
                 <MenuItem Header="Save As…    Ctrl+Shift+S" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />
               </MenuFlyout>

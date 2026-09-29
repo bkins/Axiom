@@ -1,7 +1,9 @@
 using System.Text;
 using Markdig;
+using Markdig.Renderers;
 using Markdig.Extensions.AutoIdentifiers;
 using Markdig.Renderers.Html;
+using Markdig.Renderers.Html.Inlines;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 
@@ -66,7 +68,17 @@ public sealed class MarkdownStructureService
         return new DocumentStructure(markdown, syntax, headings, links, definitions);
     }
 
-    internal static string RenderHtml(DocumentStructure document) => Markdown.ToHtml(document.Syntax, Pipeline);
+    internal static string RenderHtml(DocumentStructure document, string? linkToken = null)
+    {
+        if (linkToken is null) return Markdown.ToHtml(document.Syntax, Pipeline);
+        using var writer = new StringWriter();
+        var renderer = new HtmlRenderer(writer);
+        Pipeline.Setup(renderer);
+        renderer.ObjectRenderers.Remove(renderer.ObjectRenderers.FindExact<LinkInlineRenderer>()!);
+        renderer.ObjectRenderers.Insert(0, new PreviewLinkRenderer(document, linkToken));
+        renderer.Render(document.Syntax);
+        return writer.ToString();
+    }
 
     private static Guid? FindSourceHeading(DocumentHeading[] headings, int offset)
     {

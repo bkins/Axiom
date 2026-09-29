@@ -31,19 +31,20 @@ public sealed partial class MarkdownPreviewService
     public string RenderDocument(DocumentStructure document
                                , string? documentPath
                                , AppearancePreference appearance = AppearancePreference.System
-                               , string? workspaceRoot = null)
+                               , string? workspaceRoot = null
+                               , string? linkToken = null)
     {
         // Identity is source metadata: preserve it in Markdown/editor but not in preview.
         // Fenced examples are unaffected because the marker must be on the first line.
         var previewMarkdown = DocumentIdCodec.RemoveCanonicalMarkerForPreview(document.SourceText);
         var body = string.IsNullOrWhiteSpace(previewMarkdown)
             ? "<p class=\"empty-state\">Start typing Markdown to see a preview.</p>"
-            : MarkdownStructureService.RenderHtml(document);
+            : MarkdownStructureService.RenderHtml(document, linkToken);
         body = EmbedWorkspaceImages(body, documentPath, workspaceRoot);
         var baseElement = BuildBaseElement(documentPath);
         return $$"""
             <!doctype html>
-            <html data-theme="{{appearance.ToString().ToLowerInvariant()}}"><head><meta charset="utf-8">
+            <html data-theme="{{appearance.ToString().ToLowerInvariant()}}" data-link-token="{{WebUtility.HtmlEncode(linkToken ?? string.Empty)}}"><head><meta charset="utf-8">
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src file: data:; style-src 'unsafe-inline'; font-src 'none'; media-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'; script-src 'none'">
             {{baseElement}}
             <style>
