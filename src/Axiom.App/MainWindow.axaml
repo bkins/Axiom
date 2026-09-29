@@ -8,6 +8,13 @@
         Title="Axiom"
         Width="1280" Height="720" MinWidth="900" MinHeight="580">
   <DockPanel>
+    <Border x:Name="WorkspaceLoadingPanel" IsVisible="False" DockPanel.Dock="Top" Padding="10">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <ProgressBar IsIndeterminate="True" Width="110" Height="12" AutomationProperties.Name="Workspace loading" />
+        <TextBlock x:Name="WorkspaceLoadingStatus" VerticalAlignment="Center" />
+        <Button x:Name="WorkspaceLoadingCancel" Content="Cancel loading" Click="WorkspaceLoadingCancel_OnClick" />
+      </StackPanel>
+    </Border>
     <Border x:Name="TopCommandBar" DockPanel.Dock="Top" Padding="10" Background="#1F2937" BorderBrush="#374151" BorderThickness="0,0,0,1">
       <Grid RowDefinitions="Auto,Auto">
         <WrapPanel x:Name="CommandPanel" Orientation="Horizontal">
@@ -18,10 +25,12 @@
           </WrapPanel.Styles>
           <Button x:Name="BackButton" Content="Back" AutomationProperties.Name="Navigate back" ToolTip.Tip="Return to the previous document location: Alt+Left" IsEnabled="False" Click="Back_OnClick" />
           <Button x:Name="ForwardButton" Content="Forward" AutomationProperties.Name="Navigate forward" ToolTip.Tip="Return to the next document location: Alt+Right" IsEnabled="False" Click="Forward_OnClick" />
+          <Button x:Name="ReadingModeButton" Content="Read" AutomationProperties.Name="Toggle reading mode" ToolTip.Tip="Hide/show the editor without saving or discarding: Ctrl+Shift+R" Click="ReadingMode_OnClick" />
+          <Button Content="Help" AutomationProperties.Name="Offline User Guide" ToolTip.Tip="Read the offline User Guide; F1 suggests a relevant topic" Click="Help_OnClick" />
           <Button x:Name="FileCommandsButton" AutomationProperties.Name="File commands" ToolTip.Tip="File commands: Alt+F; Alt or F10 focuses this button">File…
             <Button.Flyout>
               <MenuFlyout>
-                <MenuItem Header="Open Folder…" AutomationProperties.Name="Open folder" ToolTip.Tip="Open an existing Markdown workspace" Click="OpenFolder_OnClick" />
+                <MenuItem Header="Open Workspace…" AutomationProperties.Name="Open workspace" ToolTip.Tip="Open an existing Markdown workspace" Click="OpenFolder_OnClick" />
                 <MenuItem Header="Remembered Workspaces…" AutomationProperties.Name="Remembered workspaces" Click="WorkspaceCatalog_OnClick" />
                 <MenuItem Header="Refresh Workspace    F5" Click="RefreshWorkspace_OnClick" />
                 <Separator />
@@ -103,7 +112,7 @@
 
     <Border x:Name="BottomStatusBar" DockPanel.Dock="Bottom" Padding="8,5" Background="#111827" BorderBrush="#374151" BorderThickness="0,1,0,0">
       <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto">
-        <TextBlock x:Name="PathText" Grid.ColumnSpan="4" Text="No folder selected" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Current document path" />
+        <TextBlock x:Name="PathText" Grid.ColumnSpan="4" Text="No workspace selected" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Current document path" />
         <TextBlock x:Name="WorkspaceContextText" Grid.Row="1" Margin="0,3,16,0" Text="No workspace" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Active workspace" />
         <TextBlock x:Name="DocumentStateText" Grid.Row="1" Grid.Column="1" Margin="0,3,16,0" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Document state" />
         <TextBlock x:Name="RecoveryText" Grid.Row="1" Grid.Column="2" Margin="0,3,16,0" Text="Recovery ready" AutomationProperties.Name="Recovery state" />
@@ -111,12 +120,12 @@
       </Grid>
     </Border>
 
-    <Grid ColumnDefinitions="290,5,*">
+    <Grid ColumnDefinitions="340,5,*">
       <Border x:Name="WorkspaceSidebar" BorderBrush="#374151" BorderThickness="0,0,1,0" Padding="8">
         <DockPanel>
           <TextBlock DockPanel.Dock="Top" Margin="4,4,4,8" FontWeight="SemiBold" Text="Markdown files" />
           <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" Foreground="#B45309" TextWrapping="Wrap" />
-          <TabControl>
+          <TabControl TabStripPlacement="Left" SelectedIndex="3">
             <TabItem Header="Relations" AutomationProperties.Name="Explicit document relationships">
               <DockPanel Margin="4">
                 <StackPanel DockPanel.Dock="Top" Spacing="6">
@@ -124,6 +133,7 @@
                     <Button x:Name="RelationshipAdd" Content="Add…" Click="RelationshipAdd_OnClick" />
                     <Button Content="Edit…" Click="RelationshipEdit_OnClick" />
                     <Button Content="Remove…" Click="RelationshipRemove_OnClick" />
+                    <Button Content="Help" Click="RelationshipHelp_OnClick" />
                   </StackPanel>
                   <Button Content="Refresh identities" Click="ClassificationRefresh_OnClick" />
                   <TextBlock x:Name="RelationshipStatus" TextWrapping="Wrap" />
@@ -137,6 +147,7 @@
               <ScrollViewer>
                 <StackPanel Margin="4" Spacing="6">
                   <Button Content="Refresh saved identities" Click="ClassificationRefresh_OnClick" />
+                  <Button Content="Metadata Help" Click="MetadataHelp_OnClick" />
                   <TextBlock x:Name="MetadataStatus" TextWrapping="Wrap" />
                   <StackPanel x:Name="MetadataFields" Spacing="6" IsEnabled="False">
                     <TextBlock Text="Tags (one per line)" />
@@ -181,6 +192,7 @@
                           AutomationProperties.Name="Bulk enroll workspace documents"
                           ToolTip.Tip="Choose multiple files in a separate review window; the explorer selects one document"
                           Click="BulkEnroll_OnClick" />
+                  <Button Content="Workspace Help" Click="WorkspaceHelp_OnClick" />
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Pinned" />
                     <Button Grid.Column="1" AutomationProperties.Name="Remove selected pin" ToolTip.Tip="Remove the selected workspace pin" Click="RemovePin_OnClick">Remove</Button>
@@ -195,8 +207,8 @@
                   </ListBox>
                   <Separator Margin="0,6,0,0" />
                 </StackPanel>
-                <TextBlock x:Name="WorkspaceEmptyState" Margin="4" Opacity="0.7" Text="Open a folder to browse Markdown documents." TextWrapping="Wrap" />
-                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped">
+                <TextBlock x:Name="WorkspaceEmptyState" Margin="4" Opacity="0.7" Text="Open a workspace to browse Markdown documents." TextWrapping="Wrap" />
+                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
                   <TreeView.DataTemplates>
                     <TreeDataTemplate DataType="core:WorkspaceTreeNode" ItemsSource="{Binding Children}">
                       <TextBlock Text="{Binding Name}" />
@@ -294,8 +306,8 @@
             <Button Grid.Column="1" AutomationProperties.Name="Resolve external change" ToolTip.Tip="Compare and choose between local and disk text" Click="ResolveConflict_OnClick">Resolve…</Button>
           </Grid>
         </Border>
-        <Grid Grid.Row="2" ColumnDefinitions="*,5,*">
-          <Grid>
+        <Grid x:Name="EditorPreviewLayout" Grid.Row="2" ColumnDefinitions="*,5,*">
+          <Grid x:Name="EditorPane">
             <avaloniaEdit:TextEditor x:Name="Editor" AutomationProperties.Name="Markdown editor"
                                      FontFamily="Cascadia Mono, Consolas" FontSize="15"
                                      ShowLineNumbers="True" WordWrap="True"

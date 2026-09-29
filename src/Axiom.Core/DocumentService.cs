@@ -91,14 +91,18 @@ public sealed class DocumentService(
         CancellationToken cancellationToken = default)
     {
         var occurrences = new Dictionary<Guid, List<string>>();
+        var observed = new List<DocumentIdentityOccurrence>();
         foreach (var path in (await files.ListMarkdownFilesAsync(folder, cancellationToken)).Files)
         {
             var file = await files.ReadAsync(path, cancellationToken);
             if (DocumentIdCodec.Find(file.Text) is not { } id) continue;
             if (!occurrences.TryGetValue(id, out var paths)) occurrences[id] = paths = [];
             paths.Add(path);
-            await metadata.RecordIdentityAsync(id, path, cancellationToken);
+            observed.Add(new(id, path));
         }
+
+        if (metadata is IBatchIdentityStore batch) await batch.RecordIdentitiesAsync(observed, cancellationToken);
+        else foreach (var identity in observed) await metadata.RecordIdentityAsync(identity.DocumentId, identity.Path, cancellationToken);
 
         return occurrences
             .Where(pair => pair.Value.Count > 1)

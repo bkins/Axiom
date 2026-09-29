@@ -10,14 +10,16 @@ internal static class MultiBufferRecoveryProbe
 {
     internal static string? Root { get; private set; }
     private static DispatcherTimer? _inputTimer;
+    private static bool _readingMode;
 
-    internal static void Configure(string root)
+    internal static void Configure(string root, bool readingMode = false)
     {
         root = Path.GetFullPath(root);
         if (Directory.Exists(Path.Combine(root, "workspace")) || Directory.Exists(Path.Combine(root, "state")))
             throw new IOException("The native recovery probe requires fresh workspace and state directories.");
         Directory.CreateDirectory(root);
         Root = root;
+        _readingMode = readingMode;
         Environment.SetEnvironmentVariable("AXIOM_STATE_ROOT", Path.Combine(root, "state"));
     }
 
@@ -36,6 +38,7 @@ internal static class MultiBufferRecoveryProbe
                 await window.OpenDocumentAsync(Path.Combine(workspace, $"saved-{number}.md"));
             await window.NewTabForTestingAsync();
             await window.NewTabForTestingAsync();
+            if (_readingMode) await window.ToggleReadingModeAsync();
             var tabs = window.TabsForTesting.ToArray();
             if (tabs.Length != 5) throw new InvalidOperationException("The workload must contain exactly five independent buffers.");
             var savedTexts = tabs.Select(tab => tab.Session.SavedText).ToArray();

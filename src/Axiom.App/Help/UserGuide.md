@@ -1,0 +1,159 @@
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: C62862F48CF590FF4E22CB1604F4938431A4578A55DD6E415FF2329AB3A97979. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+
+# Axiom v1 User Guide
+
+## 1.0.3 candidate: manage documents and collections
+
+The File menu adds named workspace document/folder creation, Rename, Move, Duplicate, Delete to Recycle Bin, Remembered Workspaces, and Make Axiom Documents. Select an explorer document, then choose a command. Destinations are workspace-relative and must not already exist. Moves retain identity and warn about relative references; enrolled duplicates get a new ID.
+
+Remembered Workspaces opens another collection or forgets its saved record/pins without deleting files. Bulk enrollment starts with nothing selected; review paths/status, select eligible files, and Apply to explicitly save their IDs. Cancellation stops remaining work and retains completed files; inspect per-file results before retrying.
+
+Press/release **Alt** or press **F10** to focus File, then Space/Enter to open its menu. **Alt+F**, **Alt+E**, and **Alt+M** open File, Edit, and Format directly. Move opens a folder picker: choose an existing folder inside this workspace; Axiom retains the filename and confirms the exact destination and reference warning.
+
+The explorer selects one document. For bulk enrollment, choose **Enroll multiple files…** beside it or **File → Bulk Make Axiom Documents…**. Select multiple rows in that separate review window by clicking each row or pressing Space on a focused row; Shift selects a range. Watch the selected count, then explicitly Apply. Opening the window or selecting rows does not enroll files.
+
+Files restored or added externally appear after the workspace watcher refreshes the explorer; your dirty editor stays intact. **F5** or **File → Refresh Workspace** requests a rescan. Restore does not recreate removed pins automatically.
+
+Use each candidate's `Test-Axiom.cmd` and disposable collections for independent testing. Native workflow acceptance remains pending. See [Document and Workspace Management](../04%20-%20Features/Document%20and%20Workspace%20Management.md).
+
+## Open and edit
+
+In accepted 1.0.4 and later, startup restores the active remembered workspace and the explorer includes empty folders. Missing roots remain remembered for recovery. The 1.0.1 behavior described below applies to that older accepted version.
+
+1. Open **File…**, select **Open Workspace…**, and choose a document folder. Axiom adopts the folder as its active workspace and remembers workspace-owned state locally.
+2. Expand folders in the **Files** tab and double-click a `.md` or `.markdown` document, or choose **File… > New**. Folders appear before documents at each level.
+3. Edit source on the left and read the live preview on the right.
+4. Use **File… > Save** (`Ctrl+S`) or **File… > Save As…** (`Ctrl+Shift+S`) when the Markdown file should change. Undo and Redo are under **Edit…**.
+
+While you edit the current document, Axiom keeps the preview near the same proportional reading position after live updates. Opening or reloading another document starts that document at its own preview position. Wide tables scroll inside the preview, and large images scale down to the available width.
+
+Use **Format…** to apply bold, italic, inline code, links, paragraph or heading styles, bulleted, numbered or task lists, and fenced code blocks to the current selection or caret. `Ctrl+B`, `Ctrl+I`, and `Ctrl+K` apply bold, italic, and link formatting while the source editor has focus. Each formatting action is one undo step and remains unsaved until you choose **Save**.
+
+At the end of a non-empty list item, press **Enter** to continue its bullet, next visible number, or an unchecked task box. Press **Enter** on an empty list item to remove its marker and end the list. Press **Tab** or **Shift+Tab** to indent or outdent the current list item or selected list lines by one level. Outside list content, Tab keeps the editor's normal behavior.
+
+To reference an existing image, first save the current Markdown document inside the active workspace, then choose **Image…**. If no workspace is open when a new document is first saved, Axiom adopts the containing folder as the workspace and refreshes Files. The image picker starts in that workspace. Select a PNG, JPEG, GIF, WebP, BMP, or SVG file that is also inside it. Axiom inserts a portable relative Markdown path; selected single-line text becomes the alt text, or a filename-derived placeholder is selected for you to replace. Preview resolves supported workspace-local images without rewriting that portable source reference. Saving the Markdown remains explicit. Axiom does not copy or manage the image file. If a selection is outside the workspace or otherwise unusable, Axiom leaves the Markdown unchanged and explains why.
+
+Choose **Theme: System**, **Theme: Light**, or **Theme: Dark** from the command bar to change the application and preview appearance. System follows the supported operating-system setting. Axiom remembers the choice across launches. Switching themes does not change the Markdown buffer, selection, caret, workspace, or undo history.
+
+Opening a folder as a workspace does not copy, rewrite, save, or enroll any Markdown file. Selecting the same folder again reuses its Axiom workspace record. Axiom 1.0.1 does not yet reopen that workspace automatically at startup or provide a saved-workspace switcher.
+
+The explorer shows only folders that contain Markdown and the `.md` or `.markdown` documents beneath them. Non-Markdown files are omitted. Axiom does not follow linked directories; inaccessible or linked descendants are skipped with a warning while the rest of the workspace remains usable.
+
+## Search the workspace
+
+1. Select the **Search** tab in the left workspace pane.
+2. Enter literal text and choose **Search**.
+3. Review matches by relative file path, excerpt, and line number.
+4. Double-click a result to open the document and select the matching text.
+
+Search is case-insensitive and reads the current `.md` and `.markdown` files directly. It does not replace text, modify files, use regular expressions, or maintain a content index. Starting another search supersedes the prior one. If a result changed after the search, Axiom opens the document but does not select an incorrect location.
+
+## Navigate by document outline
+
+Select the **Outline** tab in the left workspace pane to see headings from the current editor buffer. The outline updates shortly after typing, including for unsaved changes. It supports normal `#` headings and setext headings, ignores heading-like text inside fenced code, and keeps duplicate heading names as separate entries.
+
+Double-click an outline entry to move the editor caret and viewport to that heading. Outline navigation does not save or modify the document.
+
+On the `benny/axiom-1.0.5` development branch, outline and preview share the same heading interpretation. Preview headings have GitHub-style fragment IDs, including distinct suffixes for repeated headings. Document tabs and clean-session restoration are available as described below; link-following commands and a backlinks panel remain under development.
+
+## Identify the running build
+
+The right side of the bottom status bar shows the running Axiom product version and build provenance. Release builds use the publishing commit ID; local development builds explicitly show `dev`. This makes it possible to distinguish the executable being tested without opening or changing a document.
+
+## Pin important documents
+
+Open a Markdown document inside the active workspace and choose **Pin** in the toolbar. The document appears in the **Pinned** list above the folder tree. Double-click a pin to open it through the normal unsaved-change protection. Choose **Unpin** while the document is active, or select a pin and choose **Remove**.
+
+Pins are workspace-specific Axiom state. Pinning ordinary Markdown does not enroll or modify it. If a pinned file is moved or deleted outside Axiom, its pin remains visible and removable; opening it reports that the target is missing.
+
+## Read the status areas
+
+The message beside the toolbar reports the latest operation or error. The bottom status area remains stable and shows:
+
+- the current document or workspace path;
+- the active workspace name;
+- whether the document is ordinary Markdown or an Axiom document;
+- whether it is new, saved, unsaved, or conflicted;
+- recovery protection or failure state; and
+- the running version and build provenance.
+
+Because transient messages and durable context are separate, a save confirmation or error does not hide the current document state.
+
+An asterisk in the window title means the editor differs from the saved file. Closing or leaving dirty work offers Save, Discard, or Cancel.
+
+## Axiom identity
+
+Existing files do not become Axiom documents automatically. Select **Make Axiom Document** only when stable identity is useful. The new ID is an unsaved editor change until you save. If copied files contain the same ID, Axiom warns and offers a distinct ID for the copy.
+
+## Recovery
+
+Dirty text is protected locally without being written to the Markdown file. After a crash or forced reboot, Axiom can restore that text into the editor for review. Recovery never silently saves it.
+
+If Undo returns the editor exactly to the saved file, Axiom clears the current session's obsolete recovery draft and returns the recovery status to **Recovery ready**.
+
+## External changes
+
+If another editor changes a clean open file, Axiom reloads it. If Axiom also has unsaved edits, a banner opens a side-by-side comparison. Choose **Use my edits**, **Reload disk version**, or **Decide later**. Axiom blocks Save while this conflict remains unresolved.
+
+
+## 1.0.4: diagnostics, backups, and versions
+
+Open Tools → About Axiom to identify the running build and its state location. Tools → Diagnostics provides Refresh and Copy for a bounded log tail. Review copied diagnostics before sharing because paths and exception details may appear.
+
+Tools → State Maintenance shows database integrity/schema and record counts. Export verified backup chooses a new file and refuses an existing destination. Inspection and backup leave Markdown unchanged. Restore requires closing all Axiom processes and following the operational recovery procedure; live restore/reset is unavailable.
+
+Tools → Install Portable Update first explains the operation, then asks you to select **payload-manifest.json** inside a newer published Axiom application package, beside **Axiom.App.exe**. Select the application package, rather than the Markdown workspace; extract ZIP downloads first. Axiom verifies it, displays its identity, and offers explicit installation into a new version folder. Restart is the button in the **Version ready** dialog, not a separate Tools command. It protects unsaved edits with Save/Discard/Cancel and carries forward the current state root. Later leaves this app running and displays the installed package directory. When ready, Tools → Switch Portable Version selects that directory's manifest and offers Restart. Switching also supports an older original package if it can read the current database schema. Keep old packages for rollback; do not replace running binaries manually.
+
+The retained 1.0.3 and 1.0.4 Test-Axiom.cmd launchers use separate Axiom-Test-1.0.3 and Axiom-Test-1.0.4 state roots under LOCALAPPDATA. They still edit whichever Markdown folder you select: use disposable collections. Ben accepted the combined 1.0.4 release, including the 1.0.3 workflows, on September 28; see the [combined retest guide and supplied packages](../03%20-%20Architecture/Testing/Axiom%201.0.4%20Combined%20Acceptance%20Review%20-%202026-09-28.md). The 1.0.4.1 package is an update-test fixture only; start with Candidate's launcher and switch from inside Axiom to test retention of the same state.
+
+## 1.0.5 development: work with document tabs
+
+Opening a workspace file, pin, or search result keeps your other documents open. Selecting its tab preserves each document's edits, undo history, caret/selection and editor position. Opening the same file again selects its existing tab. Tabs with the same filename show relative paths; untitled documents have distinct numbers. An asterisk marks unsaved edits, and Conflict or Missing labels identify inactive files needing attention.
+
+Use Ctrl+Tab / Ctrl+Shift+Tab to cycle tabs. Choose File → Close Tab, press Ctrl+W, or use the tab's × button to close it. Save/Discard/Cancel applies to that tab. Workspace switching, application close and version restart resolve all affected dirty tabs; cancellation or failed Save keeps the transition from proceeding. Save As refuses another tab's already-open path.
+
+Recovery protects saved and untitled dirty tabs independently. Startup offers each protected draft; Later preserves that draft for another launch. Restoring a draft for an already-open clean file reuses that tab. No recovery choice silently writes Markdown.
+
+After a normal close, startup restores saved-file tabs in their previous order and selects the active document. Axiom remembers caret/selection and editor/preview positions separately from Markdown. Each workspace remembers its own clean open set. Missing or unavailable files are skipped with feedback. Untitled work is recovered through protected drafts rather than treated as a saved file. Cancel or a failed Save stops a close or workspace/version transition; successful earlier saves remain saved and other buffers remain open. Native preview position/dialog testing and the 1.0.5 acceptance gate remain pending; Markdown link navigation and backlinks are still under development.
+
+### Follow Markdown links in 1.0.5 development
+
+Click a standard Markdown link in Preview, or place the editor caret inside an inline/reference link and use File → Follow Markdown Link or Ctrl+Enter. Axiom resolves same-workspace .md/.markdown targets, reuses an open tab and positions the editor at the requested heading. Open-buffer headings are used when that target has unsaved edits. Unsupported/external/outside-workspace links show feedback and do not launch content or switch workspaces. A missing heading offers Open document or Cancel; a missing document leaves the current tab selected.
+
+Back/Forward buttons and Alt+Left/Alt+Right return to source caret locations while retaining dirty buffers and undo. Unavailable history locations are skipped with feedback; changing workspaces clears history. A changed preview link requires a refreshed preview. These actions never save or enroll a document. Native preview-click/fragment-scroll usability remains pending human acceptance.
+
+### Incoming Markdown references in 1.0.5 development
+
+Select Backlinks in the workspace sidebar to inspect references to the active saved document. Results show source path, heading/text context, line and Saved or Unsaved provenance. Double-click a result or select it and press Enter to open the reference itself. A changed source is relocated only when the matching destination is unique; ambiguous or removed references require a rebuild.
+
+Rebuild reads saved Markdown off the UI thread; Cancel retains previous results with a Stale indication. Complete means eligible files were processed, while Partial/Error lists skipped or failed paths. Failed source reads retain earlier references under the partial warning; deleted sources are removed on rebuild. Saved file/folder changes schedule a refreshed index. Dirty source tabs replace their saved results with an Unsaved overlay, including an empty overlay when links are removed; Discard restores saved results and Save schedules a saved-file rebuild. Untitled buffers cannot supply relative-path references. Unverified overlay targets are checked when followed; open-target headings are checked against their live buffer. Indexing and navigation never enroll ordinary Markdown.
+
+## Document metadata and classification (increment B candidate)
+
+Open the **Metadata** sidebar tab to inspect the active document's ID, workspace path, and saved identity status. Tags and aliases are entered one per line; Type is optional free text. **Apply** saves these values locally without saving Markdown. **Cancel** discards the panel edits. Leaving the document with pending panel edits offers Apply, Discard, or Cancel. Metadata editing requires a saved unique canonical document ID; use **Make Axiom Document** and deliberate Save for ordinary files, then Refresh saved identities. Untitled, missing, ambiguous, and unsaved identity changes remain read-only.
+
+The **Classify** tab filters by every entered tag (one per line), optional exact type, and filename or alias text. Matching is case-insensitive; aliases are alternate names, not filenames or Markdown-link targets. Clear removes filters. Refresh rereads saved identities and reports partial discovery. Double click or Enter on a result opens its existing tab.
+
+**Export metadata** reviews unique saved identities and writes a selected JSON file. **Import metadata** previews every record. All changes default to Skip; select each replacement you want and Apply selected replacements. Missing/ambiguous identities cannot be selected. Files or metadata changed since review require a refreshed preview. Imports replace selected tags/type/aliases atomically, never save/enroll Markdown, and never erase records absent from the transfer file. Local metadata survives rename, missing/recycled documents and forgotten workspaces; a duplicated document with a new ID begins empty. Keep an explicit JSON export if you need these local values in another Axiom state.
+
+Increment B uses state schema 6. Its isolated launcher must use a different state folder from increment A/schema 5. Retain the verified pre-migration backup and old binaries; an older package rejects newer state rather than downgrading it.
+
+## Explicit relationships (increment C candidate)
+
+Open the **Relations** sidebar tab for incoming and outgoing connections for the current saved Axiom document. **Add** creates a directed connection from this document to another unique saved Axiom document in the workspace. Choose a target, keep or change the neutral **Related** kind, enter an optional note, and Apply. Self connections and duplicate direction/kind pairs are rejected. Reverse connections are independent.
+
+Select an outgoing relationship to **Edit** or **Remove** it from its source document. The editor makes an explicit proposal; Cancel leaves it unchanged. Removal confirms your intent. Double click or Enter follows the other endpoint in its existing tab and retains dirty buffers; Back/Forward return to prior locations. A missing or ambiguous endpoint stays visible by ID and does not guess a path. Refresh identities after a file returns or a copied ID is resolved. Relations remain local metadata and do not modify Markdown links or source text.
+
+Metadata export now writes version 2 with classifications and relationships. Unresolved relationship IDs remain in the export when one endpoint belongs to the active unique collection. Import still accepts version 1 classifications. Its review defaults to Skip for every classification/relationship; select each intended replacement. Missing/ambiguous relationship endpoints cannot be applied, and stale files or revisions require refresh. A selected mixed batch commits atomically; failure leaves every value unchanged. Keep the explicit JSON export for transfer to another Axiom state.
+
+Increment C uses schema 7 and a separate `Axiom-Test-1.0.5-C` launcher state. Retain earlier packages and verified pre-migration backups for rollback; do not point older binaries at migrated state expecting an automatic downgrade. Human acceptance of these candidates remains pending.
+
+## Workspace loading, reading mode, and Help (1.0.6 candidate)
+
+**Open Workspace** selects a physical folder containing Markdown. A loading indicator appears while discovery, identity inspection, and metadata discovery run in the background. **Cancel loading** stops discovery and retains the previous workspace and every open buffer. After discovery succeeds, existing Save/Discard/Cancel and pending-metadata safeguards resolve work before adoption. Failures retain the prior workspace. Linked or inaccessible paths are reported separately; partial metadata discovery disables identity-bound changes. Remembered workspaces remain available through File commands.
+
+Click a Markdown leaf once in **Files** to open/reuse its tab. Folders still select/expand; right click and keyboard navigation remain separate. Enter opens a selected leaf. Double clicking reuses the same tab. Use **Enroll multiple files** for the separate bulk review workflow.
+
+Click **Read** or press **Ctrl+Shift+R** to hide the editor and let Preview fill the document area. **Show editor** or the same shortcut restores editing. Tabs, navigation, metadata, conflict banners and dirty indicators remain visible. Toggling does not save, discard, alter identity, or reset undo/caret/selection/scroll; hidden buffers remain recoverable. The preference persists locally, including after clean startup. Recovered unsaved tabs retain their dirty indicators in reading mode.
+
+Click **Help** or press **F1** for a bundled offline copy of this maintained User Guide. The topic selector jumps among headings; context actions from the sidebar suggest relevant workspace, metadata/classification, relationships or navigation guidance. Help does not require enrollment or a network connection and does not modify documents. The bundled copy is generated by `scripts/Sync-OfflineHelp.ps1` from this guide and carries a source SHA-256; edit this guide, then regenerate it. Links to separate project documentation do not leave the offline Help window. Broader Help coverage and the independent menu redesign remain future work requiring review.

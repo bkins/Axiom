@@ -36,6 +36,8 @@ public partial class MainWindow
         FileTree.IsEnabled = enabled;
         PinnedDocuments.IsEnabled = enabled;
         WorkspaceSearchResults.IsEnabled = enabled;
+        ClassificationResults.IsEnabled = enabled;
+        Relationships.IsEnabled = enabled;
     }
 
     internal Task<bool> RunSessionTransitionForTestingAsync(Func<Task> continuation) => RunSessionTransitionAsync(continuation);

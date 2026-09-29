@@ -16,8 +16,8 @@ internal static class Program
         if (args.FirstOrDefault() is "--verify-package" or "--verify-and-restart-package") return PortablePackageProbe.Run(args);
         if (args.FirstOrDefault() == "--verify-multi-buffer-recovery" && args.Length == 3)
             return MultiBufferRecoveryProbe.Verify(args[1], args[2]);
-        if (args.FirstOrDefault() == "--multi-buffer-recovery-probe" && args.Length == 2)
-            MultiBufferRecoveryProbe.Configure(args[1]);
+        if (args.FirstOrDefault() == "--multi-buffer-recovery-probe" && args.Length is 2 or 3)
+            MultiBufferRecoveryProbe.Configure(args[1], args.Length == 3 && args[2] == "--reading-mode");
         if (args.FirstOrDefault() is "--connected-documents-probe" or "--verify-connected-documents" && args.Length == 2)
             ConnectedDocumentsProbe.Configure(args[1], args[0] == "--verify-connected-documents");
         return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);

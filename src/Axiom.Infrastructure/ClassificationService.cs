@@ -17,14 +17,14 @@ public sealed class ClassificationService(IDocumentFileStore files, IDocumentMet
             cancellationToken.ThrowIfCancellationRequested();
             var file = await reader.ReadAsync(root, path, cancellationToken);
             if (file.Status != MarkdownLinkResolutionStatus.Resolved) { errors.Add($"{path}: {file.Status}"); continue; }
-            saved[path] = (DocumentIdCodec.Find(file.Text!), WorkspaceLinkIndexService.Hash(file.Text!));
+            saved[path] = (DocumentIdentityPolicy.FindCanonical(file.Text!), WorkspaceLinkIndexService.Hash(file.Text!));
         }
         // Verify known accessible occurrences outside this collection too. Missing observations remain stored.
         foreach (var occurrence in await identities.GetIdentitiesAsync(cancellationToken))
         {
             if (saved.ContainsKey(occurrence.Path)) continue;
             var file = await reader.ReadAsync(Path.GetDirectoryName(occurrence.Path)!, occurrence.Path, cancellationToken);
-            if (file.Status == MarkdownLinkResolutionStatus.Resolved && DocumentIdCodec.Find(file.Text!) is { } id)
+            if (file.Status == MarkdownLinkResolutionStatus.Resolved && DocumentIdentityPolicy.FindCanonical(file.Text!) is { } id)
                 saved[occurrence.Path] = (id, WorkspaceLinkIndexService.Hash(file.Text!));
             else if (file.Status is not MarkdownLinkResolutionStatus.Resolved and not MarkdownLinkResolutionStatus.MissingDocument)
                 errors.Add($"Known identity unavailable: {occurrence.Path}");

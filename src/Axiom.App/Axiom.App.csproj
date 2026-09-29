@@ -5,6 +5,7 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Help/UserGuide.md" LogicalName="Axiom.App.Help.UserGuide.md" />
     <ProjectReference Include="..\Axiom.Core\Axiom.Core.csproj" />
     <ProjectReference Include="..\Axiom.Infrastructure\Axiom.Infrastructure.csproj" />
     <PackageReference Include="Avalonia" Version="12.1.0" />

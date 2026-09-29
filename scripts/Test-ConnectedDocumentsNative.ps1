@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$OutputDirectory, [switch]$SkipBuild)
+param([string]$OutputDirectory, [switch]$SkipBuild, [int]$TimeoutSeconds = 120)
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -14,7 +14,8 @@ $appPath = Join-Path $repoRoot 'src\Axiom.App\bin\Release\net10.0\Axiom.App.exe'
 foreach ($mode in @('--connected-documents-probe', '--verify-connected-documents')) {
     $process = Start-Process -FilePath $appPath -ArgumentList @($mode, ('"' + $probeRoot + '"')) -PassThru -WindowStyle Hidden
     try {
-        if (-not $process.WaitForExit(60000)) { throw "Native probe timed out: $mode" }
+        $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+        while (-not $process.WaitForExit(1000)) { if ([DateTime]::UtcNow -ge $deadline) { throw "Native probe timed out: $mode" } }
         if (Test-Path -LiteralPath (Join-Path $probeRoot 'error.txt')) { throw (Get-Content -LiteralPath (Join-Path $probeRoot 'error.txt') -Raw) }
         if ($process.ExitCode -ne 0) { throw "Native probe failed: $mode" }
     }

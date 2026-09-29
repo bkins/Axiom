@@ -11,4 +11,11 @@ internal sealed record ConnectedDocumentsProbeResult(string Machine
                                                    , bool MetadataPanelApplied = false
                                                    , bool MetadataImportApplied = false
                                                    , bool RelationshipCreatedAndFollowed = false
-                                                   , bool RelationshipImportApplied = false);
+                                                   , bool RelationshipImportApplied = false
+                                                   , bool ReadingModeRetainedBuffers = false
+                                                   , bool ReadingModeRestored = false
+                                                   , bool OfflineHelpLoaded = false
+                                                   , double WorkspaceCancellationMilliseconds = 0
+                                                   , double Workspace1000OpenMilliseconds = 0
+                                                   , double Workspace10000OpenMilliseconds = 0
+                                                   , double DiscoveryEditP95Milliseconds = 0);

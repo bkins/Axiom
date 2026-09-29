@@ -37,6 +37,8 @@ internal sealed class MetadataImportWindow : Window
                 var selected = proposals.Where(proposal => proposal.Replace && proposal.Change is not null).Select(proposal => proposal.Change!).ToArray();
                 var relations = proposals.Where(proposal => proposal.Replace && proposal.RelationshipChange is not null).Select(proposal => proposal.RelationshipChange!).ToArray();
                 await apply(selected, relations);
+                CommittedRecords = selected.Length + relations.Length;
+                Committed = true;
                 Close();
             }
             catch (Exception exception) { status.Text = exception.Message + " No replacements committed. Cancel and refresh the preview."; }
@@ -46,10 +48,12 @@ internal sealed class MetadataImportWindow : Window
         Content = new DockPanel
         {
             Margin = new Thickness(16)
-            ,
-            Children = { status, buttons, new ScrollViewer { Content = rows } }
+          , Children = { status, buttons, new ScrollViewer { Content = rows } }
         };
         DockPanel.SetDock(status, Dock.Top);
         DockPanel.SetDock(buttons, Dock.Bottom);
     }
+
+    internal bool Committed { get; private set; }
+    internal int CommittedRecords { get; private set; }
 }

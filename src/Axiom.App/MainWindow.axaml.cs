@@ -78,7 +78,8 @@ public partial class MainWindow : Window
         MarkdownPreviewService preview,
         ExternalFileMonitor monitor,
         IAxiomLog log,
-        Func<Task> markCleanExit)
+        Func<Task> markCleanExit,
+        bool readingMode = false)
     {
         _documents = documents;
         _workspaces = workspaces;
@@ -142,11 +143,12 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, Window_OnKeyDown, RoutingStrategies.Tunnel);
         ApplyAppearanceVisuals();
         ActivateTab(AddTab(_session), "New unsaved document");
+        ApplyReadingMode(readingMode);
     }
 
     private async void OpenFolder_OnClick(object? sender, RoutedEventArgs e)
     {
-        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Open a Markdown folder", AllowMultiple = false });
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Select a folder for the Markdown workspace", AllowMultiple = false });
         if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return;
         try
         {
@@ -160,48 +162,14 @@ public partial class MainWindow : Window
 
     internal async Task LoadFolderAsync(string folder)
     {
-        ++_workspaceRefreshGeneration;
-        var normalizedFolder = WorkspaceService.NormalizeRootPath(folder);
-        _workspaceSearchCancellation?.Cancel();
-        ++_workspaceSearchGeneration;
-        _workspaceSearchResults.Clear();
-        WorkspaceSearchStatus.Text = string.Empty;
-        var discovery = await _files.ListMarkdownFilesAsync(normalizedFolder);
-        var duplicates = await _documents.FindDuplicateIdentitiesAsync(normalizedFolder);
-        var workspace = await _workspaces.OpenAsync(normalizedFolder);
-
-        var expandedPaths = Traverse(_workspaceTree).Where(node => node.IsExpanded).Select(node => node.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        _folder = workspace.RootPath;
-        _activeWorkspace = workspace;
-        BeginClassificationWorkspace();
-        BeginBacklinkWorkspace(workspace.RootPath);
-        _workspaceChanges.Watch(_folder);
-        _workspaceTree.Clear();
-        foreach (var node in WorkspaceTreeBuilder.Build(_folder, discovery.Files, WorkspaceFolderDiscovery.List(_folder)))
-        {
-            ApplyExpansion(node, expandedPaths);
-            _workspaceTree.Add(node);
-        }
-        UpdateEmptyStates();
-        _duplicates = duplicates;
-        await RefreshPinsAsync();
-        var warnings = new List<string>();
-        if (_duplicates.Count != 0)
-            warnings.Add($"Identity warning: {_duplicates.Count} copied document ID{(_duplicates.Count == 1 ? string.Empty : "s")} must be made distinct when opened.");
-        if (discovery.SkippedDirectories.Count != 0)
-            warnings.Add($"Skipped {discovery.SkippedDirectories.Count} inaccessible or linked director{(discovery.SkippedDirectories.Count == 1 ? "y" : "ies")}.");
-        DuplicateWarning.Text = string.Join(Environment.NewLine, warnings);
-        StatusText.Text = $"Opened workspace {workspace.DisplayName} with {discovery.Files.Count} Markdown file{(discovery.Files.Count == 1 ? string.Empty : "s")}.";
-        UpdateDurableStatus();
-        UpdateMetadataPanel();
-        ScheduleBacklinkRebuild();
-        await RefreshClassificationAsync();
+        var snapshot = await PrepareWorkspaceAsync(folder);
+        if (snapshot is null) throw new OperationCanceledException("Workspace loading was cancelled or failed; current workspace retained.");
+        await AdoptWorkspaceAsync(snapshot);
     }
-
     private async void FileTree_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (_folder is null || FileTree.SelectedItem is not WorkspaceTreeNode { IsDocument: true } selected) return;
-        await OpenDocumentAsync(Path.Combine(_folder, selected.RelativePath));
+        await OpenExplorerPathAsync(Path.Combine(_folder, selected.RelativePath));
     }
 
     private async void Pin_OnClick(object? sender, RoutedEventArgs e) => await ToggleCurrentPinAsync();
@@ -1080,7 +1048,7 @@ public partial class MainWindow : Window
         PinnedEmptyState.IsVisible = _workspacePins.Count == 0;
         WorkspaceEmptyState.IsVisible = _workspaceTree.Count == 0;
         WorkspaceEmptyState.Text = _folder is null
-            ? "Open a folder to browse Markdown documents."
+            ? "Open a workspace to browse Markdown documents."
             : "This workspace contains no .md or .markdown documents.";
     }
 
@@ -1115,6 +1083,8 @@ public partial class MainWindow : Window
             _workspaceChanges.Dispose();
             _classificationCancellation?.Cancel();
             ++_classificationGeneration;
+            _workspaceLoadCancellation?.Cancel();
+            ++_workspaceLoadGeneration;
             Close();
         });
     }
@@ -1122,6 +1092,18 @@ public partial class MainWindow : Window
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (_sessionTransitionRunning || _navigationRunning || _metadataApplying) return;
+        if (e.Key == Key.F1 && e.KeyModifiers == KeyModifiers.None)
+        {
+            e.Handled = true;
+            await ShowHelpAsync(HelpContext());
+            return;
+        }
+        if (e.Key == Key.R && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift))
+        {
+            e.Handled = true;
+            await ToggleReadingModeAsync();
+            return;
+        }
         if (e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Left or Key.Right)
         {
             e.Handled = true;

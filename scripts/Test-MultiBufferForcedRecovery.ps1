@@ -3,7 +3,8 @@ param(
     [int]$AllowedLossMilliseconds = 350,
     [int]$Trials = 3,
     [string]$OutputDirectory,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$ReadingMode
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,7 +23,9 @@ for ($trial = 1; $trial -le $Trials; $trial++) {
     New-Item -ItemType Directory -Path $trialRoot | Out-Null
     $process = $null
     try {
-        $process = Start-Process -FilePath $appPath -ArgumentList @('--multi-buffer-recovery-probe', ('"' + $trialRoot + '"')) -PassThru -WindowStyle Hidden
+        $probeArguments = @('--multi-buffer-recovery-probe', ('"' + $trialRoot + '"'))
+        if ($ReadingMode) { $probeArguments += '--reading-mode' }
+        $process = Start-Process -FilePath $appPath -ArgumentList $probeArguments -PassThru -WindowStyle Hidden
         $deadline = [DateTime]::UtcNow.AddSeconds(30)
         while (-not (Test-Path -LiteralPath (Join-Path $trialRoot 'ready.txt'))) {
             if (Test-Path -LiteralPath (Join-Path $trialRoot 'error.txt')) { throw (Get-Content -LiteralPath (Join-Path $trialRoot 'error.txt') -Raw) }
@@ -42,5 +45,5 @@ for ($trial = 1; $trial -le $Trials; $trial++) {
     }
     finally { if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force } }
 }
-@{ AllowedLossMilliseconds = $AllowedLossMilliseconds; Trials = $results; EvidenceRoot = $probeRoot } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $probeRoot 'summary.json')
+@{ AllowedLossMilliseconds = $AllowedLossMilliseconds; ReadingMode = [bool]$ReadingMode; Trials = $results; EvidenceRoot = $probeRoot } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $probeRoot 'summary.json')
 "Evidence retained at $probeRoot"

@@ -42,7 +42,8 @@ internal static class ConnectedDocumentsProbe
                     || window.EditorCaretOffsetForTesting != expected.Documents.Single(document => document.RelativePath == expected.ActiveRelativePath).CaretOffset
                     || window.TabsForTesting.Any(tab => tab.Session.IsDirty)) throw new IOException("Native startup did not restore the clean tab set and active caret.");
                 var original = JsonSerializer.Deserialize<ConnectedDocumentsProbeResult>(await File.ReadAllTextAsync(Path.Combine(root, "capture-result.json")))!;
-                await File.WriteAllTextAsync(Path.Combine(root, "result.json"), JsonSerializer.Serialize(original with { CleanStartupRestored = true }));
+                if (!window.ReadingModeForTesting) throw new IOException("Native startup did not restore reading mode.");
+                await File.WriteAllTextAsync(Path.Combine(root, "result.json"), JsonSerializer.Serialize(original with { CleanStartupRestored = true, ReadingModeRestored = true }));
                 window.Close();
                 return;
             }
@@ -57,7 +58,9 @@ internal static class ConnectedDocumentsProbe
             targetText = DocumentIdCodec.Enroll(targetText, metadataId);
             await File.WriteAllTextAsync(source, sourceText);
             await File.WriteAllTextAsync(target, targetText);
+            var workspaceClock = Stopwatch.StartNew();
             if (!await window.SwitchWorkspaceAsync(workspace)) throw new IOException("Could not open the native workload workspace.");
+            var open1000Ms = workspaceClock.Elapsed.TotalMilliseconds;
             await window.OpenDocumentAsync(source);
             var preview = window.FindControl<NativeWebView>("Preview")!;
             await WaitAsync(async () => (await preview.InvokeScript("document.querySelector('a[href^=\"axiom-link:\"]') !== null"))?.Trim().Trim('"') == "true");
@@ -154,12 +157,71 @@ internal static class ConnectedDocumentsProbe
             };
             await relationImport.ShowDialog(window);
             if (AssertRelationshipNote(await state.GetRelationshipsAsync()) != "Imported relation note") throw new IOException("Native relationship import did not commit.");
+            var tabBeforeReading = window.TabsForTesting.Single(tab => tab.Session.Path == target);
+            tabBeforeReading.Document.Insert(tabBeforeReading.Document.TextLength, " Native unsaved reading work");
+            var workingText = tabBeforeReading.Session.Text;
+            await window.ToggleReadingModeAsync();
+            await window.OpenExplorerPathAsync(source);
+            await window.OpenExplorerPathAsync(source);
+            await window.OpenExplorerPathAsync(target);
+            if (!window.ReadingModeForTesting || window.TabsForTesting.Count != 2 || tabBeforeReading.Session.Text != workingText || !tabBeforeReading.Document.UndoStack.CanUndo)
+                throw new IOException("Reading/explorer workflow lost working buffers or undo.");
+            await window.ToggleReadingModeAsync();
+            var discoveryEdits = new List<double>();
+            var discovering = window.RefreshClassificationAsync();
+            while (!discovering.IsCompleted)
+            {
+                var editClock = Stopwatch.StartNew();
+                tabBeforeReading.Document.Insert(tabBeforeReading.Document.TextLength, "x");
+                if (tabBeforeReading.Document.Text != tabBeforeReading.Session.Text) throw new IOException("Discovery blocked a native edit.");
+                discoveryEdits.Add(editClock.Elapsed.TotalMilliseconds);
+                await Task.Delay(10);
+            }
+            await discovering;
+            if (discoveryEdits.Count < 20) throw new IOException("Too few native discovery edit samples.");
+            var discoveryP95 = discoveryEdits.Order().ElementAt((int)Math.Ceiling(discoveryEdits.Count * 0.95) - 1);
+            if (discoveryP95 >= 50) throw new IOException("Native discovery edit p95 exceeded 50 ms.");
+            var stressWorkspace = await Task.Run(() => LinkIndexBenchmarkProbe.GenerateAsync(root, 10000));
+            var loading = window.SwitchWorkspaceAsync(stressWorkspace);
+            await Task.Delay(100);
+            if (!window.FindControl<Border>("WorkspaceLoadingPanel")!.IsVisible) throw new IOException("Native workspace loading indicator did not appear.");
+            workspaceClock.Restart();
+            window.FindControl<Button>("WorkspaceLoadingCancel")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (await loading || window.ActiveWorkspaceRootForTesting != workspace || tabBeforeReading.Session.Text != tabBeforeReading.Document.Text || !tabBeforeReading.Session.IsDirty)
+                throw new IOException("Native loading cancellation did not retain the original dirty workspace.");
+            var cancelMs = workspaceClock.Elapsed.TotalMilliseconds;
+            if (cancelMs >= 1000) throw new IOException("Native loading cancellation exceeded one second.");
+            workspaceClock.Restart();
+            if (!await window.SwitchWorkspaceAsync(stressWorkspace)) throw new IOException("Native stress workspace did not open.");
+            var open10000Ms = workspaceClock.Elapsed.TotalMilliseconds;
+            if (!await window.SwitchWorkspaceAsync(workspace)) throw new IOException("Native original workspace did not restore after stress opening.");
+            await window.OpenDocumentAsync(target);
+            await window.ToggleReadingModeAsync();
+            var help = new HelpWindow("metadata", state.Paths.Root, AppearancePreference.System);
+            var helpLoaded = false;
+            help.Opened += async (_, _) =>
+            {
+                try
+                {
+                    await WaitAsync(async () =>
+                    {
+                        try { return (await help.PreviewForTesting.InvokeScript("document.body.innerText.includes('Document metadata and classification')"))?.Trim().Trim('"') == "true"; }
+                        catch { return false; }
+                    });
+                    helpLoaded = true;
+                }
+                catch (Exception exception) { File.WriteAllText(Path.Combine(root, "error.txt"), exception.ToString()); }
+                finally { help.Close(); }
+            };
+            await help.ShowDialog(window);
+            if (!helpLoaded) throw new IOException("Offline native Help did not load the maintained guide.");
             window.SetEditorSelectionForTesting(targetText.IndexOf("# Destination", StringComparison.Ordinal), 0);
             var record = (await state.GetActiveWorkspaceAsync())!;
             var index = (await state.GetLinkIndexAsync(record.WorkspaceId))!;
             var unchanged = await File.ReadAllTextAsync(source) == sourceText && await File.ReadAllTextAsync(target) == targetText;
             if (!unchanged) throw new IOException("Native workflow changed saved Markdown.");
-            var report = new ConnectedDocumentsProbeResult(Environment.MachineName, true, true, index.Documents.Count, samples.Count, p95, unchanged, false, true, true, true, true);
+            var report = new ConnectedDocumentsProbeResult(Environment.MachineName, true, true, index.Documents.Count, samples.Count, p95, unchanged, false, true, true, true, true, true, false, true,
+                cancelMs, open1000Ms, open10000Ms, discoveryP95);
             await File.WriteAllTextAsync(Path.Combine(root, "capture-result.json"), JsonSerializer.Serialize(report));
             window.Closed += (_, _) =>
             {

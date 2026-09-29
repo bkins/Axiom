@@ -82,7 +82,7 @@ public partial class MainWindow
         tab.CaretOffset = Editor.CaretOffset;
         tab.SelectionStart = Editor.SelectionStart;
         tab.SelectionLength = Editor.SelectionLength;
-        if (!tab.HasPendingScrollRestore)
+        if (!tab.HasPendingScrollRestore && !_readingMode)
         {
             tab.HorizontalOffset = Editor.TextArea.TextView.HorizontalOffset;
             tab.VerticalOffset = Editor.TextArea.TextView.VerticalOffset;

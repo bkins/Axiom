@@ -40,10 +40,8 @@ internal sealed class RelationshipEditorWindow : Window
             Content = new StackPanel
             {
                 Margin = new Thickness(16)
-                ,
-                Spacing = 8
-                ,
-                Children = { status, new TextBlock { Text = "Target document" }, target, new TextBlock { Text = "Kind" }, kind, new TextBlock { Text = "Optional note" }, note,
+              , Spacing = 8
+              , Children = { status, new TextBlock { Text = "Target document" }, target, new TextBlock { Text = "Kind" }, kind, new TextBlock { Text = "Optional note" }, note,
                     new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { save, cancel } } }
             }
         };

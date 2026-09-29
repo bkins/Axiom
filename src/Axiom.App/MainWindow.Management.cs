@@ -76,12 +76,19 @@ public partial class MainWindow
 
     internal async Task<bool> SwitchWorkspaceAsync(string root)
     {
-        // Validate before asking to discard the old buffer.
-        await _files.ListMarkdownFilesAsync(root);
-        if (_folder is not null && WorkspaceService.NormalizeRootPath(root).Equals(_folder, StringComparison.OrdinalIgnoreCase)) return true;
+        if (_folder is not null && WorkspaceService.NormalizeRootPath(root).Equals(_folder, StringComparison.OrdinalIgnoreCase))
+        {
+            _workspaceLoadCancellation?.Cancel();
+            ++_workspaceLoadGeneration;
+            WorkspaceLoadingPanel.IsVisible = false;
+            return true;
+        }
+        if (_sessionTransitionRunning || _navigationRunning || _metadataApplying) return false;
+        var snapshot = await PrepareWorkspaceAsync(root);
+        if (snapshot is null) return false;
         return await RunSessionTransitionAsync(async () =>
         {
-            await LoadFolderAsync(root);
+            await AdoptWorkspaceAsync(snapshot);
             ResetTabs("Workspace opened; choose a Markdown document.");
             await RestoreCleanSessionAsync();
         });

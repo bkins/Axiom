@@ -35,6 +35,11 @@ public sealed partial class MainWindowTests
             Assert.Equal(["First", "SECOND"], metadata.Tags);
             Assert.Equal("Alternate; name", Assert.Single(metadata.Aliases));
             Assert.Equal(original, await File.ReadAllTextAsync(one));
+            window.SetEditorTextForTesting(original.Replace(" -->", "\n -->", StringComparison.Ordinal));
+            Assert.False(window.FindControl<StackPanel>("MetadataFields")!.IsEnabled);
+            Assert.False(await window.ApplyMetadataAsync());
+            Assert.Equal(original, await File.ReadAllTextAsync(one));
+            window.SetEditorTextForTesting(original);
             window.FindControl<TextBox>("MetadataType")!.Text = "Idea";
             window.MetadataChoiceForTesting = () => Task.FromResult("Discard");
             await window.OpenDocumentAsync(two);

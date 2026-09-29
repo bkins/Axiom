@@ -20,6 +20,7 @@ internal static class AppComposition
         _state = new SqliteStateStore(_paths, _log);
         _state.InitializeAsync().GetAwaiter().GetResult();
         var appearance = _state.GetAppearanceAsync().GetAwaiter().GetResult();
+        var readingMode = _state.GetReadingModeAsync().GetAwaiter().GetResult();
         if (Application.Current is not null)
             Application.Current.RequestedThemeVariant = appearance switch
             {
@@ -33,7 +34,7 @@ internal static class AppComposition
         var files = new FileDocumentStore(_log);
         var documents = new DocumentService(files, _state, _state, _log);
         var workspaces = new WorkspaceService(_state);
-        return new MainWindow(documents, workspaces, files, _state, _state, appearance, new MarkdownPreviewService(), new ExternalFileMonitor(), _log, MarkCleanExitAsync);
+        return new MainWindow(documents, workspaces, files, _state, _state, appearance, new MarkdownPreviewService(), new ExternalFileMonitor(), _log, MarkCleanExitAsync, readingMode);
     }
 
     private static async Task MarkCleanExitAsync()

@@ -29,7 +29,7 @@ internal sealed class WorkspaceCatalogWindow : Window
                     ,
             Children =
                       {
-                          new TextBlock { Text = workspaces.Count == 0 ? "No remembered workspaces. Use Open Folder to add one." : "Choose a collection by its full path.", Margin = new Avalonia.Thickness(0, 0, 0, 10) }
+                          new TextBlock { Text = workspaces.Count == 0 ? "No remembered workspaces. Use Open Workspace to add one." : "Choose a workspace by its full path.", Margin = new Avalonia.Thickness(0, 0, 0, 10) }
                         , buttons
                         , list
                       }

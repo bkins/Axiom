@@ -42,7 +42,7 @@ public partial class MainWindow
     {
         if (!await ResolvePendingMetadataAsync() || _classificationService is null) return;
         await RefreshClassificationAsync();
-        if (_classificationCatalog is not { } evidence || _session.DocumentId is not { } id || evidence.Find(id) is null) return;
+        if (_classificationCatalog is not { } evidence || _session.DocumentId is not { } id || evidence.Find(id) is null || _panelValue?.DocumentId != id) return;
         var candidates = evidence.Documents.Where(document => document.IsEligible && document.DocumentId != id).ToArray();
         if (candidates.Length == 0) { RelationshipStatus.Text = "No unique saved target identities in this workspace."; return; }
         await new RelationshipEditorWindow(id, candidates, existing,
@@ -85,12 +85,13 @@ public partial class MainWindow
             if (!_relationships.Any(current => current.RelationshipId == relationship.RelationshipId && current.Revision == relationship.Revision))
             { RelationshipStatus.Text = "Relationship changed; select the refreshed record."; return; }
             var id = _session.DocumentId;
+            if (_panelValue?.DocumentId != id) { RelationshipStatus.Text = "Save a unique canonical identity before following identity-bound relationships."; return; }
             var targetId = relationship.SourceId == id ? relationship.TargetId : relationship.TargetId == id ? relationship.SourceId : (Guid?)null;
             var target = targetId is { } endpoint ? _classificationCatalog?.Find(endpoint) : null;
             if (target is null) { RelationshipStatus.Text = "The endpoint is unresolved, ambiguous, or unavailable. No path was guessed."; return; }
             var previous = CurrentNavigationLocation();
             var read = await new MarkdownLinkTargetReader(_files).ReadAsync(_folder, Path.Combine(_folder, target.RelativePath));
-            if (read.Status != MarkdownLinkResolutionStatus.Resolved || DocumentIdCodec.Find(read.Text!) != targetId)
+            if (read.Status != MarkdownLinkResolutionStatus.Resolved || DocumentIdentityPolicy.FindCanonical(read.Text!) != targetId)
             { RelationshipStatus.Text = "Endpoint changed. Refresh before following."; return; }
             await OpenDocumentAsync(Path.Combine(_folder, target.RelativePath));
             if (_session.DocumentId == targetId && previous is not null)

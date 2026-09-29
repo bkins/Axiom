@@ -45,6 +45,8 @@ public static class MetadataTransferService
         if (transfer.Format != "axiom-document-metadata" || transfer.SchemaVersion is not 1 and not 2 || transfer.Records is null)
             throw new InvalidDataException("Unsupported metadata format or version.");
         if (transfer.Records.Length + (transfer.Relationships?.Length ?? 0) > MaximumRecords) throw new InvalidDataException("Too many metadata records.");
+        if (transfer.Records.Any(record => record is null) || (transfer.Relationships?.Any(relationship => relationship is null) ?? false))
+            throw new InvalidDataException("Transfer records cannot be null.");
         if (transfer.SchemaVersion == 1 && transfer.Relationships is { Length: > 0 }) throw new InvalidDataException("Version 1 cannot contain relationships.");
         if (transfer.Records.Select(record => record.DocumentId).Distinct().Count() != transfer.Records.Length)
             throw new InvalidDataException("Duplicate document IDs in transfer.");

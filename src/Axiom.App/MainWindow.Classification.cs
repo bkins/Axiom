@@ -84,10 +84,11 @@ public partial class MainWindow
         {
             var relative = _session.Path is { } path && _folder is not null && IsWithinFolder(path, _folder) ? Path.GetRelativePath(_folder, path) : null;
             var saved = _classificationCatalog?.Documents.FirstOrDefault(document => string.Equals(document.RelativePath, relative, StringComparison.OrdinalIgnoreCase));
-            var eligible = saved?.IsEligible == true && _session.DocumentId == saved.DocumentId && !_activeTab.IsMissing;
+            var liveId = DocumentIdentityPolicy.FindCanonical(_session.Text);
+            var eligible = saved?.IsEligible == true && liveId == saved.DocumentId && !_activeTab.IsMissing;
             _panelValue = eligible ? saved!.Classification : null;
             MetadataStatus.Text = $"ID: {_session.DocumentId?.ToString("D") ?? "None"}\n{relative ?? "Outside the active workspace or untitled"}\n{saved?.Status ?? "Refresh to inspect saved identity"}";
-            if (saved is not null && _session.DocumentId != saved.DocumentId) MetadataStatus.Text += "\nUnsaved identity change; save before editing metadata.";
+            if (saved is not null && liveId != saved.DocumentId) MetadataStatus.Text += "\nUnsaved identity change; save before editing metadata.";
             MetadataTags.Text = string.Join(Environment.NewLine, _panelValue?.Tags ?? []);
             MetadataType.Text = _panelValue?.Type ?? "";
             MetadataAliases.Text = string.Join(Environment.NewLine, _panelValue?.Aliases ?? []);
@@ -120,7 +121,7 @@ public partial class MainWindow
         MetadataFields.IsEnabled = false;
         try
         {
-            if (tab.Session.DocumentId != id) throw new InvalidOperationException("The active identity changed. Save and refresh before applying.");
+            if (DocumentIdentityPolicy.FindCanonical(tab.Session.Text) != id) throw new InvalidOperationException("The active identity changed. Save and refresh before applying.");
             var value = ClassificationPolicy.Normalize(new(id, PanelSet(MetadataTags.Text), MetadataType.Text, PanelSet(MetadataAliases.Text)));
             await Task.Run(() => _classificationService.ApplyAsync(_classificationCatalog, [new(value, _panelValue.Revision)]));
             _panelPending = false;
@@ -174,7 +175,7 @@ public partial class MainWindow
         if (_folder is null || ClassificationResults.SelectedItem is not ClassifiedDocument selected) return;
         var target = Path.Combine(_folder, selected.RelativePath);
         var read = await new MarkdownLinkTargetReader(_files).ReadAsync(_folder, target);
-        if (read.Status != MarkdownLinkResolutionStatus.Resolved || DocumentIdCodec.Find(read.Text!) != selected.DocumentId)
+        if (read.Status != MarkdownLinkResolutionStatus.Resolved || DocumentIdentityPolicy.FindCanonical(read.Text!) != selected.DocumentId)
         { ClassificationStatus.Text = "Result changed. Refresh before opening."; return; }
         await OpenDocumentAsync(target);
     }
@@ -200,12 +201,14 @@ public partial class MainWindow
         if (selected.FirstOrDefault()?.TryGetLocalPath() is not { } path) return;
         try
         {
-            var transfer = await MetadataTransferService.ReadAsync(path);
+            var transfer = await Task.Run(() => MetadataTransferService.ReadAsync(path));
             await RefreshClassificationAsync();
             if (_classificationCatalog is not { } evidence) return;
             var proposals = MetadataTransferService.Preview(transfer, evidence, _relationships);
-            await new MetadataImportWindow(proposals, (changes, relationships) => Task.Run(() => _classificationService.ApplyConnectedAsync(evidence, changes, relationships))).ShowDialog(this);
+            var dialog = new MetadataImportWindow(proposals, (changes, relationships) => Task.Run(() => _classificationService.ApplyConnectedAsync(evidence, changes, relationships)));
+            await dialog.ShowDialog(this);
             await RefreshClassificationAsync();
+            UpdateChrome(dialog.Committed ? $"Imported {dialog.CommittedRecords} metadata/relationship replacements; Markdown unchanged." : "Metadata import cancelled; no changes applied.");
         }
         catch (Exception exception) { ReportError("metadata.import.failed", exception, path); }
     }
