@@ -17,7 +17,7 @@ public partial class MainWindow
         _altPressedAlone = false;
         if (eventArgs.Key == Key.F10 && eventArgs.KeyModifiers == KeyModifiers.None)
         {
-            FileCommandsButton.Focus();
+            FileCommandsButton.Focus(NavigationMethod.Tab);
             eventArgs.Handled = true;
             return true;
         }
@@ -36,7 +36,7 @@ public partial class MainWindow
           , _     => null
         };
         if (button is null) return false;
-        button.Focus();
+        button.Focus(NavigationMethod.Tab);
         button.Flyout?.ShowAt(button);
         eventArgs.Handled = true;
         return true;
@@ -47,7 +47,7 @@ public partial class MainWindow
         if (eventArgs.Key is not (Key.LeftAlt or Key.RightAlt)) return;
         if (_altPressedAlone)
         {
-            FileCommandsButton.Focus();
+            FileCommandsButton.Focus(NavigationMethod.Tab);
             eventArgs.Handled = true;
         }
         _altPressedAlone = false;
