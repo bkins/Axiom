@@ -43,7 +43,6 @@ public partial class MainWindow : Window
     private DocumentSession _session;
     private string? _folder;
     private WorkspaceRecord? _activeWorkspace;
-    private string? _lastProtectedText;
     private bool _loading;
     private bool _previewReady;
     private double? _pendingPreviewScrollRatio;
@@ -98,6 +97,7 @@ public partial class MainWindow : Window
         InitializeWorkspaceRefresh();
         AddHandler(KeyUpEvent, Window_OnKeyUp, RoutingStrategies.Tunnel);
 
+        DocumentTabs.ItemsSource = _tabs;
         FileTree.ItemsSource = _workspaceTree;
         WorkspaceSearchResults.ItemsSource = _workspaceSearchResults;
         DocumentOutline.ItemsSource = _outlineEntries;
@@ -122,13 +122,13 @@ public partial class MainWindow : Window
         _outlineTimer.Tick += (_, _) => RenderOutline();
         _recoveryTimer.Tick += async (_, _) => await ProtectIfNeededAsync();
         _recoveryTimer.Start();
-        _monitor.Changed += (_, _) => Dispatcher.UIThread.Post(async () => await HandleExternalChangeAsync());
+        _monitor.Changed += (_, path) => Dispatcher.UIThread.Post(async () => await HandleExternalChangeAsync(path));
         _monitor.Renamed += (_, pair) => Dispatcher.UIThread.Post(() => HandleRename(pair.OldPath, pair.NewPath));
         Opened += async (_, _) => { await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); };
         Closing += MainWindow_Closing;
         AddHandler(KeyDownEvent, Window_OnKeyDown, RoutingStrategies.Tunnel);
         ApplyAppearanceVisuals();
-        LoadSession(_session, "New unsaved document");
+        ActivateTab(AddTab(_session), "New unsaved document");
     }
 
     private async void OpenFolder_OnClick(object? sender, RoutedEventArgs e)
@@ -183,7 +183,6 @@ public partial class MainWindow : Window
     private async void FileTree_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (_folder is null || FileTree.SelectedItem is not WorkspaceTreeNode { IsDocument: true } selected) return;
-        if (!await ConfirmSafeToReplaceSessionAsync()) return;
         await OpenDocumentAsync(Path.Combine(_folder, selected.RelativePath));
     }
 
@@ -220,7 +219,6 @@ public partial class MainWindow : Window
             UpdateChrome($"Pinned document is missing: {pin.RelativePath}. Remove the pin when it is no longer needed.");
             return;
         }
-        if (!await ConfirmSafeToReplaceSessionAsync()) return;
         await OpenDocumentAsync(path);
     }
 
@@ -286,7 +284,6 @@ public partial class MainWindow : Window
 
     private async Task OpenSearchResultAsync(WorkspaceSearchResult result)
     {
-        if (!await ConfirmSafeToReplaceSessionAsync()) return;
         await OpenDocumentAsync(result.FullPath);
         if (result.MatchOffset + result.MatchedText.Length <= Editor.Text.Length &&
             Editor.Text.AsSpan(result.MatchOffset, result.MatchedText.Length).Equals(result.MatchedText, StringComparison.OrdinalIgnoreCase))
@@ -320,6 +317,12 @@ public partial class MainWindow : Window
     {
         try
         {
+            path = Path.GetFullPath(path);
+            if (FindTab(path) is { } existing)
+            {
+                await SelectTabAsync(existing);
+                return;
+            }
             var session = await _documents.OpenAsync(path);
             if (session.DocumentId is { } id && _duplicates.TryGetValue(id, out var duplicatePaths))
             {
@@ -329,7 +332,19 @@ public partial class MainWindow : Window
                 if (choice == "Cancel") return;
                 _documents.ReassignIdentity(session);
             }
-            LoadSession(session, session.IsDirty ? "Opened with a new identity; save deliberately when ready." : "Opened without changing the file.");
+            if (FindTab(path) is { } openedWhileReading)
+            {
+                await SelectTabAsync(openedWhileReading);
+                return;
+            }
+            if (_initialPlaceholder && _tabs.Count == 1 && !_session.IsDirty && _session.IsNew)
+            {
+                _selectingTab = true;
+                _tabs.Clear();
+                _selectingTab = false;
+            }
+            _initialPlaceholder = false;
+            await LoadSessionAsync(session, session.IsDirty ? "Opened with a new identity; save deliberately when ready." : "Opened without changing the file.");
         }
         catch (Exception exception)
         {
@@ -339,44 +354,57 @@ public partial class MainWindow : Window
 
     private async void New_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (!await ConfirmSafeToReplaceSessionAsync()) return;
-        LoadSession(_documents.NewDocument(), "New unsaved document");
+        _initialPlaceholder = false;
+        await LoadSessionAsync(_documents.NewDocument(), "New unsaved document");
     }
 
     private async void Save_OnClick(object? sender, RoutedEventArgs e) => await SaveDocumentAsync(false);
     private async void SaveAs_OnClick(object? sender, RoutedEventArgs e) => await SaveDocumentAsync(true);
 
-    private async Task<bool> SaveDocumentAsync(bool forceSaveAs)
+    private async Task<bool> SaveDocumentAsync(bool forceSaveAs, DocumentTab? target = null)
     {
         if (_mutationBlocked) { UpdateChrome("Resolve pending file operations before saving; your buffer remains protected."); return false; }
+        var tab = target ?? _activeTab;
+        var session = tab.Session;
+        await _recoveryGate.WaitAsync();
+        var editorEnabled = Editor.IsEnabled;
+        Editor.IsEnabled = false;
+        DocumentTabs.IsEnabled = false;
         try
         {
-            if (forceSaveAs || _session.Path is null)
+            if (forceSaveAs || session.Path is null)
             {
                 var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
                 {
                     Title = "Save Markdown document",
-                    SuggestedFileName = _session.Path is null ? "Untitled.md" : Path.GetFileName(_session.Path),
+                    SuggestedFileName = session.Path is null ? "Untitled.md" : Path.GetFileName(session.Path),
                     DefaultExtension = "md",
                     FileTypeChoices = [new FilePickerFileType("Markdown files") { Patterns = ["*.md", "*.markdown"] }]
                 });
                 var path = file?.TryGetLocalPath();
                 if (path is null) return false;
-                await _documents.SaveAsAsync(_session, path);
+                if (FindTab(path) is { } owner && owner != tab)
+                {
+                    UpdateChrome("That file is already open in another tab. Choose another Save As path.");
+                    return false;
+                }
+                await _documents.SaveAsAsync(session, path);
             }
             else
             {
-                await _documents.SaveAsync(_session);
+                await _documents.SaveAsync(session);
             }
 
-            _lastProtectedText = null;
-            _monitor.Watch(_session.Path);
-            UpdateChrome($"Saved {Path.GetFileName(_session.Path)} at {DateTime.Now:T}");
-            if (_session.Path is not null)
+            tab.LastProtectedText = null;
+            tab.RecoveryStatus = "Recovery ready";
+            tab.IsMissing = false;
+            RefreshDocumentMonitors();
+            UpdateChrome($"Saved {Path.GetFileName(session.Path)} at {DateTime.Now:T}");
+            if (session.Path is not null)
             {
-                if (_folder is not null && IsWithinFolder(_session.Path, _folder))
+                if (_folder is not null && IsWithinFolder(session.Path, _folder))
                     await LoadFolderAsync(_folder);
-                else if (_activeWorkspace is null && Path.GetDirectoryName(_session.Path) is { } savedFolder)
+                else if (_activeWorkspace is null && Path.GetDirectoryName(session.Path) is { } savedFolder)
                     await LoadFolderAsync(savedFolder);
             }
             return true;
@@ -384,8 +412,14 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             ConflictBanner.IsVisible = _session.Conflict is not null;
-            ReportError("document.save.failed", exception, _session.Path);
+            ReportError("document.save.failed", exception, session.Path);
             return false;
+        }
+        finally
+        {
+            Editor.IsEnabled = editorEnabled;
+            DocumentTabs.IsEnabled = true;
+            _recoveryGate.Release();
         }
     }
 
@@ -715,7 +749,8 @@ public partial class MainWindow : Window
         }
 
         if (generation != _previewRenderGeneration) return;
-        _pendingPreviewScrollRatio = scrollRatio;
+        if (scrollRatio is { } captured) _activeTab.PreviewScrollRatio = captured;
+        _pendingPreviewScrollRatio = scrollRatio ?? _activeTab.PreviewScrollRatio;
         Preview.NavigateToString(_preview.RenderDocument(GetCurrentStructure(), _session.Path, _appearance, _activeWorkspace?.RootPath));
     }
 
@@ -774,95 +809,156 @@ public partial class MainWindow : Window
 
     private async Task ProtectIfNeededAsync()
     {
-        if (string.Equals(_lastProtectedText, _session.Text, StringComparison.Ordinal)) return;
-        if (!_session.IsDirty && _lastProtectedText is null) return;
+        await _recoveryGate.WaitAsync();
         try
         {
-            await _documents.ProtectAsync(_session);
-            _lastProtectedText = _session.Text;
-            RecoveryText.Text = _session.IsDirty ? $"Protected {DateTime.Now:T}" : "Recovery ready";
+            foreach (var tab in _tabs.ToArray())
+            {
+                var session = tab.Session;
+                var text = session.Text;
+                if (string.Equals(tab.LastProtectedText, text, StringComparison.Ordinal)) continue;
+                if (!session.IsDirty && tab.LastProtectedText is null) continue;
+                try
+                {
+                    await _documents.ProtectAsync(session);
+                    tab.LastProtectedText = text;
+                    tab.RecoveryStatus = session.IsDirty ? $"Protected {DateTime.Now:T}" : "Recovery ready";
+                }
+                catch (Exception exception)
+                {
+                    tab.RecoveryStatus = "Recovery protection failed";
+                    _log.Error("recovery.save.failed", exception, session.Path);
+                }
+            }
+            RecoveryText.Text = _activeTab.RecoveryStatus;
         }
-        catch (Exception exception)
-        {
-            RecoveryText.Text = "Recovery protection failed";
-            _log.Error("recovery.save.failed", exception, _session.Path);
-        }
+        finally { _recoveryGate.Release(); }
     }
 
-    private async Task HandleExternalChangeAsync()
+    private async Task HandleExternalChangeAsync(string path)
     {
+        if (_closingApproved || FindTab(path) is not { } tab) return;
+        var session = tab.Session;
         try
         {
-            if (!await _documents.CheckExternalChangeAsync(_session)) return;
-            if (_session.Conflict is not null)
+            if (!await _files.ExistsAsync(path))
             {
-                ConflictBanner.IsVisible = true;
-                await _documents.ProtectAsync(_session);
-                UpdateChrome("External change conflict — both versions preserved");
+                tab.IsMissing = true;
+                RefreshTabLabels();
+                if (tab == _activeTab) UpdateChrome("The open file is missing; your buffer is preserved.");
+                return;
+            }
+            tab.IsMissing = false;
+            if (!await _documents.CheckExternalChangeAsync(session)) return;
+            if (session.Conflict is null)
+            {
+                tab.Document.Text = session.Text;
+                tab.Document.UndoStack.ClearAll();
+                tab.Structure = null;
+                if (tab == _activeTab)
+                {
+                    _structure = null;
+                    RenderOutline();
+                    RenderPreview();
+                    UpdateChrome("Reloaded an external file change");
+                }
             }
             else
             {
-                SetEditorText(_session.Text);
-                UpdateChrome("Reloaded an external file change");
+                await ProtectIfNeededAsync();
+                if (tab == _activeTab) UpdateChrome("External change conflict — both versions preserved");
             }
+            ConflictBanner.IsVisible = _session.Conflict is not null;
+            RefreshTabLabels();
         }
         catch (IOException)
         {
-            UpdateChrome("The open file was removed or is temporarily unavailable; your buffer is preserved.");
+            tab.IsMissing = true;
+            RefreshTabLabels();
+            if (tab == _activeTab) UpdateChrome("The open file was removed or is temporarily unavailable; your buffer is preserved.");
         }
-        catch (Exception exception)
-        {
-            ReportError("external.change.failed", exception, _session.Path);
-        }
+        catch (Exception exception) { ReportError("external.change.failed", exception, path); }
     }
 
     private void HandleRename(string oldPath, string newPath)
     {
-        if (_session.Path is null || !Path.GetFullPath(oldPath).Equals(Path.GetFullPath(_session.Path), StringComparison.OrdinalIgnoreCase)) return;
-        _session.UpdatePath(newPath);
-        _monitor.Watch(newPath);
-        UpdateChrome($"Tracked renamed document: {Path.GetFileName(newPath)}");
-        if (_folder is not null) _ = LoadFolderAsync(_folder);
+        if (FindTab(oldPath) is not { } tab) return;
+        if (FindTab(newPath) is { } collision && collision != tab)
+        {
+            tab.IsMissing = true;
+            RefreshTabLabels();
+            UpdateChrome("A renamed path already belongs to another open tab. Both buffers remain open.");
+            return;
+        }
+        tab.Session.UpdatePath(newPath);
+        tab.IsMissing = false;
+        RefreshDocumentMonitors();
+        RefreshTabLabels();
+        if (tab == _activeTab) UpdateChrome($"Tracked renamed document: {Path.GetFileName(newPath)}");
+        if (_folder is not null) _ = RefreshWorkspaceSafelyAsync();
     }
 
     private async Task RestoreDraftIfAvailableAsync()
     {
-        var draft = (await _recovery.GetRecoverableDraftsAsync()).FirstOrDefault();
-        if (draft is null) return;
-        var choice = await ChoiceDialog.ShowAsync(this, "Recover protected work",
-            $"Axiom protected a newer working draft from {draft.UpdatedUtc.LocalDateTime:g}. Restore it without overwriting the saved file?",
-            "Restore", "Discard", "Later");
-        if (choice == "Discard")
+        foreach (var draft in await _recovery.GetRecoverableDraftsAsync())
         {
-            await _recovery.DeleteDraftAsync(draft.DraftKey);
-            return;
+            var choice = RecoveryChoiceForTesting is { } choose
+                ? await choose(draft)
+                : await ChoiceDialog.ShowAsync(this, "Recover protected work",
+                    $"Axiom protected {draft.FilePath ?? "an untitled document"} from {draft.UpdatedUtc.LocalDateTime:g}. Restore it without overwriting the saved file?",
+                    "Restore", "Discard", "Later");
+            if (choice == "Discard")
+            {
+                await _recoveryGate.WaitAsync();
+                try { await _recovery.DeleteDraftAsync(draft.DraftKey); }
+                finally { _recoveryGate.Release(); }
+                continue;
+            }
+            if (choice != "Restore") continue;
+            var savedText = string.Empty;
+            try
+            {
+                if (draft.FilePath is not null && await _files.ExistsAsync(draft.FilePath))
+                    savedText = (await _files.ReadAsync(draft.FilePath)).Text;
+            }
+            catch (IOException exception) { _log.Error("recovery.saved.file.unavailable", exception, draft.FilePath); }
+            if (_initialPlaceholder && _tabs.Count == 1 && !_session.IsDirty && _session.IsNew)
+            {
+                _selectingTab = true;
+                _tabs.Clear();
+                _selectingTab = false;
+            }
+            _initialPlaceholder = false;
+            await LoadSessionAsync(DocumentSession.Recover(draft, savedText), "Recovered protected work. The saved file has not been overwritten.");
         }
-        if (choice != "Restore") return;
-        var savedText = string.Empty;
-        if (draft.FilePath is not null && await _files.ExistsAsync(draft.FilePath))
-            savedText = (await _files.ReadAsync(draft.FilePath)).Text;
-        LoadSession(DocumentSession.Recover(draft, savedText), "Recovered protected work. The saved file has not been overwritten.");
     }
 
     private async Task<bool> ConfirmSafeToReplaceSessionAsync()
     {
-        if (!_session.IsDirty) return true;
-        var choice = await ChoiceDialog.ShowAsync(this, "Unsaved changes", "Save changes before leaving this document?", "Save", "Discard", "Cancel");
-        if (choice == "Cancel") return false;
-        if (choice == "Save") return await SaveDocumentAsync(false);
-        await _documents.DiscardAsync(_session);
+        var tab = _activeTab;
+        if (!tab.Session.IsDirty) return true;
+        var choice = UnsavedChoiceForTesting is { } choose
+            ? await choose(tab.Session)
+            : await ChoiceDialog.ShowAsync(this, "Unsaved changes", $"Save changes to {tab.Label} before continuing?", "Save", "Discard", "Cancel");
+        if (choice is not "Save" and not "Discard") return false;
+        if (choice == "Save") return await SaveDocumentAsync(false, tab);
+        await _recoveryGate.WaitAsync();
+        try
+        {
+            await _documents.DiscardAsync(tab.Session);
+            tab.LastProtectedText = null;
+            tab.RecoveryStatus = "Recovery ready";
+            tab.Structure = null;
+            if (tab == _activeTab) SetEditorText(tab.Session.Text);
+            else
+            {
+                tab.Document.Text = tab.Session.Text;
+                tab.Document.UndoStack.ClearAll();
+            }
+            UpdateChrome("Discarded changes in the selected document.");
+        }
+        finally { _recoveryGate.Release(); }
         return true;
-    }
-
-    private void LoadSession(DocumentSession session, string status)
-    {
-        _structure = null;
-        _session = session;
-        _lastProtectedText = null;
-        ConflictBanner.IsVisible = session.Conflict is not null;
-        SetEditorText(session.Text);
-        _monitor.Watch(session.Path);
-        UpdateChrome(status);
     }
 
     private DocumentStructure GetCurrentStructure()
@@ -885,6 +981,7 @@ public partial class MainWindow : Window
 
     private void UpdateChrome(string status)
     {
+        RefreshTabLabels();
         var name = _session.Path is null ? "Untitled" : Path.GetFileName(_session.Path);
         Title = $"{name}{(_session.IsDirty ? " *" : string.Empty)} — Axiom";
         StatusText.Text = status;
@@ -898,7 +995,7 @@ public partial class MainWindow : Window
         WorkspaceContextText.Text = _activeWorkspace is null ? "No workspace" : $"Workspace: {_activeWorkspace.DisplayName}";
         PathText.Text = _session.Path ?? _folder ?? "Unsaved document";
         var identity = _session.DocumentId is null ? "Ordinary Markdown" : "Axiom document";
-        var saveState = _session.Conflict is not null ? "Conflict" : _session.IsDirty ? "Unsaved" : _session.IsNew ? "New" : "Saved";
+        var saveState = _session.Conflict is not null ? "Conflict" : _activeTab.IsMissing ? "Missing — buffer retained" : _session.IsDirty ? "Unsaved" : _session.IsNew ? "New" : "Saved";
         DocumentStateText.Text = $"{identity} | {saveState}";
         UpdateImageButton();
     }
@@ -947,7 +1044,7 @@ public partial class MainWindow : Window
     {
         if (_closingApproved) return;
         e.Cancel = true;
-        if (!await ConfirmSafeToReplaceSessionAsync()) return;
+        if (!await ConfirmAllTabsAsync()) return;
         _closingApproved = true;
         _recoveryTimer.Stop();
         _previewTimer.Stop();
@@ -977,6 +1074,18 @@ public partial class MainWindow : Window
         if (e.Key == Key.S)
         {
             await SaveDocumentAsync(e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            e.Handled = true;
+        }
+        else if (e.Key == Key.W)
+        {
+            await CloseTabAsync(_activeTab);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Tab)
+        {
+            var direction = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1;
+            var index = (_tabs.IndexOf(_activeTab) + direction + _tabs.Count) % _tabs.Count;
+            await SelectTabAsync(_tabs[index]);
             e.Handled = true;
         }
         else if (e.Key == Key.N)

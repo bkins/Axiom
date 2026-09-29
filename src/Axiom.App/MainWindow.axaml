@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:avaloniaEdit="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
         xmlns:core="using:Axiom.Core"
+        xmlns:app="using:Axiom.App"
         x:Class="Axiom.App.MainWindow"
         x:CompileBindings="False"
         Title="Axiom"
@@ -31,6 +32,7 @@
                 <MenuItem Header="Bulk Make Axiom Documents…" Click="BulkEnroll_OnClick" />
                 <Separator />
                 <MenuItem Header="New    Ctrl+N" AutomationProperties.Name="New document" ToolTip.Tip="Create a new unsaved Markdown document" Click="New_OnClick" />
+                <MenuItem Header="Close Tab    Ctrl+W" AutomationProperties.Name="Close current document tab" Click="CloseActiveTab_OnClick" />
                 <MenuItem Header="Save    Ctrl+S" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
                 <MenuItem Header="Save As…    Ctrl+Shift+S" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />
               </MenuFlyout>
@@ -189,14 +191,28 @@
         </DockPanel>
       </Border>
       <GridSplitter x:Name="WorkspaceSplitter" Grid.Column="1" Width="5" ResizeDirection="Columns" Background="#374151" />
-      <Grid Grid.Column="2" RowDefinitions="Auto,*">
-        <Border x:Name="ConflictBanner" IsVisible="False" Padding="8" Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="0,0,0,1">
+      <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
+        <ListBox x:Name="DocumentTabs" AutomationProperties.Name="Open document tabs" SelectionChanged="DocumentTabs_OnSelectionChanged"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="app:DocumentTab">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                <Button Content="×" AutomationProperties.Name="Close document tab" ToolTip.Tip="Close this document; unsaved changes offer Save, Discard, or Cancel" Click="CloseTab_OnClick" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <Border x:Name="ConflictBanner" Grid.Row="1" IsVisible="False" Padding="8" Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="0,0,0,1">
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock x:Name="ConflictText" VerticalAlignment="Center" Text="This file changed outside Axiom while you have unsaved edits. Both versions are preserved." />
             <Button Grid.Column="1" AutomationProperties.Name="Resolve external change" ToolTip.Tip="Compare and choose between local and disk text" Click="ResolveConflict_OnClick">Resolve…</Button>
           </Grid>
         </Border>
-        <Grid Grid.Row="1" ColumnDefinitions="*,5,*">
+        <Grid Grid.Row="2" ColumnDefinitions="*,5,*">
           <Grid>
             <avaloniaEdit:TextEditor x:Name="Editor" AutomationProperties.Name="Markdown editor"
                                      FontFamily="Cascadia Mono, Consolas" FontSize="15"

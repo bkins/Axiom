@@ -95,7 +95,7 @@ public partial class MainWindow
             if (!rollback && Version.Parse(manifest.Version) <= Version.Parse(_buildIdentity.ProductVersion))
                 throw new IOException("An update must be newer. Use Switch Portable Version for a retained older package.");
             if (await ChoiceDialog.ShowAsync(this, "Verified package", $"Version: {manifest.InformationalVersion}\nBranch: {manifest.Branch}\nBuilt UTC: {manifest.BuiltUtc:u}\nSource: {source}\n\n{(rollback ? "Switch to this retained version" : "Install into a new version folder")}? Restart keeps state at {_operationalPaths.Root}. Existing binaries remain for rollback.", "Continue", "Cancel") != "Continue") return;
-            if (!await ConfirmSafeToReplaceSessionAsync()) return;
+            if (!await ConfirmAllTabsAsync()) return;
             var destination = rollback ? source : await Task.Run(() => service.InstallAsync(source, inspection.SchemaVersion));
             await service.ValidateAsync(destination);
             if (await ChoiceDialog.ShowAsync(this, "Version ready", $"Verified version is ready at {destination}. Restart now?", "Restart", "Later") != "Restart")
@@ -103,7 +103,7 @@ public partial class MainWindow
                 UpdateChrome($"This app is still running. Version ready at {destination}. Use Tools → Switch Portable Version and choose its payload-manifest.json when ready.");
                 return;
             }
-            if (!await ConfirmSafeToReplaceSessionAsync()) return;
+            if (!await ConfirmAllTabsAsync()) return;
             await _markCleanExit();
             PortableUpdateLauncher.ScheduleRestart(destination, _operationalPaths.Root);
             _closingApproved = true;

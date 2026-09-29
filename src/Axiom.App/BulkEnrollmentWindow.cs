@@ -11,7 +11,9 @@ internal sealed class BulkEnrollmentWindow : Window
     private bool _running;
     private bool _applied;
 
-    public BulkEnrollmentWindow(WorkspaceRecord workspace, BulkEnrollmentService service)
+    public BulkEnrollmentWindow(WorkspaceRecord workspace
+                              , BulkEnrollmentService service
+                              , Func<IReadOnlyList<string>, Task<bool>>? confirmOpenBuffers = null)
     {
         Title = "Make Axiom Documents — review selected files";
         Width = 800;
@@ -48,6 +50,8 @@ internal sealed class BulkEnrollmentWindow : Window
             if (selected.Length == 0) { status.Text = "Select files to enroll. No files are selected initially."; return; }
             var summary = string.Join(Environment.NewLine, selected.Select(entry => entry.RelativePath));
             if (await ChoiceDialog.ShowAsync(this, "Save selected enrollment", $"Apply will write {selected.Length} selected files in {workspace.RootPath}. Each ordinary file receives an ID; already enrolled files are skipped. Completed writes remain if cancelled.\n\n{summary}", "Apply", "Cancel") != "Apply") return;
+            if (confirmOpenBuffers is not null &&
+                !await confirmOpenBuffers(selected.Select(entry => Path.Combine(workspace.RootPath, entry.RelativePath)).ToArray())) return;
             SetRunning(true);
             try
             {

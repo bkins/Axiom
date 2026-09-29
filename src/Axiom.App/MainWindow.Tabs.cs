@@ -1,0 +1,210 @@
+using System.Collections.ObjectModel;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Axiom.Core;
+
+namespace Axiom.App;
+
+public partial class MainWindow
+{
+    private readonly ObservableCollection<DocumentTab> _tabs = [];
+    private readonly SemaphoreSlim _recoveryGate = new(1, 1);
+    private readonly SemaphoreSlim _tabSelectionGate = new(1, 1);
+    private DocumentTab _activeTab = null!;
+    private int _untitledNumber;
+    private bool _selectingTab;
+    private bool _initialPlaceholder = true;
+
+    private DocumentTab? FindTab(string path) => _tabs.FirstOrDefault(tab =>
+        tab.Session.Path is { } candidate &&
+        Path.GetFullPath(candidate).Equals(Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase));
+
+    private DocumentTab AddTab(DocumentSession session)
+    {
+        var tab = new DocumentTab(session, ++_untitledNumber);
+        var selecting = _selectingTab;
+        _selectingTab = true;
+        _tabs.Add(tab);
+        _selectingTab = selecting;
+        RefreshTabLabels();
+        return tab;
+    }
+
+    private async void DocumentTabs_OnSelectionChanged(object? sender, SelectionChangedEventArgs eventArgs)
+    {
+        if (!_selectingTab && DocumentTabs.SelectedItem is DocumentTab tab)
+            await SelectTabAsync(tab);
+    }
+
+    private async Task SelectTabAsync(DocumentTab tab)
+    {
+        await _tabSelectionGate.WaitAsync();
+        try
+        {
+            if (!_tabs.Contains(tab) || tab == _activeTab) return;
+            var previous = _activeTab;
+            CaptureEditorState(previous);
+            ++_previewRenderGeneration;
+            if (_previewReady)
+            {
+                try
+                {
+                    var result = await Preview.InvokeScript("(() => { const root = document.scrollingElement || document.documentElement; const range = Math.max(0, root.scrollHeight - window.innerHeight); return range === 0 ? 0 : root.scrollTop / range; })()");
+                    if (TryParsePreviewScrollRatio(result, out var ratio)) previous.PreviewScrollRatio = ratio;
+                }
+                catch (Exception exception) { _log.Error("preview.tab.capture.failed", exception, previous.Session.Path); }
+            }
+            CaptureEditorState(previous);
+            ActivateTab(tab, "Selected document; working buffers retained.");
+        }
+        finally { _tabSelectionGate.Release(); }
+    }
+
+    private void CaptureEditorState(DocumentTab tab)
+    {
+        tab.CaretOffset = Editor.CaretOffset;
+        tab.SelectionStart = Editor.SelectionStart;
+        tab.SelectionLength = Editor.SelectionLength;
+        tab.HorizontalOffset = Editor.TextArea.TextView.HorizontalOffset;
+        tab.VerticalOffset = Editor.TextArea.TextView.VerticalOffset;
+        tab.Structure = _structure;
+    }
+
+    private void ActivateTab(DocumentTab tab, string status)
+    {
+        _loading = true;
+        _activeTab = tab;
+        _session = tab.Session;
+        _structure = tab.Structure;
+        Editor.Document = tab.Document;
+        Editor.Select(Math.Min(tab.SelectionStart, tab.Document.TextLength),
+            Math.Min(tab.SelectionLength, Math.Max(0, tab.Document.TextLength - tab.SelectionStart)));
+        Editor.CaretOffset = Math.Min(tab.CaretOffset, tab.Document.TextLength);
+        Editor.UpdateLayout();
+        Editor.ScrollToHorizontalOffset(tab.HorizontalOffset);
+        Editor.ScrollToVerticalOffset(tab.VerticalOffset);
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_activeTab != tab || _closingApproved || !IsVisible) return;
+            Editor.UpdateLayout();
+            Editor.TextArea.TextView.EnsureVisualLines();
+            ((ILogicalScrollable)Editor.TextArea.TextView).Offset = new Avalonia.Vector(tab.HorizontalOffset, tab.VerticalOffset);
+        }, DispatcherPriority.Loaded);
+        _loading = false;
+        _selectingTab = true;
+        DocumentTabs.SelectedItem = tab;
+        _selectingTab = false;
+        ConflictBanner.IsVisible = _session.Conflict is not null;
+        RecoveryText.Text = tab.RecoveryStatus;
+        UpdateEmptyStates();
+        RenderOutline();
+        RenderPreview();
+        RefreshDocumentMonitors();
+        UpdateChrome(status);
+    }
+
+    private async Task LoadSessionAsync(DocumentSession session, string status)
+    {
+        var tab = AddTab(session);
+        await SelectTabAsync(tab);
+        UpdateChrome(status);
+    }
+
+    private void ResetTabs(string status)
+    {
+        _selectingTab = true;
+        _tabs.Clear();
+        var tab = AddTab(_documents.NewDocument());
+        _selectingTab = false;
+        _initialPlaceholder = true;
+        ActivateTab(tab, status);
+    }
+
+    private void RefreshDocumentMonitors() =>
+        _monitor.WatchMany(_tabs.Select(tab => tab.Session.Path).OfType<string>());
+
+    private void RefreshTabLabels()
+    {
+        foreach (var tab in _tabs)
+        {
+            var path = tab.Session.Path;
+            var name = path is null ? $"Untitled {tab.UntitledNumber}" : Path.GetFileName(path);
+            if (path is not null && _tabs.Count(other => other.Session.Path is { } otherPath &&
+                    Path.GetFileName(otherPath).Equals(name, StringComparison.OrdinalIgnoreCase)) > 1)
+                name = _folder is not null && IsWithinFolder(path, _folder) ? Path.GetRelativePath(_folder, path) : path;
+            tab.Label = name + (tab.Session.IsDirty ? " *" : "") +
+                (tab.Session.Conflict is not null ? " [Conflict]" : tab.IsMissing ? " [Missing]" : "");
+        }
+    }
+
+    private async void CloseTab_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Control { DataContext: DocumentTab tab }) await CloseTabAsync(tab);
+        eventArgs.Handled = true;
+    }
+
+    private async void CloseActiveTab_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        await CloseTabAsync(_activeTab);
+
+    private async Task<bool> CloseTabAsync(DocumentTab tab)
+    {
+        if (!_tabs.Contains(tab)) return true;
+        await SelectTabAsync(tab);
+        if (!_tabs.Contains(tab) || _activeTab != tab) return false;
+        if (!await ConfirmSafeToReplaceSessionAsync()) return false;
+        await _recoveryGate.WaitAsync();
+        try
+        {
+            _selectingTab = true;
+            _tabs.Remove(tab);
+            _selectingTab = false;
+        }
+        finally { _recoveryGate.Release(); }
+        if (_tabs.Count == 0) ActivateTab(AddTab(_documents.NewDocument()), "New unsaved document");
+        else ActivateTab(_tabs[Math.Max(0, _tabs.Count - 1)], "Closed document.");
+        RefreshTabLabels();
+        return true;
+    }
+
+    private async Task<bool> ConfirmAllTabsAsync()
+    {
+        var original = _activeTab;
+        foreach (var tab in _tabs.ToArray())
+        {
+            if (!tab.Session.IsDirty) continue;
+            await SelectTabAsync(tab);
+            if (!await ConfirmSafeToReplaceSessionAsync()) return false;
+        }
+        if (_tabs.Contains(original)) await SelectTabAsync(original);
+        return true;
+    }
+
+    private async Task<bool> ConfirmEnrollmentTabsAsync(IReadOnlyList<string> paths)
+    {
+        foreach (var path in paths)
+        {
+            if (FindTab(path) is not { } tab) continue;
+            await SelectTabAsync(tab);
+            if (!await ConfirmSafeToReplaceSessionAsync()) return false;
+            if (tab.Session.Conflict is not null)
+            {
+                UpdateChrome("Resolve the selected document conflict before enrollment.");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    internal IReadOnlyList<DocumentTab> TabsForTesting => _tabs;
+    internal Task SelectTabForTestingAsync(DocumentTab tab) => SelectTabAsync(tab);
+    internal Task<bool> CloseTabForTestingAsync(DocumentTab tab) => CloseTabAsync(tab);
+    internal Task HandleExternalChangeForTestingAsync(string path) => HandleExternalChangeAsync(path);
+    internal void HandleRenameForTesting(string oldPath, string newPath) => HandleRename(oldPath, newPath);
+    internal Task NewTabForTestingAsync() => LoadSessionAsync(_documents.NewDocument(), "New unsaved document");
+    internal Func<DocumentSession, Task<string>>? UnsavedChoiceForTesting { get; set; }
+    internal Func<RecoveryDraft, Task<string>>? RecoveryChoiceForTesting { get; set; }
+    internal Task RestoreDraftsForTestingAsync() => RestoreDraftIfAvailableAsync();
+    internal Task<bool> ConfirmAllTabsForTestingAsync() => ConfirmAllTabsAsync();
+}
