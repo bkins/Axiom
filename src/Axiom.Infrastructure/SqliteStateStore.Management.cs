@@ -22,9 +22,10 @@ public sealed partial class SqliteStateStore
         await using var transaction = connection.BeginTransaction();
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "DELETE FROM Workspaces WHERE WorkspaceId=$id; DELETE FROM AppSettings WHERE SettingKey=$sessionKey;";
+        command.CommandText = "DELETE FROM Workspaces WHERE WorkspaceId=$id; DELETE FROM AppSettings WHERE SettingKey IN ($sessionKey,$indexKey);";
         command.Parameters.AddWithValue("$id", workspaceId.ToString("D"));
         command.Parameters.AddWithValue("$sessionKey", SessionSettingKey(workspaceId));
+        command.Parameters.AddWithValue("$indexKey", $"LinkIndex:{workspaceId:D}");
         await command.ExecuteNonQueryAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }

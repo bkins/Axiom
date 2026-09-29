@@ -57,7 +57,7 @@ public partial class MainWindow
             var result = await resolver.ResolveAsync(root, source.Session.Path, destination, path =>
             {
                 if (FindTab(path) is not { } open) return null;
-                return open == _activeTab ? GetCurrentStructure() : _structureParser.Parse(open.Session.Text, open.Structure);
+                return GetTabStructure(open);
             });
             if (_sessionTransitionRunning || _activeTab != source || _folder != root) return;
             if (result.Status == MarkdownLinkResolutionStatus.MissingHeading)

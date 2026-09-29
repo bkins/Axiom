@@ -15,4 +15,5 @@ public enum MarkdownLinkResolutionStatus
   , MissingHeading
   , ExcludedPath
   , Unavailable
+  , Unverified
 }

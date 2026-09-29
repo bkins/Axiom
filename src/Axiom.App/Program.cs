@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--benchmark-link-index" && args.Length == 3) return LinkIndexBenchmarkProbe.Run(args[1], args[2]);
         if (args.FirstOrDefault() == "--recovery-probe") return RunRecoveryProbe(args);
         if (args.FirstOrDefault() == "--verify-recovery") return VerifyRecovery(args);
         if (args.FirstOrDefault() is "--verify-package" or "--verify-and-restart-package") return PortablePackageProbe.Run(args);
@@ -16,6 +17,8 @@ internal static class Program
             return MultiBufferRecoveryProbe.Verify(args[1], args[2]);
         if (args.FirstOrDefault() == "--multi-buffer-recovery-probe" && args.Length == 2)
             MultiBufferRecoveryProbe.Configure(args[1]);
+        if (args.FirstOrDefault() is "--connected-documents-probe" or "--verify-connected-documents" && args.Length == 2)
+            ConnectedDocumentsProbe.Configure(args[1], args[0] == "--verify-connected-documents");
         return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

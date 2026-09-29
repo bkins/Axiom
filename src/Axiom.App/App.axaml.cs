@@ -18,6 +18,11 @@ public partial class App : Application
                 var window = (MainWindow)desktop.MainWindow;
                 window.Opened += async (_, _) => await MultiBufferRecoveryProbe.StartAsync(window);
             }
+            if (ConnectedDocumentsProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await ConnectedDocumentsProbe.StartAsync(window);
+            }
         }
         base.OnFrameworkInitializationCompleted();
     }

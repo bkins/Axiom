@@ -6,6 +6,33 @@ namespace Axiom.Infrastructure.Tests;
 public sealed class WorkspaceChangeMonitorTests
 {
     [Fact]
+    public async Task StateCacheWritesDoNotInvalidateMarkdownIndex()
+    {
+        using var fixture = new MutationTestWorkspace();
+        using var monitor = new WorkspaceChangeMonitor();
+        var changed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        monitor.Changed += (_, root) => changed.TrySetResult(root);
+        monitor.Watch(fixture.Root);
+        await fixture.State.SaveLinkIndexAsync(fixture.Workspace.WorkspaceId, new Axiom.Core.WorkspaceBacklinkIndex(1, DateTimeOffset.UtcNow, [], []));
+        await Task.Delay(150);
+        Assert.False(changed.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task ObservesContentChangesToSavedMarkdownWithoutAnOpenDocumentWatcher()
+    {
+        using var fixture = new MutationTestWorkspace();
+        var path = Path.Combine(fixture.Root, "unopened.markdown");
+        await File.WriteAllTextAsync(path, "old");
+        using var monitor = new WorkspaceChangeMonitor();
+        var changed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        monitor.Changed += (_, root) => changed.TrySetResult(root);
+        monitor.Watch(fixture.Root);
+        await File.AppendAllTextAsync(path, " new");
+        Assert.Equal(fixture.Root, await changed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
     public async Task ObservesRestoredNestedFileAndStopsObservingThePreviousRoot()
     {
         using var fixture = new MutationTestWorkspace();

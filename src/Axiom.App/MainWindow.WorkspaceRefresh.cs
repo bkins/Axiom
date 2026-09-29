@@ -17,6 +17,7 @@ public partial class MainWindow
         _workspaceChanges.Changed += (_, root) => Dispatcher.UIThread.Post(() =>
         {
             if (_closingApproved || !string.Equals(_folder, root, StringComparison.OrdinalIgnoreCase)) return;
+            ScheduleBacklinkRebuild();
             _workspaceRefreshTimer.Stop();
             _workspaceRefreshTimer.Start();
         });

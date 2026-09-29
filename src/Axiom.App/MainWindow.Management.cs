@@ -54,6 +54,11 @@ public partial class MainWindow
                     _workspaceSearchResults.Clear();
                     _activeWorkspace = null;
                     _folder = null;
+                    ++_backlinkGeneration;
+                    _backlinkCancellation?.Cancel();
+                    _savedLinkIndex = null;
+                    _linkIndexRoot = null;
+                    _backlinkRefreshTimer.Stop();
                     _workspaceChanges.Watch(null);
                     _workspaceTree.Clear();
                     _workspacePins.Clear();

@@ -21,6 +21,14 @@ public partial class MainWindow
         tab.Session.Path is { } candidate &&
         Path.GetFullPath(candidate).Equals(Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase));
 
+    private DocumentStructure GetTabStructure(DocumentTab tab)
+    {
+        if (tab == _activeTab) return GetCurrentStructure();
+        if (tab.Structure is null || tab.Structure.SourceText != tab.Session.Text)
+            tab.Structure = _structureParser.Parse(tab.Session.Text, tab.Structure);
+        return tab.Structure;
+    }
+
     private DocumentTab AddTab(DocumentSession session)
     {
         var tab = new DocumentTab(session, ++_untitledNumber);
@@ -111,6 +119,7 @@ public partial class MainWindow
         RenderPreview();
         RefreshDocumentMonitors();
         UpdateChrome(status);
+        RefreshIncomingReferences();
     }
 
     private async Task LoadSessionAsync(DocumentSession session, string status)

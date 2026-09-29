@@ -94,6 +94,7 @@ public partial class MainWindow : Window
         _markCleanExit = markCleanExit;
         _session = documents.NewDocument();
         InitializeComponent();
+        InitializeBacklinks();
         InitializeWorkspaceRefresh();
         AddHandler(KeyUpEvent, Window_OnKeyUp, RoutingStrategies.Tunnel);
 
@@ -170,6 +171,7 @@ public partial class MainWindow : Window
         var expandedPaths = Traverse(_workspaceTree).Where(node => node.IsExpanded).Select(node => node.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
         _folder = workspace.RootPath;
         _activeWorkspace = workspace;
+        BeginBacklinkWorkspace(workspace.RootPath);
         _workspaceChanges.Watch(_folder);
         _workspaceTree.Clear();
         foreach (var node in WorkspaceTreeBuilder.Build(_folder, discovery.Files, WorkspaceFolderDiscovery.List(_folder)))
@@ -188,6 +190,7 @@ public partial class MainWindow : Window
         DuplicateWarning.Text = string.Join(Environment.NewLine, warnings);
         StatusText.Text = $"Opened workspace {workspace.DisplayName} with {discovery.Files.Count} Markdown file{(discovery.Files.Count == 1 ? string.Empty : "s")}.";
         UpdateDurableStatus();
+        ScheduleBacklinkRebuild();
     }
 
     private async void FileTree_OnDoubleTapped(object? sender, TappedEventArgs e)
@@ -721,6 +724,7 @@ public partial class MainWindow : Window
     {
         if (_loading) return;
         _session.UpdateText(Editor.Text);
+        RefreshIncomingReferences();
         UpdateEmptyStates();
         SchedulePreview();
         ScheduleOutline();

@@ -42,6 +42,12 @@ public sealed class MarkdownLinkTargetReaderTests
             Assert.Equal(MarkdownLinkResolutionStatus.ExcludedPath, escaped.Status);
             Assert.Null(existing.Text);
             Assert.Null(missing.Text);
+            await File.WriteAllTextAsync(Path.Combine(root, "source.md"), "[Excluded](linked/a.md)");
+            var files = new Axiom.Infrastructure.FileDocumentStore();
+            var index = await new WorkspaceLinkIndexService(files, new Axiom.Infrastructure.MarkdownLinkTargetReader(files)).BuildAsync(root);
+            Assert.NotEmpty(index.Errors);
+            Assert.Equal(MarkdownLinkResolutionStatus.ExcludedPath, Assert.Single(index.Documents.SelectMany(document => document.References)).Status);
+            Assert.Equal("# Outside", await File.ReadAllTextAsync(Path.Combine(outside, "a.md")));
         }
         finally
         {

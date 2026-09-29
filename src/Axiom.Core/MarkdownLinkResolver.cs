@@ -27,7 +27,7 @@ public sealed class MarkdownLinkResolver(IMarkdownLinkTargetReader targets)
             : location with { Source = heading.Source };
     }
 
-    private static MarkdownLinkResolution ResolveLocation(string? workspaceRoot, string? sourcePath, string destination)
+    public static MarkdownLinkResolution ResolveLocation(string? workspaceRoot, string? sourcePath, string destination)
     {
         if (string.IsNullOrWhiteSpace(workspaceRoot))
             return new(MarkdownLinkResolutionStatus.NoWorkspace, "Open a workspace before following document links.");

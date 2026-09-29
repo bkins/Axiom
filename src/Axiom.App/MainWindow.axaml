@@ -190,6 +190,28 @@
                 </ListBox>
               </DockPanel>
             </TabItem>
+            <TabItem Header="Backlinks" AutomationProperties.Name="Incoming Markdown references">
+              <DockPanel Margin="4">
+                <StackPanel DockPanel.Dock="Top" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Rebuild" AutomationProperties.Name="Rebuild saved backlinks" Click="RebuildBacklinks_OnClick" />
+                    <Button Content="Cancel" AutomationProperties.Name="Cancel backlink indexing" Click="CancelBacklinks_OnClick" />
+                  </StackPanel>
+                  <TextBlock x:Name="BacklinkStatus" TextWrapping="Wrap" Text="Open a workspace to index references." />
+                </StackPanel>
+                <ListBox x:Name="Backlinks" AutomationProperties.Name="Incoming reference results" DoubleTapped="Backlinks_OnDoubleTapped" KeyDown="Backlinks_OnKeyDown">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate DataType="core:WorkspaceLinkReference">
+                      <StackPanel Margin="0,3">
+                        <TextBlock Text="{Binding SourceRelativePath}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Context}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding DisplayLocation}" Opacity="0.7" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+            </TabItem>
           </TabControl>
         </DockPanel>
       </Border>
