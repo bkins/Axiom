@@ -167,6 +167,17 @@ internal static class ConnectedDocumentsProbe
             if (!window.ReadingModeForTesting || window.TabsForTesting.Count != 2 || tabBeforeReading.Session.Text != workingText || !tabBeforeReading.Document.UndoStack.CanUndo)
                 throw new IOException("Reading/explorer workflow lost working buffers or undo.");
             await window.ToggleReadingModeAsync();
+            window.UpdateLayout();
+            if (!window.FindControl<Grid>("EditorPane")!.IsVisible || window.FindControl<Grid>("EditorPane")!.Bounds.Width < 100)
+                throw new IOException("Show editor did not restore a visible, nonzero-width native editor pane.");
+            for (var toggle = 0; toggle < 3; toggle++)
+            {
+                await window.ToggleReadingModeAsync();
+                await window.ToggleReadingModeAsync();
+                window.UpdateLayout();
+                if (window.FindControl<Grid>("EditorPane")!.Bounds.Width < 100)
+                    throw new IOException("Repeated reading-mode toggles collapsed the native editor.");
+            }
             var discoveryEdits = new List<double>();
             var discovering = window.RefreshClassificationAsync();
             while (!discovering.IsCompleted)
@@ -197,7 +208,8 @@ internal static class ConnectedDocumentsProbe
             if (!await window.SwitchWorkspaceAsync(workspace)) throw new IOException("Native original workspace did not restore after stress opening.");
             await window.OpenDocumentAsync(target);
             await window.ToggleReadingModeAsync();
-            var help = new HelpWindow("metadata", state.Paths.Root, AppearancePreference.System);
+            window.FindControl<TabItem>("RelationshipsTab")!.IsSelected = true;
+            var help = new HelpWindow(window.HelpContext(), state.Paths.Root, AppearancePreference.System);
             var helpLoaded = false;
             help.Opened += async (_, _) =>
             {
@@ -205,7 +217,7 @@ internal static class ConnectedDocumentsProbe
                 {
                     await WaitAsync(async () =>
                     {
-                        try { return (await help.PreviewForTesting.InvokeScript("document.body.innerText.includes('Document metadata and classification')"))?.Trim().Trim('"') == "true"; }
+                        try { return (await help.PreviewForTesting.InvokeScript("(() => { const heading = Array.from(document.querySelectorAll('h2')).find(h => h.textContent.includes('Explicit relationships')); if (!heading) return false; const top = heading.getBoundingClientRect().top; return top >= -2 && top < 100; })()"))?.Trim().Trim('"') == "true"; }
                         catch { return false; }
                     });
                     helpLoaded = true;

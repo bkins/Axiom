@@ -38,6 +38,8 @@ public partial class MainWindow
         WorkspaceSearchResults.IsEnabled = enabled;
         ClassificationResults.IsEnabled = enabled;
         Relationships.IsEnabled = enabled;
+        MetadataEnroll.IsEnabled = enabled;
+        MetadataSave.IsEnabled = enabled;
     }
 
     internal Task<bool> RunSessionTransitionForTestingAsync(Func<Task> continuation) => RunSessionTransitionAsync(continuation);

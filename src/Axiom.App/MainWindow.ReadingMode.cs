@@ -16,7 +16,14 @@ public partial class MainWindow
         if (enabled)
         {
             CaptureEditorState(_activeTab);
-            _editingColumns = EditorPreviewLayout.ColumnDefinitions;
+            _editingColumns = new ColumnDefinitions();
+            foreach (var column in EditorPreviewLayout.ColumnDefinitions)
+                _editingColumns.Add(new ColumnDefinition
+                {
+                    Width    = column.Width
+                  , MinWidth = column.MinWidth
+                  , MaxWidth = column.MaxWidth
+                });
         }
         _readingMode = enabled;
         EditorPane.IsVisible = EditorPreviewSplitter.IsVisible = !enabled;

@@ -125,8 +125,8 @@
         <DockPanel>
           <TextBlock DockPanel.Dock="Top" Margin="4,4,4,8" FontWeight="SemiBold" Text="Markdown files" />
           <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" Foreground="#B45309" TextWrapping="Wrap" />
-          <TabControl TabStripPlacement="Left" SelectedIndex="3">
-            <TabItem Header="Relations" AutomationProperties.Name="Explicit document relationships">
+          <TabControl x:Name="SidebarTopics" TabStripPlacement="Left" SelectedIndex="3">
+            <TabItem x:Name="RelationshipsTab" Header="Relations" AutomationProperties.Name="Explicit document relationships">
               <DockPanel Margin="4">
                 <StackPanel DockPanel.Dock="Top" Spacing="6">
                   <StackPanel Orientation="Horizontal" Spacing="6">
@@ -143,12 +143,15 @@
                 </ListBox>
               </DockPanel>
             </TabItem>
-            <TabItem Header="Metadata" AutomationProperties.Name="Document metadata">
+            <TabItem x:Name="MetadataTab" Header="Metadata" AutomationProperties.Name="Document metadata">
               <ScrollViewer>
                 <StackPanel Margin="4" Spacing="6">
                   <Button Content="Refresh saved identities" Click="ClassificationRefresh_OnClick" />
                   <Button Content="Metadata Help" Click="MetadataHelp_OnClick" />
                   <TextBlock x:Name="MetadataStatus" TextWrapping="Wrap" />
+                  <TextBlock x:Name="MetadataGuidance" TextWrapping="Wrap" />
+                  <Button x:Name="MetadataEnroll" Content="Make Axiom document" IsVisible="False" Click="Enroll_OnClick" />
+                  <Button x:Name="MetadataSave" Content="Save document" IsVisible="False" Click="Save_OnClick" />
                   <StackPanel x:Name="MetadataFields" Spacing="6" IsEnabled="False">
                     <TextBlock Text="Tags (one per line)" />
                     <TextBox x:Name="MetadataTags" AcceptsReturn="True" MinHeight="50" MaxHeight="100" AutomationProperties.Name="Document tags" />
@@ -167,7 +170,7 @@
                 </StackPanel>
               </ScrollViewer>
             </TabItem>
-            <TabItem Header="Classify" AutomationProperties.Name="Classification and alias search">
+            <TabItem x:Name="ClassificationTab" Header="Classify" AutomationProperties.Name="Classification and alias search">
               <DockPanel Margin="4">
                 <StackPanel DockPanel.Dock="Top" Spacing="6">
                   <TextBox x:Name="FilterTags" AcceptsReturn="True" PlaceholderText="All tags; one per line" AutomationProperties.Name="Filter by tags" />

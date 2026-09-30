@@ -46,6 +46,15 @@ public sealed partial class MainWindowTests
             Assert.Equal(two, window.PathContextForTesting);
             Assert.False(window.FindControl<StackPanel>("MetadataFields")!.IsEnabled);
             Assert.Null(Assert.Single(await store.GetClassificationsAsync()).Type);
+            Assert.Contains("ordinary Markdown", window.FindControl<TextBlock>("MetadataGuidance")!.Text);
+            Assert.True(window.FindControl<Button>("MetadataEnroll")!.IsVisible);
+            window.FindControl<Button>("MetadataEnroll")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Assert.Equal("# Ordinary", await File.ReadAllTextAsync(two));
+            Assert.True(window.FindControl<Button>("MetadataSave")!.IsVisible);
+            Assert.False(window.FindControl<StackPanel>("MetadataFields")!.IsEnabled);
+            Assert.Contains("Save", window.FindControl<TextBlock>("MetadataGuidance")!.Text);
+            window.UnsavedChoiceForTesting = _ => Task.FromResult("Discard");
+            await window.ConfirmAllTabsForTestingAsync();
             window.Close();
         }
         finally { Directory.Delete(root, true); }

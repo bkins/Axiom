@@ -93,6 +93,21 @@ public partial class MainWindow
             MetadataType.Text = _panelValue?.Type ?? "";
             MetadataAliases.Text = string.Join(Environment.NewLine, _panelValue?.Aliases ?? []);
             MetadataFields.IsEnabled = eligible && !_metadataApplying;
+            MetadataEnroll.IsVisible = !eligible && _session.DocumentId is null;
+            MetadataSave.IsVisible = !eligible && liveId is not null && liveId != saved?.DocumentId;
+            MetadataGuidance.Text = eligible
+                ? "Tags group documents (for example: Project, Decision). Type describes this document (for example: Note). Aliases are alternate names used by Classify, not filenames. Enter one tag or alias per line, then Apply. Metadata does not change Markdown."
+                : _folder is null || relative is null
+                    ? "Open a workspace and a saved Markdown document within it. Metadata belongs to a document's saved Axiom ID."
+                    : liveId is null && _session.DocumentId is null
+                        ? "This is ordinary Markdown. Click Make Axiom document to add an ID to the editor, then Save document. This deliberately changes the Markdown file; opening it alone does not. After saving, tags, type and aliases become editable."
+                        : liveId != saved?.DocumentId
+                            ? "Save the document's Axiom ID, then Refresh saved identities. Metadata is disabled while its saved and editor IDs differ."
+                            : saved?.Status == "Ambiguous identity"
+                                ? "Another accessible file has the same Axiom ID. Resolve the copied identity, then Refresh saved identities; metadata cannot be assigned to an ambiguous document."
+                                : _classificationCatalog?.Errors.Count > 0
+                                    ? "Identity discovery is incomplete. Resolve the inaccessible or excluded locations, then Refresh saved identities. Details: " + string.Join("; ", _classificationCatalog.Errors.Take(3))
+                                    : "Refresh saved identities to inspect this document. Metadata requires a complete canonical Axiom ID on the first line of its saved file; malformed IDs must be corrected before editing metadata.";
         }
         finally { _panelLoading = false; }
         RefreshRelationshipViews();

@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Axiom.Core;
 using Axiom.Infrastructure;
@@ -70,6 +72,16 @@ public sealed partial class MainWindowTests
             var window = CreateWindow(root);
             await window.LoadFolderAsync(root);
             await window.OpenExplorerPathAsync(one);
+            var layout = window.FindControl<Grid>("EditorPreviewLayout")!;
+            layout.Children.Remove(window.FindControl<NativeWebView>("Preview")!);
+            var previewPlaceholder = new Border();
+            Grid.SetColumn(previewPlaceholder, 2);
+            layout.Children.Add(previewPlaceholder);
+            window.Show();
+            await window.StartupCompleted;
+            window.UpdateLayout();
+            var editorPane = window.FindControl<Grid>("EditorPane")!;
+            Assert.True(editorPane.Bounds.Width > 100);
             var first = window.TabsForTesting[0];
             first.Document.Insert(first.Document.TextLength, " dirty");
             window.SetEditorSelectionForTesting(2, 3);
@@ -82,6 +94,18 @@ public sealed partial class MainWindowTests
             Assert.Equal(2, window.TabsForTesting.Count);
             await window.SelectTabForTestingAsync(first);
             await window.ToggleReadingModeAsync();
+            window.UpdateLayout();
+            Assert.True(editorPane.IsVisible);
+            Assert.True(editorPane.Bounds.Width > 100, $"Restored editor width: {editorPane.Bounds.Width}; columns: {layout.ColumnDefinitions}");
+            for (var round = 0; round < 3; round++)
+            {
+                await window.ToggleReadingModeAsync();
+                window.UpdateLayout();
+                Assert.False(editorPane.IsVisible);
+                await window.ToggleReadingModeAsync();
+                window.UpdateLayout();
+                Assert.True(editorPane.Bounds.Width > 100);
+            }
             Assert.Equal(caret, window.EditorCaretOffsetForTesting);
             Assert.True(first.Document.UndoStack.CanUndo);
             Assert.True(first.Session.IsDirty);
@@ -92,7 +116,43 @@ public sealed partial class MainWindowTests
             Assert.True(await state.GetReadingModeAsync());
             window.UnsavedChoiceForTesting = _ => Task.FromResult("Discard");
             await window.ConfirmAllTabsForTestingAsync();
+            var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            window.Closed += (_, _) => closed.TrySetResult();
             window.Close();
+            await closed.Task;
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [AvaloniaFact]
+    public async Task SidebarF1UsesSelectedTopicIncludingHeaderAndEmptyRelations()
+    {
+        var root = CreateTabWorkspace();
+        try
+        {
+            var window = CreateWindow(root);
+            var layout = window.FindControl<Grid>("EditorPreviewLayout")!;
+            layout.Children.Remove(window.FindControl<NativeWebView>("Preview")!);
+            window.Show();
+            await window.StartupCompleted;
+            string? requested = null;
+            window.HelpRequestedForTesting = context => { requested = context; return Task.CompletedTask; };
+            window.FindControl<TabItem>("RelationshipsTab")!.IsSelected = true;
+            window.FindControl<TabItem>("RelationshipsTab")!.Focus();
+            window.KeyPress(Key.F1, RawInputModifiers.None, PhysicalKey.F1, null);
+            window.KeyRelease(Key.F1, RawInputModifiers.None, PhysicalKey.F1, null);
+            Assert.Equal("Explicit relationships", requested);
+            var guide = new MarkdownStructureService().Parse(OfflineHelp.Read());
+            Assert.Equal("Explicit relationships (increment C candidate)", OfflineHelp.FindTopic(guide, requested)!.Text);
+            window.FindControl<TabItem>("MetadataTab")!.IsSelected = true;
+            window.FindControl<TabItem>("MetadataTab")!.Focus();
+            window.KeyPress(Key.F1, RawInputModifiers.None, PhysicalKey.F1, null);
+            window.KeyRelease(Key.F1, RawInputModifiers.None, PhysicalKey.F1, null);
+            Assert.Equal("Document metadata and classification", requested);
+            var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            window.Closed += (_, _) => closed.TrySetResult();
+            window.Close();
+            await closed.Task;
         }
         finally { Directory.Delete(root, true); }
     }

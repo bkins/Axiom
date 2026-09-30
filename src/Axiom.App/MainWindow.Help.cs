@@ -9,9 +9,13 @@ public partial class MainWindow
     private async void WorkspaceHelp_OnClick(object? sender, RoutedEventArgs args) => await ShowHelpAsync("Workspace loading");
     private async void RelationshipHelp_OnClick(object? sender, RoutedEventArgs args) => await ShowHelpAsync("Explicit relationships");
 
-    private Task ShowHelpAsync(string? context) => new HelpWindow(context, _operationalPaths.Root, _appearance).ShowDialog(this);
+    private Task ShowHelpAsync(string? context) => HelpRequestedForTesting is { } show
+        ? show(context) : new HelpWindow(context, _operationalPaths.Root, _appearance).ShowDialog(this);
 
-    private string? HelpContext() => MetadataFields.IsKeyboardFocusWithin || ClassificationResults.IsKeyboardFocusWithin ? "metadata" :
-        Relationships.IsKeyboardFocusWithin ? "Explicit relationships" : FileTree.IsKeyboardFocusWithin ? "Workspace loading" :
+    internal Func<string?, Task>? HelpRequestedForTesting { get; set; }
+
+    internal string? HelpContext() => RelationshipsTab.IsSelected ? "Explicit relationships" :
+        MetadataTab.IsSelected || ClassificationTab.IsSelected ? "Document metadata and classification" :
+        FileTree.IsKeyboardFocusWithin ? "Workspace loading" :
         _readingMode ? "Workspace loading, reading mode" : "Follow Markdown links";
 }
