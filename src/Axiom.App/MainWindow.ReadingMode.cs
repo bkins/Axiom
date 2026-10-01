@@ -58,6 +58,6 @@ public partial class MainWindow
         finally { ReadingModeButton.IsEnabled = true; _readingModeGate.Release(); }
     }
 
-    private async void ReadingMode_OnClick(object? sender, RoutedEventArgs args) => await ToggleReadingModeAsync();
+    private async void ReadingMode_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("view.reading");
     internal bool ReadingModeForTesting => _readingMode;
 }

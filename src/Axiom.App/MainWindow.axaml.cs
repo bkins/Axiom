@@ -95,6 +95,7 @@ public partial class MainWindow : Window
         _markCleanExit = markCleanExit;
         _session = documents.NewDocument();
         InitializeComponent();
+        InitializeCommands();
         InitializeReadingFeedback();
         InitializePreviewSynchronization();
         InitializeFileDrop();
@@ -353,13 +354,11 @@ public partial class MainWindow : Window
 
     private async void New_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (!await ResolvePendingMetadataAsync()) return;
-        _initialPlaceholder = false;
-        await LoadSessionAsync(_documents.NewDocument(), "New unsaved document");
+        await ExecuteCommandAsync("document.new");
     }
 
-    private async void Save_OnClick(object? sender, RoutedEventArgs e) => await SaveDocumentAsync(false);
-    private async void SaveAs_OnClick(object? sender, RoutedEventArgs e) => await SaveDocumentAsync(true);
+    private async void Save_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("document.save");
+    private async void SaveAs_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("document.saveAs");
 
     private async Task<bool> SaveDocumentAsync(bool forceSaveAs, DocumentTab? target = null)
     {
@@ -424,8 +423,8 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Undo_OnClick(object? sender, RoutedEventArgs e) { if (Editor.CanUndo) Editor.Undo(); }
-    private void Redo_OnClick(object? sender, RoutedEventArgs e) { if (Editor.CanRedo) Editor.Redo(); }
+    private async void Undo_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("editor.undo");
+    private async void Redo_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("editor.redo");
 
     private void Format_OnClick(object? sender, RoutedEventArgs e)
     {
@@ -1115,13 +1114,13 @@ public partial class MainWindow : Window
         if (e.Key == Key.F1 && e.KeyModifiers == KeyModifiers.None)
         {
             e.Handled = true;
-            await ShowHelpAsync(HelpContext());
+            await ExecuteCommandAsync("help.open");
             return;
         }
         if (e.Key == Key.R && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift))
         {
             e.Handled = true;
-            await ToggleReadingModeAsync();
+            await ExecuteCommandAsync("view.reading");
             return;
         }
         if (e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Left or Key.Right)
@@ -1149,9 +1148,15 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        if (editorIsCommandTarget && e.KeyModifiers == KeyModifiers.Control && e.Key is Key.Z or Key.Y)
+        {
+            e.Handled = true;
+            await ExecuteCommandAsync(e.Key == Key.Z ? "editor.undo" : "editor.redo");
+            return;
+        }
         if (e.Key == Key.S)
         {
-            await SaveDocumentAsync(e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            await ExecuteCommandAsync(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "document.saveAs" : "document.save");
             e.Handled = true;
         }
         else if (e.Key == Key.W)
@@ -1168,7 +1173,7 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.N)
         {
-            New_OnClick(sender, new RoutedEventArgs());
+            await ExecuteCommandAsync("document.new");
             e.Handled = true;
         }
     }

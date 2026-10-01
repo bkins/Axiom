@@ -4,10 +4,10 @@ namespace Axiom.App;
 
 public partial class MainWindow
 {
-    private async void Help_OnClick(object? sender, RoutedEventArgs args) => await ShowHelpAsync(null);
-    private async void MetadataHelp_OnClick(object? sender, RoutedEventArgs args) => await ShowHelpAsync("metadata");
-    private async void WorkspaceHelp_OnClick(object? sender, RoutedEventArgs args) => await ShowHelpAsync("Workspace loading");
-    private async void RelationshipHelp_OnClick(object? sender, RoutedEventArgs args) => await ShowHelpAsync("Explicit relationships");
+    private async void Help_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("help.home");
+    private async void MetadataHelp_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("help.metadata");
+    private async void WorkspaceHelp_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("help.workspace");
+    private async void RelationshipHelp_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("help.relationships");
 
     private HelpPanel? _persistentHelp;
 
