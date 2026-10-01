@@ -56,6 +56,7 @@
                 <MenuItem Header="Keyboard Shortcuts…" Click="ShortcutSettings_OnClick" />
                 <MenuItem Header="Document History…" Click="DocumentHistory_OnClick" />
                 <MenuItem Header="Document Structure…" Click="DocumentStructure_OnClick" />
+                <MenuItem Header="Workspace Git…" Click="WorkspaceGit_OnClick" />
                 <MenuItem Header="Recover Deleted Documents…" Click="DeletedDocuments_OnClick" />
                 <MenuItem Header="Checkpoint Saved Document…" Click="HistoryCheckpoint_OnClick" />
                 <MenuItem Header="Set Up Git History…" Click="HistorySetup_OnClick" />

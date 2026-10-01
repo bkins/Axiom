@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--workspace-git-probe" && args.Length == 2) WorkspaceGitProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--structured-wiki-probe" && args.Length == 2) StructuredWikiProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--deleted-document-probe" && args.Length == 2) DeletedDocumentProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--document-history-probe" && args.Length == 2) DocumentHistoryProbe.Configure(args[1]);
