@@ -7,6 +7,30 @@ namespace Axiom.App.Tests;
 public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
+    public async Task RebindingAndDisablingNewRouteOnlyEffectiveGestureThroughDispatcher()
+    {
+        var root = CreateTabWorkspace();
+        try
+        {
+            var window = CreateWindow(root);
+            window.ConfigureShortcutsForTesting(new() { Overrides = new() { ["document.new"] = "Ctrl+J" } });
+            var originalCount = window.TabsForTesting.Count;
+            Assert.False(await window.ExecuteShortcutForTestingAsync(new() { Key = Avalonia.Input.Key.N, KeyModifiers = Avalonia.Input.KeyModifiers.Control }));
+            Assert.Equal(originalCount, window.TabsForTesting.Count);
+            var selected = new Avalonia.Input.KeyEventArgs { Key = Avalonia.Input.Key.J, KeyModifiers = Avalonia.Input.KeyModifiers.Control };
+            Assert.True(await window.ExecuteShortcutForTestingAsync(selected));
+            Assert.True(selected.Handled);
+            Assert.Equal(originalCount + 1, window.TabsForTesting.Count);
+            window.ConfigureShortcutsForTesting(new() { Overrides = new() { ["document.new"] = null } });
+            Assert.False(await window.ExecuteShortcutForTestingAsync(new() { Key = Avalonia.Input.Key.J, KeyModifiers = Avalonia.Input.KeyModifiers.Control }));
+            Assert.False(await window.ExecuteShortcutForTestingAsync(new() { Key = Avalonia.Input.Key.N, KeyModifiers = Avalonia.Input.KeyModifiers.Control }));
+            Assert.Equal(originalCount + 1, window.TabsForTesting.Count);
+            window.Close();
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [AvaloniaFact]
     public async Task SharedNewSaveAndUndoCommandsRetainDirtyTabsAndUseExistingPersistence()
     {
         var root = CreateTabWorkspace();

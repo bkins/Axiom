@@ -52,6 +52,8 @@
                 <MenuItem Header="Open Workspace…" AutomationProperties.Name="Open workspace" ToolTip.Tip="Open an existing Markdown workspace" Click="OpenFolder_OnClick" />
                 <MenuItem Header="Remembered Workspaces…" AutomationProperties.Name="Remembered workspaces" Click="WorkspaceCatalog_OnClick" />
                 <MenuItem Header="Recent Documents…" Click="RecentDocuments_OnClick" />
+                <MenuItem Header="Command Palette…    Ctrl+Shift+P" Click="CommandPalette_OnClick" />
+                <MenuItem Header="Keyboard Shortcuts…" Click="ShortcutSettings_OnClick" />
                 <MenuItem Header="Refresh Workspace    F5" Click="RefreshWorkspace_OnClick" />
                 <Separator />
                 <MenuItem Header="New Workspace Document…" Click="CreateFromTemplate_OnClick" />
@@ -64,11 +66,11 @@
                 <MenuItem Header="Delete Document to Recycle Bin…" Tag="Recycle" Click="ManageDocument_OnClick" />
                 <MenuItem Header="Bulk Make Axiom Documents…" Click="BulkEnroll_OnClick" />
                 <Separator />
-                <MenuItem Header="New    Ctrl+N" AutomationProperties.Name="New document" ToolTip.Tip="Create a new unsaved Markdown document" Click="New_OnClick" />
+                <MenuItem Header="New" AutomationProperties.Name="New document" ToolTip.Tip="Create a new unsaved Markdown document" Click="New_OnClick" />
                 <MenuItem Header="Close Tab    Ctrl+W" AutomationProperties.Name="Close current document tab" Click="CloseActiveTab_OnClick" />
                 <MenuItem Header="Follow Markdown Link    Ctrl+Enter" AutomationProperties.Name="Follow Markdown link at editor caret" Click="FollowLink_OnClick" />
-                <MenuItem Header="Save    Ctrl+S" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
-                <MenuItem Header="Save As…    Ctrl+Shift+S" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />
+                <MenuItem Header="Save" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
+                <MenuItem Header="Save As…" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />
                 <Separator />
                 <MenuItem Header="Export current buffer to Word…" Tag="docx" Click="Export_OnClick" />
                 <MenuItem Header="Export current buffer to HTML…" Tag="html" Click="Export_OnClick" />

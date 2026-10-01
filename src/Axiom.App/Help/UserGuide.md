@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: FE6EF1B26135B8E791C7A41225F97B97F86121346C983AF0A02D93413059EA19. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 966BC54B7D416F3FBD1925C669F4CB245C268248A16613D8E01FDCFC5C860689. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -223,3 +223,14 @@ Scroll sync starts off on each launch. Toggle it on to synchronize scrolling bet
 The bottom bar shows source-word count and one-based line/column at the caret. Words are contiguous Unicode letter/digit runs with internal apostrophes; code, link destinations and alt text count, while the canonical document identity does not. This is a source count, not a language-aware reading count. Counts refresh after a short typing pause. The format display reports the encoding observed during file reading and the current buffer's CRLF, LF, CR, mixed or absent newlines. Without a BOM, the reader assumes UTF-8; recovered buffers can show encoding unobserved. Save retains the established policy of UTF-8 without BOM. The display does not offer arbitrary encoding conversion.
 
 Success/information messages are nonblocking and expire after eight seconds. A reported operation failure remains visible, with Details and Dismiss controls, even if later informational messages occur. Details displays the full message; dismissing it does not resolve the underlying failure or any existing conflict/reconciliation gate. Dirty/save/recovery state remains in the bottom bar. All human acceptance checks remain deferred until all planned features are implemented.
+
+
+## Command palette (1.0.11 implementation in progress)
+
+Use File → Command Palette or Ctrl+Shift+P to search the commands currently migrated to shared dispatch. Type a title or command ID, use Down/arrow keys to select a match, and Enter or Run to invoke it. Unavailable commands show a reason and cannot run. Escape or Cancel closes the palette and restores focus. The current checkpoint includes new/save/save-as, undo/redo, reading mode and Help commands. Remaining command migration and native verification are still in progress; this is not a complete 1.0.11 release. The palette displays current configured bindings.
+
+## Keyboard shortcut settings (1.0.11 implementation in progress)
+
+Use File → Keyboard Shortcuts to edit bindings for currently registered commands. Apply validates the whole set and saves it in local application state; changes survive restart. Blank removes an application binding. Cancel discards staged edits. Reset defaults stages the original bindings; press Apply to save the reset. Conflicting or reserved gestures show a validation message and keep the dialog open. The palette displays effective bindings; its Ctrl+Shift+P access remains reserved.
+
+Use Ctrl/Alt/Shift plus a letter, digit or F1–F12. Plain typing keys, Ctrl+Alt (AltGr), standard clipboard/selection, formatting/navigation/menu access, and native editor Undo/Redo are protected. Undo/Redo remain read-only. Unknown retired command IDs are ignored during loading; unsupported or invalid saved configurations fall back to defaults and report an error without overwriting stored data. Save still follows existing confirmation/recovery rules. Only the currently registered command subset is configurable at this checkpoint; comprehensive command migration and native checks remain pending.

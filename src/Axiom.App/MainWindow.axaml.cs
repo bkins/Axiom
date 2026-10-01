@@ -96,6 +96,7 @@ public partial class MainWindow : Window
         _session = documents.NewDocument();
         InitializeComponent();
         InitializeCommands();
+        _shortcutBindings = _shortcutConfiguration.Resolve(_commands.Commands);
         InitializeReadingFeedback();
         InitializePreviewSynchronization();
         InitializeFileDrop();
@@ -147,7 +148,7 @@ public partial class MainWindow : Window
         _monitor.Renamed += (_, pair) => Dispatcher.UIThread.Post(() => HandleRename(pair.OldPath, pair.NewPath));
         Opened += async (_, _) =>
         {
-            try { await InitializeEditorPreferencesAsync(); await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); }
+            try { await InitializeEditorPreferencesAsync(); await InitializeShortcutsAsync(); await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); }
             finally { _startupCompleted.TrySetResult(); }
         };
         Closing += MainWindow_Closing;
@@ -1111,18 +1112,13 @@ public partial class MainWindow : Window
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (_sessionTransitionRunning || _navigationRunning || _metadataApplying) return;
-        if (e.Key == Key.F1 && e.KeyModifiers == KeyModifiers.None)
+        if (e.Key == Key.P && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift))
         {
             e.Handled = true;
-            await ExecuteCommandAsync("help.open");
+            await ShowCommandPaletteAsync();
             return;
         }
-        if (e.Key == Key.R && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift))
-        {
-            e.Handled = true;
-            await ExecuteCommandAsync("view.reading");
-            return;
-        }
+        if (await TryExecuteShortcutAsync(e)) return;
         if (e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Left or Key.Right)
         {
             e.Handled = true;
@@ -1148,32 +1144,16 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
-        if (editorIsCommandTarget && e.KeyModifiers == KeyModifiers.Control && e.Key is Key.Z or Key.Y)
-        {
-            e.Handled = true;
-            await ExecuteCommandAsync(e.Key == Key.Z ? "editor.undo" : "editor.redo");
-            return;
-        }
-        if (e.Key == Key.S)
-        {
-            await ExecuteCommandAsync(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "document.saveAs" : "document.save");
-            e.Handled = true;
-        }
-        else if (e.Key == Key.W)
+        if (e.Key == Key.W && e.KeyModifiers == KeyModifiers.Control)
         {
             await CloseTabAsync(_activeTab);
             e.Handled = true;
         }
-        else if (e.Key == Key.Tab)
+        else if (e.Key == Key.Tab && e.KeyModifiers is KeyModifiers.Control or (KeyModifiers.Control | KeyModifiers.Shift))
         {
             var direction = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1;
             var index = (_tabs.IndexOf(_activeTab) + direction + _tabs.Count) % _tabs.Count;
             await SelectTabAsync(_tabs[index]);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.N)
-        {
-            await ExecuteCommandAsync("document.new");
             e.Handled = true;
         }
     }

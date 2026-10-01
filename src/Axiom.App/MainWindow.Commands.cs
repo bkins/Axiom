@@ -4,6 +4,18 @@ namespace Axiom.App;
 
 public partial class MainWindow
 {
+    private async void CommandPalette_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs) => await ShowCommandPaletteAsync();
+
+    private async Task ShowCommandPaletteAsync()
+    {
+        if (_sessionTransitionRunning || _navigationRunning || _metadataApplying) return;
+        var focus = FocusManager?.GetFocusedElement() as Avalonia.Input.InputElement;
+        var context = CaptureCommandContext();
+        var selected = await new CommandPaletteWindow(_commands, context, _shortcutBindings).ShowDialog<string?>(this);
+        focus?.Focus();
+        if (selected is not null) await ExecuteCommandAsync(selected);
+    }
+
     private readonly CommandDispatcher _commands = new();
 
     private CommandContext CaptureCommandContext() => new(_session.DraftKey, _activeWorkspace?.WorkspaceId, _session.Path,
