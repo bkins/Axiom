@@ -30,6 +30,7 @@ internal static class CommandWorkflowProbe
             var paletteOperation = window.ShowCommandPaletteForTestingAsync();
             var palette = await WaitWindowAsync("Command palette");
             Search(palette, "workspace.manage.recycle");
+            await WaitAsync(() => palette.GetLogicalDescendants().OfType<ListBox>().Single().SelectedItem is CommandPaletteEntry { Id: "workspace.manage.recycle" });
             Require(!FindButton(palette, "Run").IsEnabled, "Unavailable workspace command was runnable.");
             Click(palette, "Cancel");
             await paletteOperation;
