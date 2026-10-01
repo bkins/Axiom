@@ -24,6 +24,13 @@ public partial class MainWindow
 
     private void InitializeCommands()
     {
+        RegisterCommand("document.history", "Browse document history", null, false, (_, _) => ShowDocumentHistoryAsync(),
+            context => new(context.DocumentPath is not null, context.DocumentPath is null ? "Save a document before browsing history." : null));
+        RegisterCommand("workspace.historySetup", "Set up local Git history", null, true, (_, _) => InitializeHistoryAsync(),
+            context => new(context.WorkspaceId is not null, context.WorkspaceId is null ? "Open a workspace before setting up Git history." : null));
+        RegisterCommand("document.checkpoint", "Checkpoint saved document", null, true, (_, _) => CheckpointDocumentAsync(),
+            context => new(context.DocumentPath is not null && !_session.IsDirty && _session.Conflict is null,
+                context.DocumentPath is null || _session.IsDirty || _session.Conflict is not null ? "Save the document and resolve conflicts first." : null));
         RegisterCommand("document.new", "New unsaved document", "Ctrl+N", false, async (_, _) =>
         {
             if (!await ResolvePendingMetadataAsync()) return new(CommandOutcome.Cancelled, "New document cancelled.");

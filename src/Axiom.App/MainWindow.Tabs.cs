@@ -258,7 +258,8 @@ public partial class MainWindow
     internal Task SelectTabForTestingAsync(DocumentTab tab) => SelectTabAsync(tab);
     internal Task<bool> CloseTabForTestingAsync(DocumentTab tab) => CloseTabAsync(tab);
     internal Task HandleExternalChangeForTestingAsync(string path) => HandleExternalChangeAsync(path);
-    internal void HandleRenameForTesting(string oldPath, string newPath) => HandleRename(oldPath, newPath);
+    internal void HandleRenameForTesting(string oldPath, string newPath) => _ = HandleRenameAsync(oldPath, newPath);
+    internal Task HandleRenameForTestingAsync(string oldPath, string newPath) => HandleRenameAsync(oldPath, newPath);
     internal Task NewTabForTestingAsync() => LoadSessionAsync(_documents.NewDocument(), "New unsaved document");
     internal Func<DocumentSession, Task<string>>? UnsavedChoiceForTesting { get; set; }
     internal Func<RecoveryDraft, Task<string>>? RecoveryChoiceForTesting { get; set; }

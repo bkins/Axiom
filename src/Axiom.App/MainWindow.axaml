@@ -54,6 +54,9 @@
                 <MenuItem Header="Recent Documents…" Click="RecentDocuments_OnClick" />
                 <MenuItem Header="Command Palette…    Ctrl+Shift+P" Click="CommandPalette_OnClick" />
                 <MenuItem Header="Keyboard Shortcuts…" Click="ShortcutSettings_OnClick" />
+                <MenuItem Header="Document History…" Click="DocumentHistory_OnClick" />
+                <MenuItem Header="Checkpoint Saved Document…" Click="HistoryCheckpoint_OnClick" />
+                <MenuItem Header="Set Up Git History…" Click="HistorySetup_OnClick" />
                 <MenuItem Header="Refresh Workspace    F5" Click="RefreshWorkspace_OnClick" />
                 <Separator />
                 <MenuItem Header="New Workspace Document…" Click="CreateFromTemplate_OnClick" />

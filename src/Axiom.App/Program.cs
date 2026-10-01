@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--document-history-probe" && args.Length == 2) DocumentHistoryProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--reading-feedback-probe" && args.Length == 2) ReadingFeedbackProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--template-asset-probe" && args.Length == 2) TemplateAssetProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--pdf-export-probe" && args.Length == 2) PdfExportProbe.Configure(args[1]);

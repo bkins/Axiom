@@ -145,7 +145,7 @@ public partial class MainWindow : Window
         _recoveryTimer.Tick += async (_, _) => await ProtectIfNeededAsync();
         _recoveryTimer.Start();
         _monitor.Changed += (_, path) => Dispatcher.UIThread.Post(async () => await HandleExternalChangeAsync(path));
-        _monitor.Renamed += (_, pair) => Dispatcher.UIThread.Post(() => HandleRename(pair.OldPath, pair.NewPath));
+        _monitor.Renamed += (_, pair) => Dispatcher.UIThread.Post(async () => await HandleRenameAsync(pair.OldPath, pair.NewPath));
         Opened += async (_, _) =>
         {
             try { await InitializeEditorPreferencesAsync(); await InitializeShortcutsAsync(); await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); }
@@ -925,9 +925,16 @@ public partial class MainWindow : Window
         catch (Exception exception) { ReportError("external.change.failed", exception, path); }
     }
 
-    private void HandleRename(string oldPath, string newPath)
+    private async Task HandleRenameAsync(string oldPath, string newPath)
     {
         if (FindTab(oldPath) is not { } tab) return;
+        // Atomic replacement can report a rename to a short-lived backup. Track a real move only
+        // when the original no longer exists and the destination still exists at delivery time.
+        if (File.Exists(oldPath) || !File.Exists(newPath))
+        {
+            await HandleExternalChangeAsync(oldPath);
+            return;
+        }
         if (FindTab(newPath) is { } collision && collision != tab)
         {
             tab.IsMissing = true;
