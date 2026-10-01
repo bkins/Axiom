@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Avalonia.Controls;
+using Avalonia.Platform;
 using Axiom.Core;
 using Axiom.Infrastructure;
 
@@ -27,14 +28,18 @@ internal static class ReadingFeedbackProbe
             await window.StartupCompleted;
             var workspace = Path.Combine(root, "workspace");
             Directory.CreateDirectory(workspace);
+            await using (var image = AssetLoader.Open(new Uri("avares://Axiom.App/Assets/Axiom.png")))
+            await using (var output = File.Create(Path.Combine(workspace, "image.png"))) await image.CopyToAsync(output);
             var sourcePath = Path.Combine(workspace, "long.md");
-            var source = string.Join("\n\n", Enumerable.Range(1, 90).Select(index => $"## Section {index}\n\nParagraph {index}: Café 日本語 words for reading. {new string('x', 180)}"));
+            var source = string.Join("\n\n", Enumerable.Range(1, 90).Select(index => $"## Section {index}\n\nParagraph {index}: Café 日本語 words for reading. {new string('x', 180)}" +
+                (index % 15 == 0 ? "\n![Reading image](image.png)" : "")));
             await File.WriteAllTextAsync(sourcePath, source);
             await window.SwitchWorkspaceAsync(workspace);
             await window.OpenDocumentAsync(sourcePath);
             var preview = window.FindControl<NativeWebView>("Preview")!;
             var editor = window.FindControl<AvaloniaEdit.TextEditor>("Editor")!;
             await WaitAsync(async () => IsTrue(await preview.InvokeScript("document.querySelectorAll('.source-block').length === 180")));
+            await WaitAsync(async () => IsTrue(await preview.InvokeScript("document.images.length === 6 && [...document.images].every(image => image.complete && image.naturalWidth > 0)")));
             window.ToggleScrollSyncForTesting();
             await window.SynchronizeScrollForTestingAsync();
             await Task.Delay(250);
@@ -100,6 +105,7 @@ internal static class ReadingFeedbackProbe
             {
                 Version = window.BuildIdentityForTesting.InformationalVersion
               , NativeAnchorsAndSourceNavigation = true
+              , ImageHeavyPreviewLoaded = true
               , EditorToPreviewAndPreviewToEditorScroll = true
               , EditAnchorRetention = true
               , TabPreviewPositionRetained = true

@@ -21,7 +21,7 @@ if (Test-Path -LiteralPath $errorPath) { throw ([IO.File]::ReadAllText($errorPat
 $resultPath = Join-Path $output 'result.json'
 if (-not (Test-Path -LiteralPath $resultPath)) { throw 'Native probe did not produce result.json.' }
 $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
-foreach ($name in @('NativeAnchorsAndSourceNavigation','EditorToPreviewAndPreviewToEditorScroll','EditAnchorRetention','TabPreviewPositionRetained','NoObservedScrollFeedbackLoop','ReadingModeAndSourceBytesPreserved','StatisticsAndPersistentFailureDismissal','InformationExpires')) {
+foreach ($name in @('NativeAnchorsAndSourceNavigation','ImageHeavyPreviewLoaded','EditorToPreviewAndPreviewToEditorScroll','EditAnchorRetention','TabPreviewPositionRetained','NoObservedScrollFeedbackLoop','ReadingModeAndSourceBytesPreserved','StatisticsAndPersistentFailureDismissal','InformationExpires')) {
     if ($result.$name -ne $true) { throw "Native check failed: $name" }
 }
 $result | ConvertTo-Json -Depth 5
