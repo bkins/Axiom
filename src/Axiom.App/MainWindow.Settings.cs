@@ -35,6 +35,11 @@ public partial class MainWindow
     private void ApplyEditorPreferences(EditorPreferences preferences)
     {
         preferences.Validate();
+        foreach (var button in new[] { FileCommandsButton, EditCommandsButton, FormatCommandsButton })
+        {
+            button.Classes.Set("quiet-menu", preferences.MenuStyle == MenuStyle.Quiet);
+            button.Classes.Set("rounded-menu", preferences.MenuStyle == MenuStyle.Rounded);
+        }
         var requested = preferences.FontFamily.Split(',')[0].Trim();
         var available = FontManager.Current.SystemFonts.Any(font => font.Name.Equals(requested, StringComparison.OrdinalIgnoreCase));
         Editor.FontFamily = new FontFamily(available ? preferences.FontFamily : "Consolas, monospace");

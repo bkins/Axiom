@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <ApplicationIcon>Assets/Axiom.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
+    <AvaloniaResource Include="Assets/**" />
     <EmbeddedResource Include="Help/UserGuide.md" LogicalName="Axiom.App.Help.UserGuide.md" />
     <ProjectReference Include="..\Axiom.Core\Axiom.Core.csproj" />
     <ProjectReference Include="..\Axiom.Infrastructure\Axiom.Infrastructure.csproj" />

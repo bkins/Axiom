@@ -36,7 +36,15 @@ internal static class EverydayUseProbe
             tab.Document.Insert(tab.Document.TextLength, "\nUnsaved **Word** export.\n");
             window.SetEditorSelectionForTesting(2, 3);
             var caret = window.EditorCaretOffsetForTesting;
-            window.ApplyEditorPreferencesForTesting(new("Consolas", 19, true, 6));
+            foreach (var style in Enum.GetValues<MenuStyle>())
+            {
+                window.ApplyEditorPreferencesForTesting(new("Consolas", 19, true, 6, style));
+                window.UpdateLayout();
+                foreach (var name in new[] { "FileCommandsButton", "EditCommandsButton", "FormatCommandsButton" })
+                    if (!window.FindControl<Button>(name)!.Classes.Contains(style == MenuStyle.Quiet ? "quiet-menu" : "rounded-menu"))
+                        throw new IOException("Native menu style did not apply.");
+            }
+            if (window.Icon is null) throw new IOException("Application icon did not load.");
             if (window.EditorCaretOffsetForTesting != caret || !tab.Document.UndoStack.CanUndo) throw new IOException("Preferences changed native caret or undo.");
             await window.ShowPersistentHelpForTestingAsync("Export to Word and HTML");
             var help = window.PersistentHelpForTesting!;
@@ -86,6 +94,10 @@ internal static class EverydayUseProbe
             await File.WriteAllTextAsync(Path.Combine(root, "result.json"), JsonSerializer.Serialize(new
             {
                 Version = window.BuildIdentityForTesting.InformationalVersion
+              ,
+                BothMenuStylesApplied = true
+              ,
+                ApplicationIconLoaded = true
               ,
                 NativeHelpLoaded = true
               ,

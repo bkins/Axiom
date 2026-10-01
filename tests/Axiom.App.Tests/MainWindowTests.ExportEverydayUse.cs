@@ -23,7 +23,8 @@ public sealed partial class MainWindowTests
             tab.Document.Insert(tab.Document.TextLength, " unsaved");
             window.SetEditorSelectionForTesting(2, 4);
             var caret = window.EditorCaretOffsetForTesting;
-            window.ApplyEditorPreferencesForTesting(new("Consolas", 23, false, 7));
+            window.ApplyEditorPreferencesForTesting(new("Consolas", 23, false, 7, MenuStyle.Rounded));
+            window.ApplyEditorPreferencesForTesting(new("Consolas", 23, false, 7, MenuStyle.Quiet));
             Assert.Equal("saved source unsaved", window.EditorTextForTesting);
             Assert.Equal(caret, window.EditorCaretOffsetForTesting);
             Assert.Equal("ved ", window.EditorSelectedTextForTesting);

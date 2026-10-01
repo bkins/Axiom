@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: A9238B546B1947BAC0C8B75982AA8A4B3A4F7668758ED72C80C04B4954F9308C. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 744601D0203D30D05239350367DD90FA47CF3BF3622DCC1166737BB3098104D0. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -185,3 +185,7 @@ Choose **Settings** to configure font family, font size (8–40), wrapping, tab 
 ## Recent documents (1.0.7 development)
 
 Use **File → Recent Documents** to reopen one of the latest 20 successfully opened documents, with its path shown. Open reuses an existing tab and uses the existing safe workspace switch if needed. Missing files or workspaces give actionable feedback. Cancelled/failed opens do not enter history. **Remove selected** and **Clear history** forget only history; they never delete files, pins, metadata or protected drafts. Remembered Workspaces remains the single workspace registry.
+
+### Approved icon and selectable menus — September 30, 2026
+
+Ben selected the teal architectural A icon and both menu looks. The application window and Windows executable use the A icon. In Settings, choose Menu style: Quiet (flat groups) or Rounded (rounded groups), then Apply. The choice persists across restarts in the existing editor preferences setting; older preferences default to Quiet. Cancel leaves the selection unchanged. Reset editor defaults retains the menu choice. Both styles preserve File/Edit/Format commands, shortcuts and working buffers. Native visual review at different themes and display scales remains a human acceptance check.

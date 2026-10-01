@@ -13,8 +13,10 @@ namespace Axiom.App.Tests;
 
 public sealed partial class MainWindowTests
 {
-    [AvaloniaFact]
-    public async Task AltAndF10ReachFileCommandsAndAltFShowsTheMenuWithoutEditing()
+    [AvaloniaTheory]
+    [InlineData(MenuStyle.Quiet)]
+    [InlineData(MenuStyle.Rounded)]
+    public async Task AltAndF10ReachFileCommandsAndAltFShowsTheMenuWithoutEditing(MenuStyle style)
     {
         var root = Path.Combine(Path.GetTempPath(), "AxiomMenuReview-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -24,7 +26,9 @@ public sealed partial class MainWindowTests
             var preview = window.FindControl<NativeWebView>("Preview")!;
             ((Panel)preview.Parent!).Children.Remove(preview);
             window.Show();
+            window.ApplyEditorPreferencesForTesting(new(MenuStyle: style));
             var button = window.FindControl<Button>("FileCommandsButton")!;
+            Assert.Contains(style == MenuStyle.Quiet ? "quiet-menu" : "rounded-menu", button.Classes);
             window.UpdateLayout();
             window.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.F10 });
             Assert.True(button.IsFocused);

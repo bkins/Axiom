@@ -13,7 +13,7 @@ internal sealed class SettingsWindow : Window
     {
         Title = "Axiom Settings";
         Width = 500;
-        Height = 460;
+        Height = 540;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var font = new TextBox { Text = current.FontFamily, PlaceholderText = "Font family" };
         var size = new NumericUpDown { Minimum = 8, Maximum = 40, Value = current.FontSize, Increment = 1 };
@@ -24,13 +24,15 @@ internal sealed class SettingsWindow : Window
         AutomationProperties.SetName(size, "Editor font size from 8 to 40");
         AutomationProperties.SetName(tabs, "Editor tab width from 1 to 8");
         AutomationProperties.SetName(theme, "Application appearance");
+        var menuStyle = new ComboBox { ItemsSource = Enum.GetValues<MenuStyle>(), SelectedItem = current.MenuStyle };
+        AutomationProperties.SetName(menuStyle, "Menu style: Quiet or Rounded");
         var message = new TextBlock { TextWrapping = TextWrapping.Wrap };
         var apply = new Button { Content = "Apply" };
         apply.Click += (_, _) =>
         {
             try
             {
-                var value = new EditorPreferences(font.Text ?? string.Empty, (int)(size.Value ?? 15), wrap.IsChecked == true, (int)(tabs.Value ?? 4));
+                var value = new EditorPreferences(font.Text ?? string.Empty, (int)(size.Value ?? 15), wrap.IsChecked == true, (int)(tabs.Value ?? 4), (MenuStyle)(menuStyle.SelectedItem ?? MenuStyle.Quiet));
                 value.Validate();
                 Close((value, (AppearancePreference)(theme.SelectedItem ?? AppearancePreference.System)));
             }
@@ -54,7 +56,8 @@ internal sealed class SettingsWindow : Window
             new TextBlock { Text = "Editor font family" }, font,
             new TextBlock { Text = "Font size (8–40)" }, size, wrap,
             new TextBlock { Text = "Tab width (1–8 columns)" }, tabs,
-            new TextBlock { Text = "Application appearance" }, theme, message,
+            new TextBlock { Text = "Application appearance" }, theme,
+            new TextBlock { Text = "Menu style" }, menuStyle, message,
             new WrapPanel { Children = { apply, cancel, reset, helpButton } }
         }
             }

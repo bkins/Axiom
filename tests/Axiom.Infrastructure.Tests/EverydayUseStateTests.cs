@@ -9,9 +9,10 @@ public sealed class EverydayUseStateTests
     public async Task PreferencesAndAppearancePersistTogetherWithoutChangingDrafts()
     {
         using var fixture = new MutationTestWorkspace();
-        var settings = new EditorPreferences("Consolas", 22, false, 8);
+        var settings = new EditorPreferences("Consolas", 22, false, 8, MenuStyle.Rounded);
         await fixture.State.SetEditorPreferencesAsync(settings, AppearancePreference.Dark);
         Assert.Equal(settings, await fixture.State.GetEditorPreferencesAsync());
+        await Assert.ThrowsAsync<ArgumentException>(() => fixture.State.SetEditorPreferencesAsync(settings with { MenuStyle = (MenuStyle)99 }, AppearancePreference.Light));
         Assert.Equal(AppearancePreference.Dark, await fixture.State.GetAppearanceAsync());
         await Assert.ThrowsAsync<ArgumentException>(() => fixture.State.SetEditorPreferencesAsync(settings with { FontSize = 41 }, AppearancePreference.Light));
         Assert.Equal(settings, await fixture.State.GetEditorPreferencesAsync());
