@@ -58,9 +58,10 @@ public sealed class MarkdownExportService
             switch (inline)
             {
                 case LiteralInline literal: yield return new(literal.Content.ToString(), bold, italic, Link: link); break;
+                case HtmlEntityInline entity: yield return new(entity.Transcoded.ToString(), bold, italic, Link: link); break;
                 case CodeInline code: yield return new(code.Content, bold, italic, true, link); break;
                 case LineBreakInline: yield return new("\n", bold, italic, Link: link); break;
-                case TaskList task: yield return new(task.Checked ? "☑ " : "☐ ", bold, italic); break;
+                case TaskList task: yield return new(task.Checked ? "☑" : "☐", bold, italic); break;
                 case LinkInline image when image.IsImage:
                     yield return new(string.Concat(ReadRuns(image).Select(run => run.Text)), Image: image.Url); break;
                 case LinkInline hyperlink:

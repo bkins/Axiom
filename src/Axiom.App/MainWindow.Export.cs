@@ -29,7 +29,7 @@ public partial class MainWindow
               ,
                 ShowOverwritePrompt = false
               ,
-                FileTypeChoices = [new FilePickerFileType(extension == "docx" ? "Word document" : "Standalone HTML") { Patterns = ["*." + extension] }]
+                FileTypeChoices = [new FilePickerFileType(extension switch { "docx" => "Word document", "txt" => "Plain text", _ => "Standalone HTML" }) { Patterns = ["*." + extension] }]
             });
             if (selected?.TryGetLocalPath() is not { } path) return;
             var replace = File.Exists(path);

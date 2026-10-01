@@ -13,7 +13,7 @@ public sealed class DocumentExportService
     {
         var path = Path.GetFullPath(destination);
         var extension = Path.GetExtension(path).ToLowerInvariant();
-        if (extension is not ".html" and not ".docx") throw new IOException("Choose a .html or .docx output file.");
+        if (extension is not ".html" and not ".docx" and not ".txt") throw new IOException("Choose a .html, .docx or .txt output file.");
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         if (protectedPaths.Append(snapshot.SourcePath ?? string.Empty).Where(value => !string.IsNullOrEmpty(value)).Any(value => Path.GetFullPath(value).Equals(path, comparison)))
             throw new IOException("Export cannot replace an open or source document.");
@@ -25,7 +25,12 @@ public sealed class DocumentExportService
             cancellationToken.ThrowIfCancellationRequested();
             var document = new MarkdownExportService().Parse(snapshot);
             var warnings = document.Warnings.ToList();
-            var bytes = extension == ".html" ? HtmlExportWriter.Write(document, snapshot, warnings) : WordExportWriter.Write(document, snapshot, warnings);
+            var bytes = extension switch
+            {
+                ".html" => HtmlExportWriter.Write(document, snapshot, warnings)
+              , ".txt" => TextExportWriter.Write(document, warnings)
+              , _ => WordExportWriter.Write(document, snapshot, warnings)
+            };
             cancellationToken.ThrowIfCancellationRequested();
             var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try

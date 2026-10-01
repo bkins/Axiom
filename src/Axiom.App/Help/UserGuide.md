@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 744601D0203D30D05239350367DD90FA47CF3BF3622DCC1166737BB3098104D0. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: B0415F2305988B722F7B51CEEEA6518CD2097A8E8A4771F8285D9ABB3D4CA9D0. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -189,3 +189,7 @@ Use **File → Recent Documents** to reopen one of the latest 20 successfully op
 ### Approved icon and selectable menus — September 30, 2026
 
 Ben selected the teal architectural A icon and both menu looks. The application window and Windows executable use the A icon. In Settings, choose Menu style: Quiet (flat groups) or Rounded (rounded groups), then Apply. The choice persists across restarts in the existing editor preferences setting; older preferences default to Quiet. Cancel leaves the selection unchanged. Reset editor defaults retains the menu choice. Both styles preserve File/Edit/Format commands, shortcuts and working buffers. Native visual review at different themes and display scales remains a human acceptance check.
+
+## Plain-text export (1.0.8 development)
+
+Use File → Export current buffer to plain text to write a UTF-8 `.txt` file from the active buffer, including unsaved edits. The same overwrite confirmation, cancellation and protected-destination rules apply as for Word and HTML. Markdown files and recovery state are unchanged. Headings and paragraphs become readable text; lists retain nesting and numbering, tasks retain checkbox symbols, quotes retain a `>` prefix, and code retains indentation. Links include their destination when different from the label. Images retain alt text without embedded bytes. Tables use ` | ` separators and warn that column alignment is approximate. PDF export is still in development. Human acceptance remains pending.
