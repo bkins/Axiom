@@ -95,6 +95,7 @@ public partial class MainWindow : Window
         _markCleanExit = markCleanExit;
         _session = documents.NewDocument();
         InitializeComponent();
+        InitializeFileDrop();
         SizeChanged += (_, _) => ClampHelpPanelWidth();
         InitializeClassification();
         InitializeRelationships();

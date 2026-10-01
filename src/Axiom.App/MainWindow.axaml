@@ -54,7 +54,9 @@
                 <MenuItem Header="Recent Documents…" Click="RecentDocuments_OnClick" />
                 <MenuItem Header="Refresh Workspace    F5" Click="RefreshWorkspace_OnClick" />
                 <Separator />
-                <MenuItem Header="New Workspace Document…" Tag="Create" Click="ManageDocument_OnClick" />
+                <MenuItem Header="New Workspace Document…" Click="CreateFromTemplate_OnClick" />
+                <MenuItem Header="Copy Markdown into Workspace…" Click="CopyIntoWorkspace_OnClick" />
+                <MenuItem Header="Import Image into Workspace…" Click="ImportImage_OnClick" />
                 <MenuItem Header="New Folder…" Tag="CreateFolder" Click="ManageDocument_OnClick" />
                 <MenuItem Header="Rename Document…" Tag="Rename" Click="ManageDocument_OnClick" />
                 <MenuItem Header="Move Document…" Tag="Move" Click="ManageDocument_OnClick" />

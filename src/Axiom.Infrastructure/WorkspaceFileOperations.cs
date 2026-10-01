@@ -16,7 +16,9 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
                                          , string? sourceRelative
                                          , string? destinationRelative
                                          , string? reviewedHash = null
-                                         , CancellationToken cancellationToken = default)
+                                         , CancellationToken cancellationToken = default
+                                         , string? creationText = null
+                                         , byte[]? importContent = null)
     {
         await _gate.WaitAsync(cancellationToken);
         try
@@ -24,7 +26,7 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
             if ((await state.GetPendingMutationsAsync(cancellationToken)).Count > 0)
                 throw new IOException("A previous file operation needs reconciliation. Restart Axiom before making another change.");
             var source = sourceRelative is null ? null : WorkspaceMutationPolicy.Resolve(workspace.RootPath, sourceRelative);
-            var destination = destinationRelative is null ? null : WorkspaceMutationPolicy.Resolve(workspace.RootPath, destinationRelative, kind != DocumentMutationKind.CreateFolder);
+            var destination = destinationRelative is null ? null : WorkspaceMutationPolicy.Resolve(workspace.RootPath, destinationRelative, kind is not DocumentMutationKind.CreateFolder and not DocumentMutationKind.ImportAsset);
             ValidateAncestors(workspace.RootPath, source ?? destination!);
             if (destination is not null) ValidateAncestors(workspace.RootPath, destination);
             if (source is not null && !File.Exists(source)) throw new FileNotFoundException("The source document is missing.", source);
@@ -36,7 +38,27 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
             var original = source is null ? [] : await File.ReadAllBytesAsync(source, cancellationToken);
             if (reviewedHash is not null && Hash(original) != reviewedHash) throw new IOException("The document changed since review. Refresh before trying again.");
             Guid? identity = source is null ? null : DocumentIdCodec.Find(MarkdownIdentityBytes.Decode(original));
-            var output = original;
+            if (creationText is not null && kind != DocumentMutationKind.Create)
+                throw new ArgumentException("Initial text is only supported for document creation.");
+            var output = creationText is null ? original : System.Text.Encoding.UTF8.GetBytes(creationText);
+            if (kind is DocumentMutationKind.ImportAsset or DocumentMutationKind.ImportDocument)
+            {
+                if (sourceRelative is not null || importContent is null || destination is null)
+                    throw new ArgumentException("Import requires a reviewed content snapshot and a new destination.");
+                output = (byte[])importContent.Clone();
+                if (kind == DocumentMutationKind.ImportDocument)
+                {
+                    identity = DocumentIdCodec.Find(MarkdownIdentityBytes.Decode(output));
+                    if (identity is not null)
+                    {
+                        identity = Guid.NewGuid();
+                        output = MarkdownIdentityBytes.Assign(output, identity.Value, true);
+                    }
+                }
+            }
+            else if (importContent is not null) throw new ArgumentException("Import content requires an import operation.");
+            if (kind == DocumentMutationKind.Create && DocumentIdCodec.Find(creationText ?? "") is not null)
+                throw new ArgumentException("New documents cannot inherit a template's identity. Enrollment is a separate action.");
             if (kind == DocumentMutationKind.Duplicate && identity is not null)
             {
                 var scan = await new BulkEnrollmentService(this).PreviewAsync(workspace, cancellationToken: cancellationToken);
@@ -71,6 +93,8 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
                         break;
                     case DocumentMutationKind.Create:
                     case DocumentMutationKind.Duplicate:
+                    case DocumentMutationKind.ImportAsset:
+                    case DocumentMutationKind.ImportDocument:
                         await WriteNewAsync(destination!, output, cancellationToken);
                         break;
                     case DocumentMutationKind.Rename:
