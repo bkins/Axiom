@@ -7,6 +7,29 @@ namespace Axiom.Infrastructure.Tests;
 public sealed class WorkspaceLinkIndexTests
 {
     [Fact]
+    public async Task WikiAliasesAndIdentityProducePersistedBacklinksWithoutChangingSource()
+    {
+        using var fixture = new MutationTestWorkspace();
+        var identity = Guid.NewGuid();
+        var source = Path.Combine(fixture.Root, "source.md");
+        var target = Path.Combine(fixture.Root, "target.md");
+        var text = $"[[Alternate|Go]] and [[id:{identity:D}#Heading]]\n";
+        await File.WriteAllTextAsync(source, text);
+        await File.WriteAllTextAsync(target, $"<!-- axiom:documentId={identity:D} -->\n# Heading\n");
+        await fixture.State.ApplyClassificationsAsync([new(new(identity, [], null, ["Alternate"]), 0)]);
+        var files = new FileDocumentStore();
+        var service = new WorkspaceLinkIndexService(files, new MarkdownLinkTargetReader(files), fixture.State);
+        var index = await service.BuildAsync(fixture.Root);
+        await fixture.State.SaveLinkIndexAsync(fixture.Workspace.WorkspaceId, index);
+        var restored = (await fixture.State.GetLinkIndexAsync(fixture.Workspace.WorkspaceId))!;
+        var incoming = WorkspaceLinkIndexService.Incoming("target.md", restored, new Dictionary<string, IReadOnlyList<WorkspaceLinkReference>>());
+        Assert.Equal(2, incoming.Count);
+        Assert.All(incoming, reference => Assert.Equal(MarkdownLinkResolutionStatus.Resolved, reference.Status));
+        Assert.Equal(text, await File.ReadAllTextAsync(source));
+        Assert.Null(DocumentIdCodec.Find(await File.ReadAllTextAsync(source)));
+    }
+
+    [Fact]
     public async Task FailedSourceReadRetainsPreviousReferencesAsPartialWhileDeletionRemovesThem()
     {
         using var fixture = new MutationTestWorkspace();

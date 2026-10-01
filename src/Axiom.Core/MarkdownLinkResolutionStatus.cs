@@ -16,4 +16,5 @@ public enum MarkdownLinkResolutionStatus
   , ExcludedPath
   , Unavailable
   , Unverified
+  , Ambiguous
 }

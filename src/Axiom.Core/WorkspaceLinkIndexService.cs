@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Axiom.Core;
 
-public sealed class WorkspaceLinkIndexService(IDocumentFileStore files, IMarkdownLinkTargetReader targets)
+public sealed class WorkspaceLinkIndexService(IDocumentFileStore files, IMarkdownLinkTargetReader targets, IClassificationStore? metadata = null)
 {
     private readonly MarkdownStructureService _parser = new();
     private static readonly StringComparer PathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
@@ -26,6 +26,8 @@ public sealed class WorkspaceLinkIndexService(IDocumentFileStore files, IMarkdow
             else errors.Add($"{Path.GetRelativePath(root, path)}: {target.Status}");
             if (++processed % 25 == 0 || processed == discovery.Files.Count) progress?.Report(new(processed, discovery.Files.Count));
         }
+        var classifications = metadata is null ? null : await metadata.GetClassificationsAsync(cancellationToken);
+        var wiki = new WikiLinkResolver(root, documents, classifications, errors.Count == 0);
         var indexed = new List<WorkspaceIndexedDocument>();
         foreach (var document in documents.OrderBy(pair => pair.Key, PathComparer))
         {
@@ -34,7 +36,9 @@ public sealed class WorkspaceLinkIndexService(IDocumentFileStore files, IMarkdow
             foreach (var link in document.Value.Links)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var result = MarkdownLinkResolver.ResolveLocation(root, document.Key, link.Destination);
+                var result = link.Destination.StartsWith(WikiLinkResolver.Prefix, StringComparison.Ordinal)
+                    ? wiki.Resolve(document.Key, link.Destination)
+                    : MarkdownLinkResolver.ResolveLocation(root, document.Key, link.Destination);
                 if (result.TargetPath is { } targetPath && result.Status == MarkdownLinkResolutionStatus.Resolved)
                 {
                     if (!targetStates.TryGetValue(targetPath, out var status))
@@ -61,7 +65,7 @@ public sealed class WorkspaceLinkIndexService(IDocumentFileStore files, IMarkdow
             if (failedRead || skippedDirectory) indexed.Add(oldDocument);
         }
         indexed.Sort((left, right) => PathComparer.Compare(left.RelativePath, right.RelativePath));
-        return new(1, DateTimeOffset.UtcNow, indexed, errors);
+        return new WorkspaceBacklinkIndex(1, DateTimeOffset.UtcNow, indexed, errors) { WikiCatalog = wiki };
     }
 
     public static string Hash(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));

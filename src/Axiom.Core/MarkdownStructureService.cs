@@ -11,13 +11,19 @@ namespace Axiom.Core;
 
 public sealed class MarkdownStructureService
 {
-    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+    private static readonly MarkdownPipeline Pipeline = CreatePipeline();
+
+    private static MarkdownPipeline CreatePipeline()
+    {
+        var builder = new MarkdownPipelineBuilder()
         .UsePipeTables()
         .UseTaskLists()
         .UsePreciseSourceLocation()
         .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
-        .DisableHtml()
-        .Build();
+        .DisableHtml();
+        builder.InlineParsers.Insert(0, new WikiLinkInlineParser());
+        return builder.Build();
+    }
 
     /// <summary>Supply a previous view only when reparsing the same logical document.</summary>
     public DocumentStructure Parse(string markdown, DocumentStructure? previous = null)
@@ -65,7 +71,53 @@ public sealed class MarkdownStructureService
                                                                                      , CreateRange(definition.Span, lineStarts, markdown.Length)))
                                 .OrderBy(definition => definition.Source.Offset)
                                 .ToArray() ?? [];
-        return new DocumentStructure(markdown, syntax, headings, links, definitions);
+        var nodes = new List<DocumentStructureNode>();
+        var sectionEnds = Enumerable.Repeat(markdown.Length, headings.Length).ToArray();
+        var openSections = new Stack<int>();
+        for (var headingIndex = 0; headingIndex < headings.Length; headingIndex++)
+        {
+            while (openSections.TryPeek(out var previousIndex) && headings[previousIndex].Level >= headings[headingIndex].Level)
+            {
+                openSections.Pop();
+                sectionEnds[previousIndex] = headings[headingIndex].Source.Offset;
+            }
+            openSections.Push(headingIndex);
+        }
+        for (var headingIndex = 0; headingIndex < headings.Length; headingIndex++)
+        {
+            var heading = headings[headingIndex];
+            nodes.Add(new(heading.NodeId, DocumentStructureNodeKind.Heading, heading.Text, heading.Source, null));
+            var end = sectionEnds[headingIndex];
+            nodes.Add(new(Guid.NewGuid(), DocumentStructureNodeKind.Section, heading.Text,
+                heading.Source with { Length = end - heading.Source.Offset }, heading.NodeId));
+        }
+        nodes.AddRange(links.Select(link => new DocumentStructureNode(link.NodeId, DocumentStructureNodeKind.Link, link.Text, link.Source, link.HeadingNodeId)));
+        foreach (var block in syntax.Descendants())
+        {
+            var range = CreateRange(block.Span, lineStarts, markdown.Length);
+            var parentHeading = FindSourceHeading(headings, range.Offset);
+            if (block is FencedCodeBlock code)
+                nodes.Add(new(Guid.NewGuid(), DocumentStructureNodeKind.Code, code.Lines.ToString(), range, parentHeading, Language: code.Info));
+            else if (block is CodeBlock indented)
+                nodes.Add(new(Guid.NewGuid(), DocumentStructureNodeKind.Code, indented.Lines.ToString(), range, parentHeading));
+            else if (block is Markdig.Extensions.Tables.Table)
+                nodes.Add(new(Guid.NewGuid(), DocumentStructureNodeKind.Table, markdown.Substring(range.Offset, range.Length), range, parentHeading));
+            else if (block is ParagraphBlock paragraph && paragraph.Inline?.FirstChild is Markdig.Extensions.TaskLists.TaskList task)
+                nodes.Add(new(Guid.NewGuid(), DocumentStructureNodeKind.Task, ReadText(paragraph.Inline), range, parentHeading, task.Checked));
+        }
+        var ordered = nodes.OrderBy(node => node.Source.Offset).ThenBy(node => node.Kind).ToArray();
+        if (previous is not null)
+        {
+            var old = previous.Nodes.Where(node => node.Kind is not DocumentStructureNodeKind.Heading and not DocumentStructureNodeKind.Link).ToArray();
+            var current = ordered.Where(node => node.Kind is not DocumentStructureNodeKind.Heading and not DocumentStructureNodeKind.Link).ToArray();
+            var identities = DocumentNodeReconciler.Match(old, current, node => $"{node.Kind}:{node.Text}:{node.Language}", node => node.NodeId,
+                (before, after) => before.Kind == after.Kind && before.ParentHeadingId == after.ParentHeadingId);
+            var identityIndex = 0;
+            for (var index = 0; index < ordered.Length; index++)
+                if (ordered[index].Kind is not DocumentStructureNodeKind.Heading and not DocumentStructureNodeKind.Link)
+                    ordered[index] = ordered[index] with { NodeId = identities[identityIndex++] };
+        }
+        return new DocumentStructure(markdown, syntax, headings, links, definitions, ordered);
     }
 
     internal static string RenderHtml(DocumentStructure document, string? linkToken = null)

@@ -17,6 +17,7 @@ public partial class MainWindow
     private int _backlinkGeneration;
     private WorkspaceBacklinkIndex? _savedLinkIndex;
     private string? _linkIndexRoot;
+    private WikiLinkResolver? _wikiLinkCatalog;
     private string _linkIndexState = "Open a workspace to index Markdown references.";
 
     private void InitializeBacklinks()
@@ -43,6 +44,7 @@ public partial class MainWindow
         ++_backlinkGeneration;
         _backlinkCancellation?.Cancel();
         _savedLinkIndex = null;
+        _wikiLinkCatalog = null;
         _linkIndexRoot = root;
         _backlinks.Clear();
         _linkIndexState = "Stale — this workspace has not been indexed yet.";
@@ -91,13 +93,14 @@ public partial class MainWindow
                 _linkIndexState = $"Indexing {value.ProcessedFiles}/{value.TotalFiles} saved files…";
                 BacklinkStatus.Text = _linkIndexState;
             });
-            var service = new WorkspaceLinkIndexService(_files, new MarkdownLinkTargetReader(_files));
+            var service = new WorkspaceLinkIndexService(_files, new MarkdownLinkTargetReader(_files), _recovery as IClassificationStore);
             var previous = _savedLinkIndex;
             var index = await Task.Run(() => service.BuildAsync(root, progress, cancellation.Token, previous), cancellation.Token);
             if (generation != _backlinkGeneration || _folder != root || _closingApproved) return;
             if (_recovery is IWorkspaceLinkIndexStore store) await store.SaveLinkIndexAsync(workspace.WorkspaceId, index, cancellation.Token);
             if (generation != _backlinkGeneration || _folder != root || cancellation.IsCancellationRequested) return;
             _savedLinkIndex = index;
+            _wikiLinkCatalog = index.WikiCatalog;
             _linkIndexState = index.Errors.Count == 0 ? $"Complete — {index.Documents.Count} saved files."
                 : $"Partial — {index.Documents.Count} saved files; {index.Errors.Count} skipped/error paths. " + string.Join("; ", index.Errors.Take(3));
             RefreshIncomingReferences();
@@ -125,11 +128,15 @@ public partial class MainWindow
             return;
         }
         var overlays = new Dictionary<string, IReadOnlyList<WorkspaceLinkReference>>(StringComparer.OrdinalIgnoreCase);
+        var wiki = _wikiLinkCatalog?.WithOpenDocuments(_tabs.Where(tab => tab.Session.Path is not null && IsWithinFolder(tab.Session.Path, root))
+            .ToDictionary(tab => tab.Session.Path!, GetTabStructure, StringComparer.OrdinalIgnoreCase));
         foreach (var tab in _tabs.Where(tab => tab.Session.IsDirty && tab.Session.Path is not null && IsWithinFolder(tab.Session.Path, root)))
         {
             var structure = GetTabStructure(tab);
             var references = structure.Links.Select(link => WorkspaceLinkIndexService.CreateReference(root, tab.Session.Path!, structure, link,
-                OverlayResolution(root, tab.Session.Path!, link.Destination), true)).ToArray();
+                link.Destination.StartsWith(WikiLinkResolver.Prefix, StringComparison.Ordinal)
+                    ? wiki?.Resolve(tab.Session.Path!, link.Destination) ?? new(MarkdownLinkResolutionStatus.Unverified, "Wiki index is rebuilding.")
+                    : OverlayResolution(root, tab.Session.Path!, link.Destination), true)).ToArray();
             overlays[Path.GetRelativePath(root, tab.Session.Path!)] = references;
         }
         foreach (var reference in WorkspaceLinkIndexService.Incoming(Path.GetRelativePath(root, active), _savedLinkIndex, overlays)) _backlinks.Add(reference);

@@ -8,19 +8,22 @@ public sealed class DocumentStructure
                              , MarkdownDocument syntax
                              , IEnumerable<DocumentHeading> headings
                              , IEnumerable<MarkdownDocumentLink> links
-                             , IEnumerable<MarkdownReferenceDefinition> definitions)
+                             , IEnumerable<MarkdownReferenceDefinition> definitions
+                             , IEnumerable<DocumentStructureNode>? nodes = null)
     {
         SourceText = sourceText;
         Syntax = syntax;
         Headings = Array.AsReadOnly(headings.ToArray());
         Links = Array.AsReadOnly(links.ToArray());
         ReferenceDefinitions = Array.AsReadOnly(definitions.ToArray());
+        Nodes = Array.AsReadOnly((nodes ?? []).ToArray());
     }
 
     public string SourceText { get; }
     public IReadOnlyList<DocumentHeading> Headings { get; }
     public IReadOnlyList<MarkdownDocumentLink> Links { get; }
     public IReadOnlyList<MarkdownReferenceDefinition> ReferenceDefinitions { get; }
+    public IReadOnlyList<DocumentStructureNode> Nodes { get; }
     internal MarkdownDocument Syntax { get; }
 
     public DocumentHeading? FindHeading(string decodedFragment) =>

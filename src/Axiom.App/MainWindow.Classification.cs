@@ -142,6 +142,7 @@ public partial class MainWindow
             _panelPending = false;
             MetadataStatus.Text = "Metadata saved; Markdown unchanged.";
             await RefreshClassificationAsync();
+            ScheduleBacklinkRebuild();
             return true;
         }
         catch (Exception exception) { MetadataStatus.Text = exception.Message; return false; }
@@ -223,6 +224,7 @@ public partial class MainWindow
             var dialog = new MetadataImportWindow(proposals, (changes, relationships) => Task.Run(() => _classificationService.ApplyConnectedAsync(evidence, changes, relationships)));
             await dialog.ShowDialog(this);
             await RefreshClassificationAsync();
+            if (dialog.Committed) ScheduleBacklinkRebuild();
             UpdateChrome(dialog.Committed ? $"Imported {dialog.CommittedRecords} metadata/relationship replacements; Markdown unchanged." : "Metadata import cancelled; no changes applied.");
         }
         catch (Exception exception) { ReportError("metadata.import.failed", exception, path); }

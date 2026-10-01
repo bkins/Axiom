@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 44667BBDAD72602A1F7C36F112E5F4BBEEB20A312F21CFB991613B65D331E2D9. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 175773AC72374E98DCECD144F491807C373A2F655CF01FD2992D705D8FFE3307. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -84,6 +84,16 @@ An asterisk in the window title means the editor differs from the saved file. Cl
 ## Axiom identity
 
 Existing files do not become Axiom documents automatically. Select **Make Axiom Document** only when stable identity is useful. The new ID is an unsaved editor change until you save. If copied files contain the same ID, Axiom warns and offers a distinct ID for the copy.
+
+## Structured Markdown and wiki navigation (1.0.14 candidate)
+
+**File → Document Structure…**, also available as **Browse document structure** in the palette, shows headings, sections, tasks, links, fenced/indented code and tables from the current buffer. Select a row and **Show source** to select its exact source range. Browsing never edits or saves Markdown. Logical node IDs are reconciled across ordinary edits; a changed or ambiguous node requires refreshing the browser. A section runs from its heading to the next heading of the same or higher level.
+
+Optional wiki syntax supports `[[Document Name]]`, `[[Document Name|label]]`, `[[Document Name#Heading text|label]]`, `[[folder/document.md#heading-anchor]]`, and `[[id:document-guid]]`. A heading-only `[[#Heading text]]` uses the current document. Explicit paths are relative to the workspace root; names match filename stems, first heading titles and saved Axiom aliases. Name matching ignores case; duplicate matches require choosing a target. An exact anchor wins; otherwise unique heading text is matched without case sensitivity. Repeated heading text requires an exact anchor. Escape a literal pipe, closing bracket or backslash inside a wiki target/label with a backslash. Backtick/fenced code examples and escaped opening brackets remain literal.
+
+Follow a wiki link from Preview or place the editor caret inside it and use **Ctrl+Enter / Follow Markdown Link**. The same navigation history and dirty-buffer protections apply. Wiki links appear in backlinks, including unsaved source overlays. Saved alias changes schedule an index refresh. While an index is incomplete, name/identity uniqueness remains unverified. Missing targets never create or enroll documents; resolve the missing target deliberately. Absolute paths, traversal, remote schemes and inaccessible/reparse targets are rejected. Wiki navigation preserves current unsaved target headings without saving either buffer.
+
+The semantic foundation exposes structural snapshots and stores derived results in local state with document/content-hash/revision and provider/version provenance. It does not generate AI results in this version. Derived cache data never becomes Markdown or classification authority; later semantic features must verify matching provenance before using it.
 
 ## Recovery
 

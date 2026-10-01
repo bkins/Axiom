@@ -54,11 +54,27 @@ public partial class MainWindow
         try
         {
             var resolver = new MarkdownLinkResolver(new MarkdownLinkTargetReader(_files));
-            var result = await resolver.ResolveAsync(root, source.Session.Path, destination, path =>
+            DocumentStructure? OpenStructure(string path)
             {
                 if (FindTab(path) is not { } open) return null;
                 return GetTabStructure(open);
-            });
+            }
+            MarkdownLinkResolution result;
+            if (destination.StartsWith(WikiLinkResolver.Prefix, StringComparison.Ordinal) && root is not null && source.Session.Path is not null)
+            {
+                var catalog = await new WorkspaceWikiLinkService(_files, new MarkdownLinkTargetReader(_files), _recovery as IClassificationStore).BuildAsync(root, OpenStructure);
+                result = catalog.Resolve(source.Session.Path, destination);
+                if (result.Status == MarkdownLinkResolutionStatus.Ambiguous && result.Candidates.Count > 0)
+                {
+                    var choice = await new WikiTargetWindow(root, result.Candidates).ShowDialog<string?>(this);
+                    if (choice is null) return;
+                    var decoded = Uri.UnescapeDataString(destination[WikiLinkResolver.Prefix.Length..]);
+                    var separator = decoded.IndexOf('#');
+                    var target = Path.GetRelativePath(root, choice).Replace('\\', '/') + (separator < 0 ? "" : decoded[separator..]);
+                    result = catalog.Resolve(source.Session.Path, WikiLinkResolver.Prefix + Uri.EscapeDataString(target));
+                }
+            }
+            else result = await resolver.ResolveAsync(root, source.Session.Path, destination, OpenStructure);
             if (_sessionTransitionRunning || _activeTab != source || _folder != root) return;
             if (result.Status == MarkdownLinkResolutionStatus.MissingHeading)
             {
