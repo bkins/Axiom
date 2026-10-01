@@ -11,6 +11,8 @@ $output = [IO.Path]::GetFullPath($OutputDirectory)
 if (Test-Path -LiteralPath $output) { throw 'Choose a fresh desktop preview output directory.' }
 $archivePath = $output + '.zip'
 if (Test-Path -LiteralPath $archivePath) { throw 'The preview archive already exists; it was retained.' }
+$verificationPath = $output + '-verification.json'
+if (Test-Path -LiteralPath $verificationPath) { throw 'The preview verification evidence already exists; it was retained.' }
 [xml]$properties = Get-Content -LiteralPath (Join-Path $repoRoot 'Directory.Build.props') -Raw
 $releaseVersion = [string]$properties.Project.PropertyGroup.AxiomVersion
 if ([string]::IsNullOrWhiteSpace($releaseVersion)) { throw 'Authoritative AxiomVersion is missing.' }
@@ -86,16 +88,10 @@ $manifest = [ordered]@{
     Files = $files
 }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $output 'desktop-preview-manifest.json') -Encoding utf8
-# Preserve executable permission in the transport archive even when building on Windows.
-$archiveStream = [IO.File]::Open($archivePath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
-$archive = [IO.Compression.ZipArchive]::new($archiveStream, [IO.Compression.ZipArchiveMode]::Create, $false)
-try {
-    foreach ($file in Get-ChildItem -LiteralPath $output -Recurse -File) {
-        $relative = [IO.Path]::GetRelativePath($output, $file.FullName).Replace('\', '/')
-        $entry = [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file.FullName, $relative, [IO.Compression.CompressionLevel]::Optimal)
-        $mode = if ($file.Name -eq 'Axiom.App' -or $file.Extension -in @('.dylib', '.so')) { 0x81ed } else { 0x81a4 }
-        $entry.ExternalAttributes = $mode -shl 16
-    }
-}
-finally { $archive.Dispose(); $archiveStream.Dispose() }
+# Unix mode bits alone are insufficient if a Windows ZIP writer marks the
+# creator system as DOS. Emit both Unix creator and permission metadata.
+& $PythonPath (Join-Path $PSScriptRoot 'Create-DesktopPreviewArchive.py') $output $archivePath
+if ($LASTEXITCODE -ne 0) { throw 'Preview archive creation failed; evidence is retained.' }
+& $PythonPath (Join-Path $PSScriptRoot 'Verify-DesktopPreview.py') $output $verificationPath
+if ($LASTEXITCODE -ne 0) { throw 'Preview verification failed; package and failure evidence are retained.' }
 [pscustomobject]@{ Runtime=$Runtime; InformationalVersion=$informationalVersion; OutputPath=$output; Archive=$archivePath; NativeVerified=$false; Files=$files.Count }
