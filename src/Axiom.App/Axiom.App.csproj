@@ -14,4 +14,8 @@
     <PackageReference Include="Avalonia.Controls.WebView" Version="12.1.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
   </ItemGroup>
+  <Target Name="VerifyMaintainedOfflineHelp" BeforeTargets="BeforeBuild"
+          Condition="Exists('$(MSBuildProjectDirectory)/../../../../Application Documentation/Axiom/07 - User Documentation/Axiom v1 User Guide.md')">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/../../scripts/Sync-OfflineHelp.ps1&quot; -Check" />
+  </Target>
 </Project>

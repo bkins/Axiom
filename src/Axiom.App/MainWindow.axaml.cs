@@ -95,6 +95,7 @@ public partial class MainWindow : Window
         _markCleanExit = markCleanExit;
         _session = documents.NewDocument();
         InitializeComponent();
+        SizeChanged += (_, _) => ClampHelpPanelWidth();
         InitializeClassification();
         InitializeRelationships();
         InitializeBacklinks();
@@ -136,7 +137,7 @@ public partial class MainWindow : Window
         _monitor.Renamed += (_, pair) => Dispatcher.UIThread.Post(() => HandleRename(pair.OldPath, pair.NewPath));
         Opened += async (_, _) =>
         {
-            try { await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); }
+            try { await InitializeEditorPreferencesAsync(); await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); }
             finally { _startupCompleted.TrySetResult(); }
         };
         Closing += MainWindow_Closing;
@@ -308,6 +309,7 @@ public partial class MainWindow : Window
             if (FindTab(path) is { } existing)
             {
                 await SelectTabAsync(existing);
+                await RecordRecentOpenAsync(path);
                 return;
             }
             var session = await _documents.OpenAsync(path);
@@ -332,6 +334,7 @@ public partial class MainWindow : Window
             }
             _initialPlaceholder = false;
             await LoadSessionAsync(session, session.IsDirty ? "Opened with a new identity; save deliberately when ready." : "Opened without changing the file.");
+            await RecordRecentOpenAsync(path);
         }
         catch (Exception exception)
         {
@@ -495,6 +498,7 @@ public partial class MainWindow : Window
 
     private void ApplyAppearanceVisuals()
     {
+        _persistentHelp?.SetAppearance(_appearance);
         var dark = _appearance == AppearancePreference.Dark ||
             (_appearance == AppearancePreference.System && ActualThemeVariant == ThemeVariant.Dark);
         var page = MakeBrush(dark ? "#111827" : "#FFFFFF");

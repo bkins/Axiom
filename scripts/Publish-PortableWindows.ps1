@@ -29,6 +29,7 @@ if ($CommitId -ne 'local' -and $CommitId -notmatch '^[0-9a-fA-F]{7,40}$') {
     throw 'CommitId must be a 7-40 character hexadecimal Git commit ID or local.'
 }
 $informationalVersion = "$resolvedVersion+$($CommitId.ToLowerInvariant())"
+& (Join-Path $PSScriptRoot 'Sync-OfflineHelp.ps1') -Check
 
 dotnet publish (Join-Path $repoRoot 'src\Axiom.App\Axiom.App.csproj') `
     -c Release `

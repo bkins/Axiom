@@ -8,6 +8,14 @@
         Title="Axiom"
         Width="1280" Height="720" MinWidth="900" MinHeight="580">
   <DockPanel>
+    <Border x:Name="ExportProgressPanel" IsVisible="False" DockPanel.Dock="Top" Padding="8">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <ProgressBar IsIndeterminate="True" Width="100" />
+        <TextBlock Text="Exporting current buffer…" />
+        <Button Content="Cancel export" Click="ExportCancel_OnClick" />
+      </StackPanel>
+    </Border>
+    <Border x:Name="HelpPanelHost" IsVisible="False" DockPanel.Dock="Right" Width="340" MinWidth="280" BorderThickness="1,0,0,0" BorderBrush="#8893A3" />
     <Border x:Name="WorkspaceLoadingPanel" IsVisible="False" DockPanel.Dock="Top" Padding="10">
       <StackPanel Orientation="Horizontal" Spacing="10">
         <ProgressBar IsIndeterminate="True" Width="110" Height="12" AutomationProperties.Name="Workspace loading" />
@@ -27,11 +35,13 @@
           <Button x:Name="ForwardButton" Content="Forward" AutomationProperties.Name="Navigate forward" ToolTip.Tip="Return to the next document location: Alt+Right" IsEnabled="False" Click="Forward_OnClick" />
           <Button x:Name="ReadingModeButton" Content="Read" AutomationProperties.Name="Toggle reading mode" ToolTip.Tip="Hide/show the editor without saving or discarding: Ctrl+Shift+R" Click="ReadingMode_OnClick" />
           <Button Content="Help" AutomationProperties.Name="Offline User Guide" ToolTip.Tip="Read the offline User Guide; F1 suggests a relevant topic" Click="Help_OnClick" />
+          <Button Content="Settings" AutomationProperties.Name="Application settings" ToolTip.Tip="Configure editor font, wrapping, tab width and appearance" Click="Settings_OnClick" />
           <Button x:Name="FileCommandsButton" AutomationProperties.Name="File commands" ToolTip.Tip="File commands: Alt+F; Alt or F10 focuses this button">File…
             <Button.Flyout>
               <MenuFlyout>
                 <MenuItem Header="Open Workspace…" AutomationProperties.Name="Open workspace" ToolTip.Tip="Open an existing Markdown workspace" Click="OpenFolder_OnClick" />
                 <MenuItem Header="Remembered Workspaces…" AutomationProperties.Name="Remembered workspaces" Click="WorkspaceCatalog_OnClick" />
+                <MenuItem Header="Recent Documents…" Click="RecentDocuments_OnClick" />
                 <MenuItem Header="Refresh Workspace    F5" Click="RefreshWorkspace_OnClick" />
                 <Separator />
                 <MenuItem Header="New Workspace Document…" Tag="Create" Click="ManageDocument_OnClick" />
@@ -47,6 +57,9 @@
                 <MenuItem Header="Follow Markdown Link    Ctrl+Enter" AutomationProperties.Name="Follow Markdown link at editor caret" Click="FollowLink_OnClick" />
                 <MenuItem Header="Save    Ctrl+S" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
                 <MenuItem Header="Save As…    Ctrl+Shift+S" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />
+                <Separator />
+                <MenuItem Header="Export current buffer to Word…" Tag="docx" Click="Export_OnClick" />
+                <MenuItem Header="Export current buffer to HTML…" Tag="html" Click="Export_OnClick" />
               </MenuFlyout>
             </Button.Flyout>
           </Button>

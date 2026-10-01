@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--everyday-use-probe" && args.Length == 2) EverydayUseProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--benchmark-link-index" && args.Length == 3) return LinkIndexBenchmarkProbe.Run(args[1], args[2]);
         if (args.FirstOrDefault() == "--benchmark-classification" && args.Length == 3) return ClassificationBenchmarkProbe.Run(args[1], args[2]);
         if (args.FirstOrDefault() == "--recovery-probe") return RunRecoveryProbe(args);
