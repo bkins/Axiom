@@ -71,6 +71,7 @@
                 <MenuItem Header="Export current buffer to Word…" Tag="docx" Click="Export_OnClick" />
                 <MenuItem Header="Export current buffer to HTML…" Tag="html" Click="Export_OnClick" />
                 <MenuItem Header="Export current buffer to plain text…" Tag="txt" Click="Export_OnClick" />
+                <MenuItem Header="Export current buffer to PDF…" Tag="pdf" Click="Export_OnClick" />
               </MenuFlyout>
             </Button.Flyout>
           </Button>

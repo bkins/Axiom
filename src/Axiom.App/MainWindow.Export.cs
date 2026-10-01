@@ -17,8 +17,15 @@ public partial class MainWindow
         using var cancellation = new CancellationTokenSource();
         var snapshot = new ExportSnapshot(Editor.Text ?? string.Empty, _session.Path);
         var extension = (sender as MenuItem)?.Tag as string ?? "html";
+        var pageSize = PdfPageSize.Letter;
         try
         {
+            if (extension == "pdf")
+            {
+                var choice = await ChoiceDialog.ShowAsync(this, "PDF page size", "Export the current buffer as a paginated PDF. Choose portrait page size.", "Letter", "A4", "Cancel");
+                if (choice is not "Letter" and not "A4") return;
+                pageSize = choice == "A4" ? PdfPageSize.A4 : PdfPageSize.Letter;
+            }
             var selected = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Export current buffer (Markdown remains unsaved)"
@@ -29,15 +36,15 @@ public partial class MainWindow
               ,
                 ShowOverwritePrompt = false
               ,
-                FileTypeChoices = [new FilePickerFileType(extension switch { "docx" => "Word document", "txt" => "Plain text", _ => "Standalone HTML" }) { Patterns = ["*." + extension] }]
+                FileTypeChoices = [new FilePickerFileType(extension switch { "docx" => "Word document", "txt" => "Plain text", "pdf" => "PDF document", _ => "Standalone HTML" }) { Patterns = ["*." + extension] }]
             });
             if (selected?.TryGetLocalPath() is not { } path) return;
             var replace = File.Exists(path);
             if (replace && await ChoiceDialog.ShowAsync(this, "Replace export", "Replace this output file?\n" + path, "Replace", "Cancel") != "Replace") return;
             ExportProgressPanel.IsVisible = true;
             ExportCancelRequested = () => cancellation.Cancel();
-            var result = await new DocumentExportService().WriteAsync(snapshot, path, replace,
-                _tabs.Select(tab => tab.Session.Path).OfType<string>(), _operationalPaths.Root, cancellation.Token);
+            var result = await new DocumentExportService(new NativePdfExportRenderer(_operationalPaths.Root)).WriteAsync(snapshot, path, replace,
+                _tabs.Select(tab => tab.Session.Path).OfType<string>(), _operationalPaths.Root, cancellation.Token, pageSize);
             UpdateChrome("Exported " + result.Path);
             if (result.Warnings.Count > 0) await ChoiceDialog.ShowAsync(this, "Export completed with warnings", string.Join("\n", result.Warnings), "Close");
         }

@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: B0415F2305988B722F7B51CEEEA6518CD2097A8E8A4771F8285D9ABB3D4CA9D0. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 96CAF7E402C9E1EE830FC9A3ED054091BDBDE4EC522A4ECF07534571219A5605. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -192,4 +192,10 @@ Ben selected the teal architectural A icon and both menu looks. The application 
 
 ## Plain-text export (1.0.8 development)
 
-Use File → Export current buffer to plain text to write a UTF-8 `.txt` file from the active buffer, including unsaved edits. The same overwrite confirmation, cancellation and protected-destination rules apply as for Word and HTML. Markdown files and recovery state are unchanged. Headings and paragraphs become readable text; lists retain nesting and numbering, tasks retain checkbox symbols, quotes retain a `>` prefix, and code retains indentation. Links include their destination when different from the label. Images retain alt text without embedded bytes. Tables use ` | ` separators and warn that column alignment is approximate. PDF export is still in development. Human acceptance remains pending.
+Use File → Export current buffer to plain text to write a UTF-8 `.txt` file from the active buffer, including unsaved edits. The same overwrite confirmation, cancellation and protected-destination rules apply as for Word and HTML. Markdown files and recovery state are unchanged. Headings and paragraphs become readable text; lists retain nesting and numbering, tasks retain checkbox symbols, quotes retain a `>` prefix, and code retains indentation. Links include their destination when different from the label. Images retain alt text without embedded bytes. Tables use ` | ` separators and warn that column alignment is approximate. PDF export is available in this development candidate. Human acceptance remains pending.
+
+## PDF export (1.0.8 development)
+
+Use File → Export current buffer to PDF, choose Letter or A4 portrait, and select a `.pdf` output file. Export captures the active buffer when invoked, including unsaved edits, and writes directly without a printer dialog, Office or an online conversion service. Output uses neutral light styling, 18 mm margins and page numbers. Headings, emphasis, nested lists/tasks, quotes, code, safe hyperlinks, tables and supported local images are retained. Table headers repeat; very tall rows can continue across pages and produce a review warning. Long code and URLs wrap; images fit printable width and height. Missing/unsupported images retain alt text and warnings. No remote images or executable HTML are loaded. Unicode is searchable/selectable using installed Windows fonts and browser fallback; unusual scripts require a suitable installed font.
+
+The Windows export renderer requires the same WebView2 Runtime as Preview. Export is limited to 4 million source characters, 64 million HTML characters including embedded images, 20 MiB per image and 128 MiB output. PDF rendering times out after 60 seconds. Cancel or failure preserves an existing destination and the active document; only successful output commits replace it. Cancellation closes the isolated renderer; it cannot interrupt a synchronous Markdown parse already executing. Keep your Markdown as the editable source. Human review of the exact candidate remains pending until all planned features are implemented.

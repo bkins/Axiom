@@ -8,6 +8,11 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets/**" />
     <EmbeddedResource Include="Help/UserGuide.md" LogicalName="Axiom.App.Help.UserGuide.md" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4129.50" GeneratePathProperty="true" ExcludeAssets="build;buildTransitive;compile;runtime" />
+    <Reference Include="Microsoft.Web.WebView2.Core">
+      <HintPath>$(PkgMicrosoft_Web_WebView2)/lib_manual/netcoreapp3.0/Microsoft.Web.WebView2.Core.dll</HintPath>
+    </Reference>
+    <None Include="$(PkgMicrosoft_Web_WebView2)/LICENSE.txt" Link="ThirdPartyNotices/Microsoft.Web.WebView2.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <ProjectReference Include="..\Axiom.Core\Axiom.Core.csproj" />
     <ProjectReference Include="..\Axiom.Infrastructure\Axiom.Infrastructure.csproj" />
     <PackageReference Include="Avalonia" Version="12.1.0" />
@@ -16,8 +21,7 @@
     <PackageReference Include="Avalonia.Controls.WebView" Version="12.1.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
   </ItemGroup>
-  <Target Name="VerifyMaintainedOfflineHelp" BeforeTargets="BeforeBuild"
-          Condition="Exists('$(MSBuildProjectDirectory)/../../../../Application Documentation/Axiom/07 - User Documentation/Axiom v1 User Guide.md')">
+  <Target Name="VerifyMaintainedOfflineHelp" BeforeTargets="BeforeBuild" Condition="Exists('$(MSBuildProjectDirectory)/../../../../Application Documentation/Axiom/07 - User Documentation/Axiom v1 User Guide.md')">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/../../scripts/Sync-OfflineHelp.ps1&quot; -Check" />
   </Target>
 </Project>
