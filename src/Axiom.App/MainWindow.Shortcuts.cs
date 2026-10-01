@@ -34,19 +34,23 @@ public partial class MainWindow
     }
 
     private async void ShortcutSettings_OnClick(object? sender, RoutedEventArgs eventArgs)
+        => await ExecuteCommandAsync("application.shortcuts");
+
+    private async Task<CommandResult> ConfigureShortcutsAsync()
     {
         try
         {
             var selected = await new ShortcutSettingsWindow(_commands.Commands, _shortcutConfiguration).ShowDialog<ShortcutConfiguration?>(this);
-            if (selected is null) return;
+            if (selected is null) return new(CommandOutcome.Cancelled, "Shortcut changes cancelled.");
             if (ManagementState is null) throw new IOException("Shortcut settings storage is unavailable.");
             var resolved = selected.Resolve(_commands.Commands);
             await ManagementState.SetShortcutConfigurationAsync(selected, _commands.Commands);
             _shortcutConfiguration = selected;
             _shortcutBindings = resolved;
             UpdateChrome("Keyboard shortcuts applied.");
+            return new(CommandOutcome.Completed, "Keyboard shortcuts applied.");
         }
-        catch (Exception exception) { ReportError("shortcuts.apply.failed", exception, null); }
+        catch (Exception exception) { ReportError("shortcuts.apply.failed", exception, null); return new(CommandOutcome.Failed, exception.Message, exception); }
     }
 
     private async Task<bool> TryExecuteShortcutAsync(KeyEventArgs eventArgs)

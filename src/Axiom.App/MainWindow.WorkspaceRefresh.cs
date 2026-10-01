@@ -40,7 +40,7 @@ public partial class MainWindow
     }
 
     private async void RefreshWorkspace_OnClick(object? sender, RoutedEventArgs eventArgs) =>
-        await RefreshWorkspaceSafelyAsync();
+        await ExecuteCommandAsync("workspace.refresh");
 
     private async Task RefreshWorkspaceSafelyAsync()
     {

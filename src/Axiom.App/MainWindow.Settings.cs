@@ -15,12 +15,15 @@ public partial class MainWindow
     }
 
     private async void Settings_OnClick(object? sender, RoutedEventArgs args)
+        => await ExecuteCommandAsync("application.settings");
+
+    private async Task<CommandResult> ConfigureSettingsAsync()
     {
         try
         {
             var window = new SettingsWindow(_editorPreferences, _appearance, () => _ = ShowHelpAsync("Settings and editor preferences"));
             var choice = await window.ShowDialog<(EditorPreferences Preferences, AppearancePreference Appearance)?>(this);
-            if (choice is null) return;
+            if (choice is null) return new(CommandOutcome.Cancelled, "Settings changes cancelled.");
             if (ManagementState is null) throw new InvalidOperationException("Application settings storage is unavailable.");
             await ManagementState.SetEditorPreferencesAsync(choice.Value.Preferences, choice.Value.Appearance);
             _editorPreferences = choice.Value.Preferences;
@@ -28,8 +31,9 @@ public partial class MainWindow
             _appearance = choice.Value.Appearance;
             SetRequestedAppearance(_appearance);
             ApplyAppearanceVisuals();
+            return new(CommandOutcome.Completed, "Settings applied.");
         }
-        catch (Exception exception) { ReportError("settings.apply.failed", exception, null); }
+        catch (Exception exception) { ReportError("settings.apply.failed", exception, null); return new(CommandOutcome.Failed, exception.Message, exception); }
     }
 
     private void ApplyEditorPreferences(EditorPreferences preferences)

@@ -201,7 +201,7 @@ public partial class MainWindow
     }
 
     private async void CloseActiveTab_OnClick(object? sender, RoutedEventArgs eventArgs) =>
-        await CloseTabAsync(_activeTab);
+        await ExecuteCommandAsync("document.close");
 
     private async Task<bool> CloseTabAsync(DocumentTab tab)
     {

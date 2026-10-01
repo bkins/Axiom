@@ -5,6 +5,7 @@ namespace Axiom.App;
 public partial class MainWindow
 {
     private async void CommandPalette_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs) => await ShowCommandPaletteAsync();
+    internal Task ShowCommandPaletteForTestingAsync() => ShowCommandPaletteAsync();
 
     private async Task ShowCommandPaletteAsync()
     {
@@ -24,6 +25,7 @@ public partial class MainWindow
 
     private void InitializeCommands()
     {
+        InitializeAdditionalCommands();
         RegisterCommand("application.install", "Install Axiom for current user", null, true, (_, _) => InstallCurrentUserAsync());
         RegisterCommand("application.checkUpdate", "Check trusted update", null, true, (_, _) => CheckTrustedUpdateAsync());
         RegisterCommand("workspace.git", "Inspect workspace Git", null, true, (_, _) => ShowWorkspaceGitAsync(),

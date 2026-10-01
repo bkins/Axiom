@@ -6,8 +6,8 @@ namespace Axiom.App;
 public partial class MainWindow
 {
     private bool _installationRunning;
-    private async void InstallCurrentUser_OnClick(object? sender, RoutedEventArgs eventArgs) => await InstallCurrentUserAsync();
-    private async void CheckTrustedUpdate_OnClick(object? sender, RoutedEventArgs eventArgs) => await CheckTrustedUpdateAsync();
+    private async void InstallCurrentUser_OnClick(object? sender, RoutedEventArgs eventArgs) => await ExecuteCommandAsync("application.install");
+    private async void CheckTrustedUpdate_OnClick(object? sender, RoutedEventArgs eventArgs) => await ExecuteCommandAsync("application.checkUpdate");
 
     private async Task<Axiom.Core.CommandResult> InstallCurrentUserAsync()
     {

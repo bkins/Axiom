@@ -97,18 +97,24 @@ public partial class MainWindow
     private async void ManageDocument_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is not Control { Tag: string value } || !Enum.TryParse<DocumentMutationKind>(value, out var kind)) return;
+        await ExecuteCommandAsync("workspace.manage." + kind.ToString().ToLowerInvariant());
+    }
+
+    private async Task<CommandResult> ManageDocumentAsync(DocumentMutationKind kind, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_activeWorkspace is null || ManagementState is null || _mutationBlocked)
         {
             UpdateChrome(_mutationBlocked ? "Restart and resolve pending file operations before making another change." : "Open a workspace before managing its files.");
-            return;
+            return new(CommandOutcome.Unavailable, "Open a workspace and resolve pending operations first.");
         }
         var workspace = _activeWorkspace;
         var selected = FileTree.SelectedItem as WorkspaceTreeNode;
         var sourceRelative = selected is { IsDocument: true } ? selected.RelativePath :
             _session.Path is not null && IsWithinFolder(_session.Path, workspace.RootPath) ? Path.GetRelativePath(workspace.RootPath, _session.Path) : null;
         var isCreation = kind is DocumentMutationKind.Create or DocumentMutationKind.CreateFolder;
-        if (!isCreation && sourceRelative is null) { UpdateChrome("Select a workspace document first."); return; }
-        if (_sessionTransitionRunning || _navigationRunning) return;
+        if (!isCreation && sourceRelative is null) { UpdateChrome("Select a workspace document first."); return new(CommandOutcome.Unavailable, "Select a workspace document first."); }
+        if (_sessionTransitionRunning || _navigationRunning) return new(CommandOutcome.Unavailable, "Another document operation is running.");
         _sessionTransitionRunning = true;
         SetSessionCommandsEnabled(false);
         try
@@ -123,7 +129,7 @@ public partial class MainWindow
                   , SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(
                       Path.GetDirectoryName(Path.Combine(workspace.RootPath, sourceRelative!))!)
                 });
-                if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return;
+                if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return new(CommandOutcome.Cancelled, "Move cancelled.");
                 destinationRelative = WorkspaceMutationPolicy.MoveDestination(workspace.RootPath, sourceRelative!, folder);
             }
             else if (kind != DocumentMutationKind.Recycle)
@@ -137,20 +143,20 @@ public partial class MainWindow
                     _ => sourceRelative!
                 };
                 destinationRelative = await TextEntryDialog.ShowAsync(this, kind.ToString(), $"Workspace: {workspace.RootPath}\nEnter a workspace-relative destination. Existing targets are never overwritten.", initial);
-                if (destinationRelative is null) return;
+                if (destinationRelative is null) return new(CommandOutcome.Cancelled, "Destination cancelled.");
                 WorkspaceMutationPolicy.Resolve(workspace.RootPath, destinationRelative, kind != DocumentMutationKind.CreateFolder);
             }
             var message = $"{kind}\nSource: {(sourceRelative is null ? "New item" : Path.Combine(workspace.RootPath, sourceRelative))}\nDestination: {(destinationRelative is null ? "Windows Recycle Bin" : Path.Combine(workspace.RootPath, destinationRelative))}";
             if (kind == DocumentMutationKind.Move && Path.GetDirectoryName(sourceRelative) != Path.GetDirectoryName(destinationRelative))
                 message += "\nRelative links and images may require manual repair. Axiom does not rewrite references or move assets.";
             if (kind == DocumentMutationKind.Recycle) message += "\nAxiom captures the document and its original path before recycling. If capture fails, deletion is prevented. Use File → Recover Deleted Documents to restore; Windows Recycle Bin is also separate. Pins are removed until restore; this is not editor Undo.";
-            if (await ChoiceDialog.ShowAsync(this, "Confirm " + kind, message, "Continue", "Cancel") != "Continue") return;
+            if (await ChoiceDialog.ShowAsync(this, "Confirm " + kind, message, "Continue", "Cancel") != "Continue") return new(CommandOutcome.Cancelled, "File operation cancelled.");
             var affectedTab = sourceRelative is null ? null : FindTab(Path.Combine(workspace.RootPath, sourceRelative));
             if (affectedTab is not null) await SelectTabAsync(affectedTab);
             var affectsActive = sourceRelative is not null && _session.Path is not null && string.Equals(Path.Combine(workspace.RootPath, sourceRelative), _session.Path, StringComparison.OrdinalIgnoreCase);
-            if (affectsActive && !await ConfirmSafeToReplaceSessionAsync()) return;
+            if (affectsActive && !await ConfirmSafeToReplaceSessionAsync()) return new(CommandOutcome.Cancelled, "Dirty document retained.");
             if (affectsActive && Editor.Text != _session.Text) SetEditorText(_session.Text);
-            if (_session.Conflict is not null && affectsActive) { UpdateChrome("Resolve the active document conflict before managing its file."); return; }
+            if (_session.Conflict is not null && affectsActive) { UpdateChrome("Resolve the active document conflict before managing its file."); return new(CommandOutcome.Unavailable, "Resolve the active conflict first."); }
             var operations = new WorkspaceFileOperations(ManagementState, log: _log);
             if (kind == DocumentMutationKind.Duplicate && _duplicates.Values.Any(paths => paths.Contains(Path.Combine(workspace.RootPath, sourceRelative!), StringComparer.OrdinalIgnoreCase)))
                 throw new IOException("Resolve the source document's duplicate identity first.");
@@ -159,7 +165,7 @@ public partial class MainWindow
             if (affectsActive) _monitor.Watch(null);
             try
             {
-                var path = await operations.ExecuteAsync(workspace, kind, sourceRelative, destinationRelative, reviewedHash);
+                var path = await operations.ExecuteAsync(workspace, kind, sourceRelative, destinationRelative, reviewedHash, cancellationToken);
                 if (affectedTab is not null && kind is DocumentMutationKind.Rename or DocumentMutationKind.Move && path is not null) affectedTab.Session.UpdatePath(path);
                 if (affectedTab is not null && kind == DocumentMutationKind.Recycle) await CloseTabAsync(affectedTab);
                 await LoadFolderAsync(workspace.RootPath);
@@ -168,14 +174,21 @@ public partial class MainWindow
                          await ChoiceDialog.ShowAsync(this, "Document duplicated", $"Created {path}. Open the copy?", "Open", "Keep current") == "Open")
                     await OpenDocumentAsync(path);
                 UpdateChrome($"{kind} completed: {destinationRelative ?? sourceRelative}");
+                return new(CommandOutcome.Completed, kind + " completed.");
             }
             finally { Editor.IsEnabled = true; RefreshDocumentMonitors(); }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _mutationBlocked = (await ManagementState.GetPendingMutationsAsync()).Count > 0;
+            return new(CommandOutcome.Cancelled, _mutationBlocked ? "Operation interrupted; restart to reconcile the protected receipt." : "File operation cancelled.");
         }
         catch (Exception exception)
         {
             _mutationBlocked = (await ManagementState.GetPendingMutationsAsync()).Count > 0;
             ReportError("document.management.failed", exception, sourceRelative);
             await ChoiceDialog.ShowAsync(this, "Operation not completed", exception.Message, "OK");
+            return new(CommandOutcome.Failed, exception.Message, exception);
         }
         finally
         {

@@ -16,9 +16,9 @@ public partial class MainWindow
     private string? _pendingHeadingFragment;
     private bool _navigationRunning;
 
-    private async void FollowLink_OnClick(object? sender, RoutedEventArgs eventArgs) => await FollowEditorLinkAsync();
-    private async void Back_OnClick(object? sender, RoutedEventArgs eventArgs) => await NavigateHistoryAsync(false);
-    private async void Forward_OnClick(object? sender, RoutedEventArgs eventArgs) => await NavigateHistoryAsync(true);
+    private async void FollowLink_OnClick(object? sender, RoutedEventArgs eventArgs) => await ExecuteCommandAsync("navigation.followLink");
+    private async void Back_OnClick(object? sender, RoutedEventArgs eventArgs) => await ExecuteCommandAsync("navigation.back");
+    private async void Forward_OnClick(object? sender, RoutedEventArgs eventArgs) => await ExecuteCommandAsync("navigation.forward");
 
     private Task FollowEditorLinkAsync()
     {

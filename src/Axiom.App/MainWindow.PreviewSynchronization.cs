@@ -53,7 +53,9 @@ public partial class MainWindow
         Closed += (_, _) => _scrollSyncTimer.Stop();
     }
 
-    private void ToggleScrollSync_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private async void ToggleScrollSync_OnClick(object? sender, RoutedEventArgs eventArgs) => await ExecuteCommandAsync("view.scrollSync");
+
+    private void ToggleScrollSynchronization()
     {
         _scrollSyncEnabled = !_scrollSyncEnabled;
         ScrollSyncButton.Content = _scrollSyncEnabled ? "Scroll sync: on" : "Scroll sync: off";
@@ -62,7 +64,7 @@ public partial class MainWindow
     }
 
     private async void ShowPreviewAtCaret_OnClick(object? sender, RoutedEventArgs eventArgs) =>
-        await ScrollPreviewToSourceAsync(Editor.CaretOffset);
+        await ExecuteCommandAsync("view.previewAtCaret");
 
     private async Task HandlePreviewSourceAsync(Uri request)
     {

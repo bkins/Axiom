@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Axiom.Infrastructure;
+using Axiom.Core;
 
 namespace Axiom.App;
 
@@ -12,18 +13,26 @@ public partial class MainWindow
     private readonly AppDataPaths _operationalPaths = new();
 
     private async void Diagnostics_OnClick(object? sender, RoutedEventArgs eventArgs)
+        => await ExecuteCommandAsync("application.diagnostics");
+
+    private async Task<CommandResult> ShowDiagnosticsAsync()
     {
         var window = new InformationWindow("Axiom diagnostics", () => Task.Run(() =>
             $"State: {_operationalPaths.Root}\nLogs: {_operationalPaths.LogDirectory}\n\n{new DiagnosticsReader(_operationalPaths).ReadTail()}"));
         await window.ShowDialog(this);
+        return new(CommandOutcome.Completed, "Diagnostics closed.");
     }
 
     private async void Maintenance_OnClick(object? sender, RoutedEventArgs eventArgs)
+        => await ExecuteCommandAsync("application.maintenance");
+
+    private async Task<CommandResult> ShowMaintenanceAsync()
     {
         var service = new StateMaintenanceService(_operationalPaths);
         InformationWindow? window = null;
         window = new InformationWindow("Axiom state maintenance", InspectAsync, ExportAsync, "Export verified backup…");
         await window.ShowDialog(this);
+        return new(CommandOutcome.Completed, "State maintenance viewer closed.");
 
         async Task<string> InspectAsync()
         {
@@ -45,8 +54,12 @@ public partial class MainWindow
     }
 
     private async void About_OnClick(object? sender, RoutedEventArgs eventArgs)
+        => await ExecuteCommandAsync("application.about");
+
+    private async Task<CommandResult> ShowAboutAsync()
     {
         await new InformationWindow("About Axiom", GetAboutInformationAsync).ShowDialog(this);
+        return new(CommandOutcome.Completed, "About closed.");
     }
 
     internal async Task<string> GetAboutInformationAsync()

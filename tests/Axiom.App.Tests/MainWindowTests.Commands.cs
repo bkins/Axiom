@@ -7,6 +7,33 @@ namespace Axiom.App.Tests;
 public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
+    public async Task FormattingCommandsPreserveIdentityDiskAndOneUndoWhileUnavailableMutationsDoNothing()
+    {
+        var root = CreateTabWorkspace();
+        try
+        {
+            var path = Path.Combine(root, "protected.md");
+            var source = "<!-- axiom:documentId=" + Guid.NewGuid().ToString("D") + " -->\n\nalpha";
+            await File.WriteAllTextAsync(path, source);
+            var window = CreateWindow(root);
+            await window.OpenDocumentAsync(path);
+            window.SetEditorSelectionForTesting(0, 5);
+            Assert.Equal(CommandOutcome.Cancelled, (await window.ExecuteCommandAsync("editor.format.bold")).Outcome);
+            Assert.Equal(source, window.EditorTextForTesting);
+            window.SetEditorSelectionForTesting(source.Length - 5, 5);
+            Assert.Equal(CommandOutcome.Completed, (await window.ExecuteCommandAsync("editor.format.bold")).Outcome);
+            Assert.EndsWith("**alpha**", window.EditorTextForTesting);
+            Assert.Equal(source, await File.ReadAllTextAsync(path));
+            await window.ExecuteCommandAsync("editor.undo");
+            Assert.Equal(source, window.EditorTextForTesting);
+            Assert.Equal(CommandOutcome.Unavailable, (await window.ExecuteCommandAsync("workspace.manage.recycle")).Outcome);
+            Assert.Equal(source, await File.ReadAllTextAsync(path));
+            window.Close();
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [AvaloniaFact]
     public async Task RebindingAndDisablingNewRouteOnlyEffectiveGestureThroughDispatcher()
     {
         var root = CreateTabWorkspace();

@@ -166,16 +166,20 @@ public partial class MainWindow : Window
     }
 
     private async void OpenFolder_OnClick(object? sender, RoutedEventArgs e)
+        => await ExecuteCommandAsync("workspace.open");
+
+    private async Task<CommandResult> OpenWorkspacePickerAsync()
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Select a folder for the Markdown workspace", AllowMultiple = false });
-        if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return;
+        if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return new(CommandOutcome.Cancelled, "Workspace selection cancelled.");
         try
         {
-            await SwitchWorkspaceAsync(folder);
+            return new(await SwitchWorkspaceAsync(folder) ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Workspace selection reviewed.");
         }
         catch (Exception exception)
         {
             ReportError("workspace.open.failed", exception, folder);
+            return new(CommandOutcome.Failed, exception.Message, exception);
         }
     }
 
@@ -434,10 +438,10 @@ public partial class MainWindow : Window
     private async void Undo_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("editor.undo");
     private async void Redo_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("editor.redo");
 
-    private void Format_OnClick(object? sender, RoutedEventArgs e)
+    private async void Format_OnClick(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { Tag: string value } || !Enum.TryParse<MarkdownEditKind>(value, out var kind)) return;
-        ApplyMarkdownEdit(kind);
+        await ExecuteCommandAsync("editor.format." + kind.ToString().ToLowerInvariant());
     }
 
     private async void InsertImage_OnClick(object? sender, RoutedEventArgs e)
@@ -1136,13 +1140,13 @@ public partial class MainWindow : Window
         if (e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Left or Key.Right)
         {
             e.Handled = true;
-            await NavigateHistoryAsync(e.Key == Key.Right);
+            await ExecuteCommandAsync(e.Key == Key.Right ? "navigation.forward" : "navigation.back");
             return;
         }
         if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.Enter && IsEditorCommandTarget())
         {
             e.Handled = true;
-            await FollowEditorLinkAsync();
+            await ExecuteCommandAsync("navigation.followLink");
             return;
         }
         if (TryHandleCommandMenuKey(e)) return;
@@ -1153,14 +1157,15 @@ public partial class MainWindow : Window
             return;
         }
         if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
-        if (TryHandleMarkdownShortcut(e.Key, e.KeyModifiers, editorIsCommandTarget))
+        if (editorIsCommandTarget && e.KeyModifiers == KeyModifiers.Control && e.Key is Key.B or Key.I or Key.K)
         {
             e.Handled = true;
+            await ExecuteCommandAsync("editor.format." + (e.Key == Key.B ? "bold" : e.Key == Key.I ? "italic" : "link"));
             return;
         }
         if (e.Key == Key.W && e.KeyModifiers == KeyModifiers.Control)
         {
-            await CloseTabAsync(_activeTab);
+            await ExecuteCommandAsync("document.close");
             e.Handled = true;
         }
         else if (e.Key == Key.Tab && e.KeyModifiers is KeyModifiers.Control or (KeyModifiers.Control | KeyModifiers.Shift))
