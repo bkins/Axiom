@@ -26,6 +26,8 @@ internal sealed class NativePdfExportRenderer(string cacheRoot) : IPdfExportRend
     private async Task<PdfRenderResult> RenderOnUiThreadAsync(string html, PdfPageSize pageSize, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
+            throw new IOException("PDF export is unavailable on this native browser platform. Existing output was preserved.");
         var view = new NativeWebView { Background = Avalonia.Media.Brushes.White };
         var host = new Window
         {
@@ -70,9 +72,20 @@ internal sealed class NativePdfExportRenderer(string cacheRoot) : IPdfExportRend
             var oversized = await view.InvokeScript("Array.from(document.querySelectorAll('tr')).filter(row => row.getBoundingClientRect().height > 800).length");
             if (int.TryParse(oversized, out var count) && count > 0)
                 warnings.Add("Very tall table rows may split across PDF pages; inspect their continuation in the exported document.");
-            if (!OperatingSystem.IsWindows() || view.TryGetPlatformHandle() is not IWindowsWebView2PlatformHandle handle)
-                throw new NotSupportedException("PDF export requires WebView2 on Windows for verified page geometry.");
-            var printing = WindowsPdfPrinter.PrintAsync(handle, pageSize);
+            Task<Stream> printing;
+            if (OperatingSystem.IsWindows())
+            {
+                if (view.TryGetPlatformHandle() is not IWindowsWebView2PlatformHandle handle)
+                    throw new NotSupportedException("PDF export requires the Windows WebView2 adapter.");
+                printing = WindowsPdfPrinter.PrintAsync(handle, pageSize);
+            }
+            else
+            {
+                // WKWebView accepts page settings through the captured HTML's print
+                // CSS; the extended Windows print-options API is unavailable here.
+                warnings.Add("macOS PDF page geometry, pagination and page numbering require native verification. Inspect the exported document.");
+                printing = view.PrintToPdfStreamAsync();
+            }
             Stream stream;
             try { stream = await printing.WaitAsync(cancellationToken); }
             catch
@@ -99,7 +112,9 @@ internal sealed class NativePdfExportRenderer(string cacheRoot) : IPdfExportRend
         }
         catch (NotSupportedException)
         {
-            throw new IOException("This native browser cannot export PDF. Install or update the WebView2 Runtime and retry.");
+            throw new IOException(OperatingSystem.IsWindows()
+                ? "This native browser cannot export PDF. Install or update the WebView2 Runtime and retry."
+                : "This native browser cannot export PDF. Existing output was preserved; verify the macOS browser runtime before retrying.");
         }
         finally { host.Close(); }
     }

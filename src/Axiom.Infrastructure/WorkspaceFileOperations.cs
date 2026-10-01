@@ -8,7 +8,8 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
                                          , IAxiomLog? log = null)
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly IRecycleBin _recycle = recycle ?? new WindowsRecycleBin();
+    private readonly IRecycleBin _recycle = recycle ?? (OperatingSystem.IsMacOS() ? new MacRecycleBin()
+        : OperatingSystem.IsLinux() ? new LinuxRecycleBin() : new WindowsRecycleBin());
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
 
     public async Task<string?> ExecuteAsync(WorkspaceRecord workspace
@@ -108,7 +109,7 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
                 {
                     case DocumentMutationKind.CreateFolder:
                         if (Directory.Exists(destination)) throw new IOException("The folder already exists.");
-                        CreateDirectoryExclusive(destination!);
+                        ExclusiveDirectoryCreator.Create(destination!);
                         break;
                     case DocumentMutationKind.Create:
                     case DocumentMutationKind.Duplicate:
@@ -216,7 +217,7 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
         {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateAncestors(workspace.RootPath, folder);
-            CreateDirectoryExclusive(folder);
+            ExclusiveDirectoryCreator.Create(folder);
         }
         return (await ExecuteAsync(workspace, DocumentMutationKind.Restore, null, relative, cancellationToken: cancellationToken
             , importContent: content, recoveryOperationId: recoveryOperationId))!;
@@ -268,13 +269,4 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
-    private static void CreateDirectoryExclusive(string path)
-    {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Exclusive folder creation requires Windows.");
-        if (!CreateDirectory(path, nint.Zero)) throw new IOException("Folder creation failed; the target may already exist.", new System.ComponentModel.Win32Exception(System.Runtime.InteropServices.Marshal.GetLastWin32Error()));
-    }
-
-    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
-    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static extern bool CreateDirectory(string path, nint securityAttributes);
 }

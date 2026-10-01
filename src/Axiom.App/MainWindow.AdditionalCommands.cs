@@ -134,7 +134,8 @@ public partial class MainWindow
         });
         foreach (var extension in new[] { "docx", "html", "txt", "pdf" })
             RegisterCommand("document.export." + extension, "Export current buffer to " + extension.ToUpperInvariant(), null, true,
-                (_, cancellation) => ExportCurrentBufferAsync(extension, cancellation));
+                (_, cancellation) => ExportCurrentBufferAsync(extension, cancellation),
+                _ => new(extension != "pdf" || OperatingSystem.IsWindows() || OperatingSystem.IsMacOS(), "PDF export is unavailable on this native browser platform."));
         foreach (var kind in new[] { DocumentMutationKind.CreateFolder, DocumentMutationKind.Rename, DocumentMutationKind.Move, DocumentMutationKind.Duplicate, DocumentMutationKind.Recycle })
             RegisterCommand("workspace.manage." + kind.ToString().ToLowerInvariant(), kind + " workspace document", null, true,
                 (_, cancellation) => ManageDocumentAsync(kind, cancellation), WorkspaceCommandAvailability);
