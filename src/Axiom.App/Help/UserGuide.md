@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 684A26A07D88FC0C4B2951EC7D5B1A5482CF61C5D6FB3460605D1E57E2F969F6. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 44667BBDAD72602A1F7C36F112E5F4BBEEB20A312F21CFB991613B65D331E2D9. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -12,7 +12,7 @@ Press/release **Alt** or press **F10** to focus File, then Space/Enter to open i
 
 The explorer selects one document. For bulk enrollment, choose **Enroll multiple files…** beside it or **File → Bulk Make Axiom Documents…**. Select multiple rows in that separate review window by clicking each row or pressing Space on a focused row; Shift selects a range. Watch the selected count, then explicitly Apply. Opening the window or selecting rows does not enroll files.
 
-Files restored or added externally appear after the workspace watcher refreshes the explorer; your dirty editor stays intact. **F5** or **File → Refresh Workspace** requests a rescan. Restore does not recreate removed pins automatically.
+Files restored or added externally appear after the workspace watcher refreshes the explorer; your dirty editor stays intact. **F5** or **File → Refresh Workspace** requests a rescan. External restore does not recreate removed pins automatically; Axiom deleted-document recovery restores its recorded pin.
 
 Use each candidate's `Test-Axiom.cmd` and disposable collections for independent testing. Native workflow acceptance remains pending. See [Document and Workspace Management](../04%20-%20Features/Document%20and%20Workspace%20Management.md).
 
@@ -86,6 +86,16 @@ An asterisk in the window title means the editor differs from the saved file. Cl
 Existing files do not become Axiom documents automatically. Select **Make Axiom Document** only when stable identity is useful. The new ID is an unsaved editor change until you save. If copied files contain the same ID, Axiom warns and offers a distinct ID for the copy.
 
 ## Recovery
+
+### Deleted documents and recorded folder structure (1.0.13 candidate)
+
+**Delete Document to Recycle Bin** captures exact saved bytes, original workspace path, document identity, pin and a classification/relationship receipt before recycling. Capture failure prevents deletion. Protected recycle supports Markdown documents up to 20 MiB; larger files remain untouched. Resolve unsaved changes first: recovery captures the saved file, not discarded edits.
+
+Choose **File → Recover Deleted Documents…** or **Recover deleted documents** in the command palette. Select a receipt to preview its captured source and status, then **Restore selected…**. Choose a workspace-relative Markdown path and confirm **Preserve identity** or **New identity**. Cancel keeps the capture and disk unchanged. Missing parent folders are recreated; recovery never overwrites an existing file. Choose another path when the original path is occupied. A preserved identity already present elsewhere requires resolving that conflict or explicitly choosing a new identity.
+
+Preserving identity reconnects classifications and relationships still retained in current state. Newer metadata remains authoritative; the historical receipt never replaces it. A new identity does not inherit the original metadata or redirect original relationships. Missing relationship endpoints remain unresolved. The recorded pin is restored to the selected path.
+
+Captures live in local Axiom state, separately from Windows Recycle Bin and Git history. They remain without automatic expiration; protect and back up that state if you need the captures. Recovery covers Axiom-observed document recycling and recorded parent paths, not arbitrary external deletion or recursive folder deletion. A corrupt receipt cannot be restored. Prepared/restoring receipts require restart reconciliation; cancelled/restored receipts remain visible and cannot be restored again. Parent folders created before an interrupted restore may remain empty; retry checks them safely.
 
 Dirty text is protected locally without being written to the Markdown file. After a crash or forced reboot, Axiom can restore that text into the editor for review. Recovery never silently saves it.
 

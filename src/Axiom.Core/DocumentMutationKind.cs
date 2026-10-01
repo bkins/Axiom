@@ -11,4 +11,5 @@ public enum DocumentMutationKind
   , Enroll
   , ImportAsset
   , ImportDocument
+  , Restore
 }

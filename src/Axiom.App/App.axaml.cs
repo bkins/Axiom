@@ -13,6 +13,11 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = AppComposition.CreateMainWindow();
+            if (DeletedDocumentProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await DeletedDocumentProbe.StartAsync(window);
+            }
             if (DocumentHistoryProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

@@ -7,4 +7,7 @@ public sealed record DocumentMutationIntent(Guid OperationId
                                          , string? SourcePath
                                          , string? DestinationPath
                                          , string ExpectedHash
-                                         , Guid? DocumentId);
+                                         , Guid? DocumentId)
+{
+    public Guid? RecoveryOperationId { get; init; }
+}

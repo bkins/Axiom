@@ -89,7 +89,7 @@ public sealed class RelationshipTests
             await command.ExecuteNonQueryAsync();
         }
         await fixture.State.InitializeAsync();
-        Assert.Equal(7, (await new StateMaintenanceService(fixture.State.Paths).InspectAsync()).SchemaVersion);
+        Assert.Equal(SqliteStateStore.CurrentSchemaVersion, (await new StateMaintenanceService(fixture.State.Paths).InspectAsync()).SchemaVersion);
         Assert.Equal("Preserve", Assert.Single(Assert.Single(await fixture.State.GetClassificationsAsync()).Tags));
         var backup = Directory.GetFiles(fixture.State.Paths.BackupDirectory, "*.db").Single();
         await using var backedUp = new SqliteConnection($"Data Source={backup};Mode=ReadOnly;Pooling=False");

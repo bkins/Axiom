@@ -89,6 +89,27 @@ public sealed partial class SqliteStateStore
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
         }
+        if (intent.Kind == DocumentMutationKind.Recycle)
+        {
+            command.CommandText = "UPDATE DeletedDocuments SET Status=$status WHERE OperationId=$operation;";
+            command.Parameters.AddWithValue("$status", applied ? "Available" : "Cancelled");
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        if (intent.Kind == DocumentMutationKind.Restore && intent.RecoveryOperationId is { } recovery)
+        {
+            command.Parameters.AddWithValue("$recovery", recovery.ToString("D"));
+            if (applied)
+            {
+                command.CommandText = """
+                    INSERT OR IGNORE INTO WorkspacePins(WorkspaceId,RelativePath,PinnedUtc)
+                    SELECT $workspace,$newRelative,PinnedUtc FROM DeletedDocuments WHERE OperationId=$recovery AND PinnedUtc IS NOT NULL;
+                    """;
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+            command.CommandText = "UPDATE DeletedDocuments SET Status=$restoreStatus WHERE OperationId=$recovery;";
+            command.Parameters.AddWithValue("$restoreStatus", applied ? "Restored" : "Available");
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
         command.CommandText = "DELETE FROM DocumentMutations WHERE OperationId=$operation;";
         await command.ExecuteNonQueryAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

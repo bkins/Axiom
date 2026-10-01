@@ -29,6 +29,11 @@ public sealed class WorkspaceFileOperationsTests
         Assert.Empty(await fixture.State.GetPinsAsync(fixture.Workspace.WorkspaceId));
         Assert.Empty(await fixture.State.GetIdentitiesAsync());
         Assert.Empty(await fixture.State.GetPendingMutationsAsync());
+        var captured = Assert.Single(await fixture.State.GetDeletedDocumentsAsync(fixture.Workspace.WorkspaceId));
+        Assert.Equal(bytes, captured.Content);
+        Assert.Equal(id, captured.Intent.DocumentId);
+        Assert.Equal("Available", captured.Status);
+        Assert.NotNull(captured.PinnedUtc);
     }
 
     [Fact]
@@ -93,6 +98,7 @@ public sealed class WorkspaceFileOperationsTests
         await Assert.ThrowsAsync<IOException>(() => operations.ExecuteAsync(fixture.Workspace, DocumentMutationKind.Move, "a.md", "b.md", "stale hash"));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operations.ExecuteAsync(fixture.Workspace, DocumentMutationKind.Move, "a.md", "b.md", cancellationToken: new CancellationToken(true)));
         await Assert.ThrowsAsync<IOException>(() => operations.ExecuteAsync(fixture.Workspace, DocumentMutationKind.Recycle, "a.md", null));
+        Assert.Equal("Cancelled", Assert.Single(await fixture.State.GetDeletedDocumentsAsync(fixture.Workspace.WorkspaceId)).Status);
         Assert.Equal("original", await File.ReadAllTextAsync(source));
         Assert.Single(await fixture.State.GetPinsAsync(fixture.Workspace.WorkspaceId));
         Assert.Empty(await fixture.State.GetPendingMutationsAsync());

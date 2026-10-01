@@ -3,9 +3,9 @@ using Microsoft.Data.Sqlite;
 
 namespace Axiom.Infrastructure;
 
-public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore, IDocumentMutationStore, IWorkspaceCatalogStore
+public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore, IDocumentMutationStore, IWorkspaceCatalogStore, IDeletedDocumentStore
 {
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 8;
     public AppDataPaths Paths => paths;
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
     private string ConnectionString => new SqliteConnectionStringBuilder
@@ -131,6 +131,23 @@ public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log 
                     CHECK(SourceId <> TargetId)
                 );
                 UPDATE SchemaInfo SET Version = 7;
+                COMMIT;
+                """, cancellationToken);
+        }
+        if (schemaVersion < 8)
+        {
+            await ExecuteAsync(connection, """
+                BEGIN IMMEDIATE;
+                CREATE TABLE IF NOT EXISTS DeletedDocuments (
+                    OperationId TEXT PRIMARY KEY,
+                    IntentJson TEXT NOT NULL,
+                    Content BLOB NOT NULL,
+                    CapturedUtc TEXT NOT NULL,
+                    Status TEXT NOT NULL,
+                    PinnedUtc TEXT NULL,
+                    MetadataSnapshot TEXT NOT NULL
+                );
+                UPDATE SchemaInfo SET Version = 8;
                 COMMIT;
                 """, cancellationToken);
         }

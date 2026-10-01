@@ -143,7 +143,7 @@ public partial class MainWindow
             var message = $"{kind}\nSource: {(sourceRelative is null ? "New item" : Path.Combine(workspace.RootPath, sourceRelative))}\nDestination: {(destinationRelative is null ? "Windows Recycle Bin" : Path.Combine(workspace.RootPath, destinationRelative))}";
             if (kind == DocumentMutationKind.Move && Path.GetDirectoryName(sourceRelative) != Path.GetDirectoryName(destinationRelative))
                 message += "\nRelative links and images may require manual repair. Axiom does not rewrite references or move assets.";
-            if (kind == DocumentMutationKind.Recycle) message += "\nRestore content through Windows Recycle Bin. Pins are removed; this is not editor Undo.";
+            if (kind == DocumentMutationKind.Recycle) message += "\nAxiom captures the document and its original path before recycling. If capture fails, deletion is prevented. Use File → Recover Deleted Documents to restore; Windows Recycle Bin is also separate. Pins are removed until restore; this is not editor Undo.";
             if (await ChoiceDialog.ShowAsync(this, "Confirm " + kind, message, "Continue", "Cancel") != "Continue") return;
             var affectedTab = sourceRelative is null ? null : FindTab(Path.Combine(workspace.RootPath, sourceRelative));
             if (affectedTab is not null) await SelectTabAsync(affectedTab);

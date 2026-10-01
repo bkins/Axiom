@@ -24,6 +24,8 @@ public partial class MainWindow
 
     private void InitializeCommands()
     {
+        RegisterCommand("workspace.deletedDocuments", "Recover deleted documents", null, true, (_, _) => ShowDeletedDocumentsAsync(),
+            context => new(context.WorkspaceId is not null, context.WorkspaceId is null ? "Open a workspace before recovering documents." : null));
         RegisterCommand("document.history", "Browse document history", null, false, (_, _) => ShowDocumentHistoryAsync(),
             context => new(context.DocumentPath is not null, context.DocumentPath is null ? "Save a document before browsing history." : null));
         RegisterCommand("workspace.historySetup", "Set up local Git history", null, true, (_, _) => InitializeHistoryAsync(),
