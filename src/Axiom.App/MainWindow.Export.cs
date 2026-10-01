@@ -60,5 +60,5 @@ public partial class MainWindow
     }
 
     private Action? ExportCancelRequested { get; set; }
-    private void ExportCancel_OnClick(object? sender, RoutedEventArgs args) => ExportCancelRequested?.Invoke();
+    private async void ExportCancel_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("document.cancelExport");
 }

@@ -7,6 +7,37 @@ public sealed class CommandDispatcherTests
     private static CommandContext Context => new("draft", null, null, false, true, true, false, false, true);
 
     [Fact]
+    public async Task DeliberateCancellationCanInterruptBusyCommandWithoutReleasingItsGate()
+    {
+        var dispatcher = new CommandDispatcher();
+        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        dispatcher.Register(new("long", "Long", null, true, _ => CommandAvailability.Available, async (_, _) =>
+        {
+            started.SetResult();
+            await finish.Task;
+            return new(CommandOutcome.Cancelled, "Stopped");
+        }));
+        var requests = 0;
+        var cancel = new AxiomCommand("cancel", "Cancel", null, false, _ => CommandAvailability.Available, (_, _) =>
+        {
+            requests++;
+            return Task.FromResult(new CommandResult(CommandOutcome.Completed, "Cancellation requested"));
+        }, IsCancellationControl: true);
+        dispatcher.Register(cancel);
+        Assert.Throws<ArgumentException>(() => dispatcher.Register(cancel with { Id = "unsafe", MutatesFiles = true }));
+        var running = dispatcher.ExecuteAsync("long", Context);
+        await started.Task;
+        Assert.Equal(CommandOutcome.Unavailable, (await dispatcher.ExecuteAsync("cancel", Context with { IsBusy = true, UserInitiated = false })).Outcome);
+        Assert.Equal(CommandOutcome.Completed, (await dispatcher.ExecuteAsync("cancel", Context with { IsBusy = true })).Outcome);
+        Assert.Equal(1, requests);
+        Assert.Equal(CommandOutcome.Unavailable, (await dispatcher.ExecuteAsync("long", Context)).Outcome);
+        finish.SetResult();
+        Assert.Equal(CommandOutcome.Cancelled, (await running).Outcome);
+        Assert.Equal(CommandOutcome.Completed, (await dispatcher.ExecuteAsync("cancel", Context)).Outcome);
+    }
+
+    [Fact]
     public async Task AvailabilityAuthorizationAndCancellationPreventExecution()
     {
         var dispatcher = new CommandDispatcher();

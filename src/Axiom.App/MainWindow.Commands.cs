@@ -18,6 +18,7 @@ public partial class MainWindow
     }
 
     private readonly CommandDispatcher _commands = new();
+    internal IReadOnlyList<AxiomCommand> RegisteredCommandsForTesting => _commands.Commands;
 
     private CommandContext CaptureCommandContext() => new(_session.DraftKey, _activeWorkspace?.WorkspaceId, _session.Path,
         _sessionTransitionRunning || _navigationRunning || _metadataApplying, IsEditorCommandTarget(), Editor.CanUndo, Editor.CanRedo,
@@ -86,12 +87,16 @@ public partial class MainWindow
                                 , string? shortcut
                                 , bool mutatesFiles
                                 , Func<CommandContext, CancellationToken, Task<CommandResult>> execute
-                                , Func<CommandContext, CommandAvailability>? availability = null) =>
-        _commands.Register(new(id, title, shortcut, mutatesFiles, availability ?? (_ => CommandAvailability.Available), execute));
+                                , Func<CommandContext, CommandAvailability>? availability = null
+                                , bool isCancellationControl = false) =>
+        _commands.Register(new(id, title, shortcut, mutatesFiles, availability ?? (_ => CommandAvailability.Available), execute, isCancellationControl));
 
     internal async Task<CommandResult> ExecuteCommandAsync(string id, CancellationToken cancellationToken = default)
+        => await ExecuteCommandInContextAsync(id, CaptureCommandContext(), cancellationToken);
+
+    private async Task<CommandResult> ExecuteCommandInContextAsync(string id, CommandContext context, CancellationToken cancellationToken = default)
     {
-        var result = await _commands.ExecuteAsync(id, CaptureCommandContext(), cancellationToken);
+        var result = await _commands.ExecuteAsync(id, context, cancellationToken);
         if (result.Outcome == CommandOutcome.Failed && result.Error is { } error) ReportError("command.failed." + id, error, _session.Path);
         else if (result.Outcome == CommandOutcome.Unavailable) ShowInformation(result.Message);
         return result;

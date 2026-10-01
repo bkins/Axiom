@@ -13,6 +13,14 @@ public partial class MainWindow
     private readonly SemaphoreSlim _recoveryGate = new(1, 1);
     private readonly SemaphoreSlim _tabSelectionGate = new(1, 1);
     private DocumentTab _activeTab = null!;
+    private async Task<CommandResult> CycleDocumentTabAsync(int direction)
+    {
+        if (_tabs.Count < 2) return new(CommandOutcome.Unavailable, "Open another document tab first.");
+        var index = (_tabs.IndexOf(_activeTab) + direction + _tabs.Count) % _tabs.Count;
+        var target = _tabs[index];
+        await SelectTabAsync(target);
+        return new(_activeTab == target ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Tab selection reviewed; working buffers retained.");
+    }
     private int _untitledNumber;
     private bool _selectingTab;
     private bool _initialPlaceholder = true;
@@ -196,7 +204,8 @@ public partial class MainWindow
 
     private async void CloseTab_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        if (sender is Control { DataContext: DocumentTab tab }) await CloseTabAsync(tab);
+        if (sender is Control { DataContext: DocumentTab tab })
+            await ExecuteCommandInContextAsync("document.close", CaptureCommandContext() with { DraftKey = tab.Session.DraftKey, DocumentPath = tab.Session.Path });
         eventArgs.Handled = true;
     }
 

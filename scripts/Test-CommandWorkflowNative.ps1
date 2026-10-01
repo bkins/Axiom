@@ -24,4 +24,6 @@ $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
 foreach ($name in @('NativePaletteSearchAndUnavailableAction','DestructivePaletteCancellationPreservedSourceAndDraft','NativeShortcutConflictApplyCancelReset','ShortcutPersistedAndDispatched','DirtyTabRetained')) {
     if ($result.$name -ne $true) { throw "Native check failed: $name" }
 }
-$result | ConvertTo-Json -Depth 5
+$result | Select-Object Version, NativePaletteSearchAndUnavailableAction, DestructivePaletteCancellationPreservedSourceAndDraft,
+    NativeShortcutConflictApplyCancelReset, ShortcutPersistedAndDispatched, DirtyTabRetained,
+    @{Name='RegisteredCommandCount'; Expression={ $_.RegisteredCommands.Count }}, HumanChecks | ConvertTo-Json -Depth 5

@@ -8,6 +8,8 @@ namespace Axiom.App;
 
 internal sealed class RelationshipEditorWindow : Window
 {
+    internal bool Committed { get; private set; }
+    private bool _applying;
     public RelationshipEditorWindow(Guid sourceId, IReadOnlyList<ClassifiedDocument> targets, DocumentRelationship? existing, Func<RelationshipChange, Task> apply)
     {
         Title = existing is null ? "Add directed relationship" : "Edit directed relationship";
@@ -22,18 +24,23 @@ internal sealed class RelationshipEditorWindow : Window
         var save = new Button { Name = "ApplyRelationship", Content = "Apply" };
         var cancel = new Button { Content = "Cancel" };
         cancel.Click += (_, _) => Close();
+        Closing += (_, args) => args.Cancel = _applying;
         save.Click += async (_, _) =>
         {
+            if (_applying) return;
+            _applying = true;
             save.IsEnabled = cancel.IsEnabled = target.IsEnabled = kind.IsEnabled = note.IsEnabled = false;
             try
             {
                 if (target.SelectedItem is not ClassifiedDocument { DocumentId: { } targetId }) throw new ArgumentException("Select a unique saved target.");
                 var value = RelationshipPolicy.Normalize(new(existing?.RelationshipId ?? Guid.NewGuid(), sourceId, targetId, kind.Text ?? "", note.Text));
                 await apply(new(value, existing?.Revision ?? 0));
+                Committed = true;
+                _applying = false;
                 Close();
             }
             catch (Exception exception) { status.Text = exception.Message; }
-            finally { save.IsEnabled = cancel.IsEnabled = target.IsEnabled = kind.IsEnabled = note.IsEnabled = true; }
+            finally { _applying = false; save.IsEnabled = cancel.IsEnabled = target.IsEnabled = kind.IsEnabled = note.IsEnabled = true; }
         };
         Content = new ScrollViewer
         {

@@ -11,13 +11,16 @@ public sealed class CommandDispatcher
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command.Id);
         ArgumentException.ThrowIfNullOrWhiteSpace(command.Title);
+        if (command.IsCancellationControl && command.MutatesFiles)
+            throw new ArgumentException("Cancellation controls cannot perform file mutations.");
         if (!_commands.TryAdd(command.Id, command)) throw new ArgumentException("A command with this ID is already registered.");
     }
 
     public CommandAvailability GetAvailability(string id, CommandContext context)
     {
         if (!_commands.TryGetValue(id, out var command)) return new(false, "Unknown command.");
-        if (context.IsBusy) return new(false, "Wait for the current document operation to finish.");
+        if (context.IsBusy && !command.IsCancellationControl) return new(false, "Wait for the current document operation to finish.");
+        if (command.IsCancellationControl && !context.UserInitiated) return new(false, "Cancellation requires a deliberate user invocation.");
         if (command.MutatesFiles && !context.UserInitiated) return new(false, "File mutations require a deliberate user invocation.");
         if (command.MutatesFiles && context.MutationBlocked) return new(false, "Restart and reconcile pending file operations first.");
         return command.Availability(context);
@@ -28,9 +31,14 @@ public sealed class CommandDispatcher
         if (cancellationToken.IsCancellationRequested) return new(CommandOutcome.Cancelled, "Command cancelled before execution.");
         var availability = GetAvailability(id, context);
         if (!availability.Enabled) return new(CommandOutcome.Unavailable, availability.Reason ?? "Command unavailable.");
+        var acquired = false;
         try
         {
-            if (!await _executionGate.WaitAsync(0, cancellationToken)) return new(CommandOutcome.Unavailable, "Another command is running.");
+            if (!_commands[id].IsCancellationControl)
+            {
+                acquired = await _executionGate.WaitAsync(0, cancellationToken);
+                if (!acquired) return new(CommandOutcome.Unavailable, "Another command is running.");
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -48,6 +56,6 @@ public sealed class CommandDispatcher
             return new(CommandOutcome.Cancelled, "Command cancelled.");
         }
         catch (Exception exception) { return new(CommandOutcome.Failed, exception.Message, exception); }
-        finally { _executionGate.Release(); }
+        finally { if (acquired) _executionGate.Release(); }
     }
 }

@@ -53,7 +53,7 @@ public partial class MainWindow
         catch (Exception exception) { ReportError("shortcuts.apply.failed", exception, null); return new(CommandOutcome.Failed, exception.Message, exception); }
     }
 
-    private async Task<bool> TryExecuteShortcutAsync(KeyEventArgs eventArgs)
+    private async Task<bool> TryExecuteShortcutAsync(KeyEventArgs eventArgs, bool cancellationOnly = false)
     {
         if ((eventArgs.KeyModifiers & KeyModifiers.Meta) != 0) return false;
         var key = eventArgs.Key.ToString();
@@ -66,6 +66,7 @@ public partial class MainWindow
         }.OfType<string>().Append(key));
         var binding = _shortcutBindings.FirstOrDefault(entry => entry.Value == gesture);
         if (binding.Key is null) return false;
+        if (cancellationOnly && !_commands.Commands.Any(command => command.Id == binding.Key && command.IsCancellationControl)) return false;
         if (binding.Key.StartsWith("editor.", StringComparison.Ordinal) && !IsEditorCommandTarget()) return false;
         eventArgs.Handled = true;
         await ExecuteCommandAsync(binding.Key);

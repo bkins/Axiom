@@ -78,9 +78,11 @@ public partial class MainWindow
     }
 
     private async void InstallUpdate_OnClick(object? sender, RoutedEventArgs eventArgs)
+        => await ExecuteCommandAsync(sender is Control { Tag: "Switch" } ? "application.switchPortable" : "application.installPortable");
+
+    private async Task<CommandResult> InstallPortableVersionAsync(bool rollback)
     {
-        if (_mutationBlocked) { UpdateChrome("Resolve pending file operations before switching versions."); return; }
-        var rollback = sender is Control { Tag: "Switch" };
+        if (_mutationBlocked) return new(CommandOutcome.Unavailable, "Resolve pending file operations before switching versions.");
         try
         {
             var versions = Path.Combine(_operationalPaths.Root, "Versions");
@@ -88,7 +90,7 @@ public partial class MainWindow
                     "Choose payload-manifest.json inside a published Axiom application package. This is the folder containing Axiom.App.exe, not your Markdown workspace.\n\n" +
                     (rollback ? "You may choose an older compatible package or return to a newer retained package." : "Choose a package with a higher version number than the running app.") +
                     "\n\nAxiom checks the package before asking for confirmation. Cancel leaves this app running. Restart is offered after confirmation; Later keeps this app running.",
-                    "Choose package…", "Cancel") != "Choose package…") return;
+                    "Choose package…", "Cancel") != "Choose package…") return new(CommandOutcome.Cancelled, "Package selection cancelled.");
             var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 Title                    = "Choose payload-manifest.json in the Axiom application package"
@@ -96,7 +98,7 @@ public partial class MainWindow
               , FileTypeFilter           = [new FilePickerFileType("Axiom package manifest") { Patterns = [PortablePackageService.ManifestName] }]
               , SuggestedStartLocation   = rollback && Directory.Exists(versions) ? await StorageProvider.TryGetFolderFromPathAsync(versions) : null
             });
-            if (files.FirstOrDefault()?.TryGetLocalPath() is not { } selectedManifest) return;
+            if (files.FirstOrDefault()?.TryGetLocalPath() is not { } selectedManifest) return new(CommandOutcome.Cancelled, "Package selection cancelled.");
             var source = PortablePackageService.GetPackageDirectory(selectedManifest);
             var service = new PortablePackageService(_operationalPaths);
             UpdateChrome("Verifying portable package…");
@@ -107,15 +109,15 @@ public partial class MainWindow
             if (inspection.PendingOperations > 0) throw new IOException("Resolve pending file operations before switching versions.");
             if (!rollback && Version.Parse(manifest.Version) <= Version.Parse(_buildIdentity.ProductVersion))
                 throw new IOException("An update must be newer. Use Switch Portable Version for a retained older package.");
-            if (await ChoiceDialog.ShowAsync(this, "Verified package", $"Version: {manifest.InformationalVersion}\nBranch: {manifest.Branch}\nBuilt UTC: {manifest.BuiltUtc:u}\nSource: {source}\n\n{(rollback ? "Switch to this retained version" : "Install into a new version folder")}? Restart keeps state at {_operationalPaths.Root}. Existing binaries remain for rollback.", "Continue", "Cancel") != "Continue") return;
-            if (!await ConfirmAllTabsAsync()) return;
+            if (await ChoiceDialog.ShowAsync(this, "Verified package", $"Version: {manifest.InformationalVersion}\nBranch: {manifest.Branch}\nBuilt UTC: {manifest.BuiltUtc:u}\nSource: {source}\n\n{(rollback ? "Switch to this retained version" : "Install into a new version folder")}? Restart keeps state at {_operationalPaths.Root}. Existing binaries remain for rollback.", "Continue", "Cancel") != "Continue") return new(CommandOutcome.Cancelled, "Verified package declined.");
+            if (!await ConfirmAllTabsAsync()) return new(CommandOutcome.Cancelled, "Tab review cancelled version switching.");
             await new StateMaintenanceService(_operationalPaths).ExportBackupAsync(Path.Combine(_operationalPaths.BackupDirectory, "pre-switch-" + Guid.NewGuid().ToString("N") + ".db"));
             var destination = rollback ? source : await Task.Run(() => service.InstallAsync(source, inspection.SchemaVersion));
             await service.ValidateAsync(destination);
             if (await ChoiceDialog.ShowAsync(this, "Version ready", $"Verified version is ready at {destination}. Restart now?", "Restart", "Later") != "Restart")
             {
                 UpdateChrome($"This app is still running. Version ready at {destination}. Use Tools → Switch Portable Version and choose its payload-manifest.json when ready.");
-                return;
+                return new(CommandOutcome.Completed, "Verified version prepared; restart deferred.");
             }
             await RunSessionTransitionAsync(async () =>
             {
@@ -132,11 +134,13 @@ public partial class MainWindow
                 _workspaceChanges.Dispose();
                 Close();
             });
+            return new(CommandOutcome.Completed, "Version restart scheduled.");
         }
         catch (Exception exception)
         {
             ReportError("portable.update.failed", exception, null);
             await ChoiceDialog.ShowAsync(this, "Version not switched", exception.Message, "OK");
+            return new(CommandOutcome.Failed, exception.Message, exception);
         }
     }
 }

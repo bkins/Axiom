@@ -81,6 +81,7 @@ internal static class CommandWorkflowProbe
               , NativeShortcutConflictApplyCancelReset = true
               , ShortcutPersistedAndDispatched = true
               , DirtyTabRetained = true
+              , RegisteredCommands = window.RegisteredCommandsForTesting.Select(command => new { command.Id, command.Title, command.MutatesFiles, command.IsCancellationControl }).ToArray()
               , HumanChecks = "Physical input, accessibility, DPI/themes and human acceptance remain pending."
             }, new JsonSerializerOptions { WriteIndented = true }));
         }

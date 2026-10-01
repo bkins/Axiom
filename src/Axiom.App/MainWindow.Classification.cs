@@ -154,11 +154,13 @@ public partial class MainWindow
         }
     }
 
-    private async void MetadataApply_OnClick(object? sender, RoutedEventArgs args) => await ApplyMetadataAsync();
-    private void MetadataCancel_OnClick(object? sender, RoutedEventArgs args) { _panelPending = false; UpdateMetadataPanel(); }
-    private async void ClassificationRefresh_OnClick(object? sender, RoutedEventArgs args) => await RefreshClassificationAsync();
-    private void ClassificationFilter_OnClick(object? sender, RoutedEventArgs args) => ApplyClassificationFilter();
-    private void ClassificationClear_OnClick(object? sender, RoutedEventArgs args)
+    private async void MetadataApply_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("metadata.apply");
+    private async void MetadataCancel_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("metadata.cancel");
+    private async void ClassificationRefresh_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("metadata.refresh");
+    private async void ClassificationFilter_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("metadata.filter");
+    private async void ClassificationClear_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("metadata.clearFilter");
+
+    private void ClearClassificationFilter()
     {
         FilterTags.Text = FilterType.Text = FilterText.Text = "";
         ApplyClassificationFilter();
@@ -179,55 +181,65 @@ public partial class MainWindow
         catch (Exception exception) { ClassificationStatus.Text = exception.Message; }
     }
 
-    private async void ClassificationResults_OnDoubleTapped(object? sender, TappedEventArgs args) => await OpenClassificationResultAsync();
+    private async void ClassificationResults_OnDoubleTapped(object? sender, TappedEventArgs args) => await ExecuteCommandAsync("navigation.classificationResult");
     private async void ClassificationResults_OnKeyDown(object? sender, KeyEventArgs args)
     {
         if (args.Key != Key.Enter) return;
         args.Handled = true;
-        await OpenClassificationResultAsync();
+        await ExecuteCommandAsync("navigation.classificationResult");
     }
-    private async Task OpenClassificationResultAsync()
+    private async Task<CommandResult> OpenClassificationResultAsync()
     {
-        if (_folder is null || ClassificationResults.SelectedItem is not ClassifiedDocument selected) return;
+        if (_folder is null || ClassificationResults.SelectedItem is not ClassifiedDocument selected) return new(CommandOutcome.Unavailable, "Select a classification result first.");
         var target = Path.Combine(_folder, selected.RelativePath);
         var read = await new MarkdownLinkTargetReader(_files).ReadAsync(_folder, target);
         if (read.Status != MarkdownLinkResolutionStatus.Resolved || DocumentIdentityPolicy.FindCanonical(read.Text!) != selected.DocumentId)
-        { ClassificationStatus.Text = "Result changed. Refresh before opening."; return; }
+        { ClassificationStatus.Text = "Result changed. Refresh before opening."; return new(CommandOutcome.Unavailable, ClassificationStatus.Text); }
         await OpenDocumentAsync(target);
+        return new(_session.Path == target ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Classification result navigation reviewed.");
     }
 
     private async void MetadataExport_OnClick(object? sender, RoutedEventArgs args)
+        => await ExecuteCommandAsync("metadata.export");
+
+    private async Task<CommandResult> ExportMetadataAsync(CancellationToken cancellationToken)
     {
-        if (_folder is null || !await ResolvePendingMetadataAsync()) return;
+        if (_folder is null || !await ResolvePendingMetadataAsync()) return new(CommandOutcome.Cancelled, "Metadata export cancelled.");
         await RefreshClassificationAsync();
-        if (_classificationCatalog is null) return;
+        if (_classificationCatalog is null) return new(CommandOutcome.Unavailable, "Classification catalog unavailable.");
         var transfer = MetadataTransferService.Export(_classificationCatalog, _relationships);
-        if (await ChoiceDialog.ShowAsync(this, "Review metadata export", $"Export {transfer.Records.Length} unique saved identities and {transfer.Relationships?.Length ?? 0} relationships in format version 2. Skip {_classificationCatalog.Documents.Count - transfer.Records.Length} ordinary/ambiguous/incomplete documents. Unresolved relationship endpoints retain their IDs. Markdown and recovery text are excluded.", "Export", "Cancel") != "Export") return;
+        if (await ChoiceDialog.ShowAsync(this, "Review metadata export", $"Export {transfer.Records.Length} unique saved identities and {transfer.Relationships?.Length ?? 0} relationships in format version 2. Skip {_classificationCatalog.Documents.Count - transfer.Records.Length} ordinary/ambiguous/incomplete documents. Unresolved relationship endpoints retain their IDs. Markdown and recovery text are excluded.", "Export", "Cancel") != "Export") return new(CommandOutcome.Cancelled, "Metadata export review cancelled.");
         var selected = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { Title = "Export metadata", SuggestedFileName = "axiom-metadata.json", DefaultExtension = "json" });
-        if (selected?.TryGetLocalPath() is not { } path) return;
-        if (File.Exists(path) && await ChoiceDialog.ShowAsync(this, "Replace metadata export", path, "Replace", "Cancel") != "Replace") return;
-        try { await MetadataTransferService.WriteAsync(path, transfer); UpdateChrome($"Exported {transfer.Records.Length} metadata records."); }
-        catch (Exception exception) { ReportError("metadata.export.failed", exception, path); }
+        if (selected?.TryGetLocalPath() is not { } path) return new(CommandOutcome.Cancelled, "Metadata export destination cancelled.");
+        if (File.Exists(path) && await ChoiceDialog.ShowAsync(this, "Replace metadata export", path, "Replace", "Cancel") != "Replace") return new(CommandOutcome.Cancelled, "Existing metadata export retained.");
+        try { await MetadataTransferService.WriteAsync(path, transfer, cancellationToken); UpdateChrome($"Exported {transfer.Records.Length} metadata records."); return new(CommandOutcome.Completed, "Metadata exported."); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return new(CommandOutcome.Cancelled, "Metadata export cancelled."); }
+        catch (Exception exception) { ReportError("metadata.export.failed", exception, path); return new(CommandOutcome.Failed, exception.Message, exception); }
     }
 
     private async void MetadataImport_OnClick(object? sender, RoutedEventArgs args)
+        => await ExecuteCommandAsync("metadata.import");
+
+    private async Task<CommandResult> ImportMetadataAsync(CancellationToken cancellationToken)
     {
-        if (_folder is null || _classificationService is null || !await ResolvePendingMetadataAsync()) return;
+        if (_folder is null || _classificationService is null || !await ResolvePendingMetadataAsync()) return new(CommandOutcome.Cancelled, "Metadata import cancelled.");
         var selected = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Import metadata", AllowMultiple = false });
-        if (selected.FirstOrDefault()?.TryGetLocalPath() is not { } path) return;
+        if (selected.FirstOrDefault()?.TryGetLocalPath() is not { } path) return new(CommandOutcome.Cancelled, "Metadata import file selection cancelled.");
         try
         {
-            var transfer = await Task.Run(() => MetadataTransferService.ReadAsync(path));
+            var transfer = await Task.Run(() => MetadataTransferService.ReadAsync(path, cancellationToken), cancellationToken);
             await RefreshClassificationAsync();
-            if (_classificationCatalog is not { } evidence) return;
+            if (_classificationCatalog is not { } evidence) return new(CommandOutcome.Unavailable, "Classification catalog unavailable.");
             var proposals = MetadataTransferService.Preview(transfer, evidence, _relationships);
             var dialog = new MetadataImportWindow(proposals, (changes, relationships) => Task.Run(() => _classificationService.ApplyConnectedAsync(evidence, changes, relationships)));
             await dialog.ShowDialog(this);
             await RefreshClassificationAsync();
             if (dialog.Committed) ScheduleBacklinkRebuild();
             UpdateChrome(dialog.Committed ? $"Imported {dialog.CommittedRecords} metadata/relationship replacements; Markdown unchanged." : "Metadata import cancelled; no changes applied.");
+            return new(dialog.Committed ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Metadata import review finished.");
         }
-        catch (Exception exception) { ReportError("metadata.import.failed", exception, path); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return new(CommandOutcome.Cancelled, "Metadata import cancelled."); }
+        catch (Exception exception) { ReportError("metadata.import.failed", exception, path); return new(CommandOutcome.Failed, exception.Message, exception); }
     }
 
     internal Func<Task<string>>? MetadataChoiceForTesting { get; set; }

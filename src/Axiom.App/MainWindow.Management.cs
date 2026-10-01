@@ -29,24 +29,26 @@ public partial class MainWindow
     }
 
     private async void WorkspaceCatalog_OnClick(object? sender, RoutedEventArgs eventArgs)
+        => await ExecuteCommandAsync("workspace.catalog");
+
+    private async Task<CommandResult> ShowWorkspaceCatalogAsync()
     {
-        if (ManagementState is null) return;
+        if (ManagementState is null) return new(CommandOutcome.Unavailable, "Workspace catalog storage unavailable.");
         try
         {
             var dialog = new WorkspaceCatalogWindow(await ManagementState.ListWorkspacesAsync());
             var choice = await dialog.ShowDialog<(WorkspaceRecord Workspace, bool Forget)?>(this);
-            if (choice is null) return;
+            if (choice is null) return new(CommandOutcome.Cancelled, "Workspace catalog selection cancelled.");
             if (!choice.Value.Forget)
             {
-                await SwitchWorkspaceAsync(choice.Value.Workspace.RootPath);
-                return;
+                return new(await SwitchWorkspaceAsync(choice.Value.Workspace.RootPath) ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Workspace catalog selection reviewed.");
             }
             var workspace = choice.Value.Workspace;
-            if (await ChoiceDialog.ShowAsync(this, "Forget workspace", $"Forget {workspace.RootPath}? Only its remembered record and pins are removed. Files, identities, and protected drafts remain.", "Forget", "Cancel") != "Forget") return;
+            if (await ChoiceDialog.ShowAsync(this, "Forget workspace", $"Forget {workspace.RootPath}? Only its remembered record and pins are removed. Files, identities, and protected drafts remain.", "Forget", "Cancel") != "Forget") return new(CommandOutcome.Cancelled, "Workspace retained.");
             var active = _activeWorkspace?.WorkspaceId == workspace.WorkspaceId;
             if (active)
             {
-                await RunSessionTransitionAsync(async () =>
+                var completed = await RunSessionTransitionAsync(async () =>
                 {
                     await ManagementState.ForgetWorkspaceAsync(workspace.WorkspaceId);
                     _workspaceSearchCancellation?.Cancel();
@@ -64,14 +66,16 @@ public partial class MainWindow
                     _workspacePins.Clear();
                     ResetTabs("Workspace forgotten; its files remain on disk.");
                 });
+                if (!completed) return new(CommandOutcome.Cancelled, "Workspace retained.");
             }
             else
             {
                 await ManagementState.ForgetWorkspaceAsync(workspace.WorkspaceId);
                 UpdateChrome("Workspace forgotten; its files remain on disk.");
             }
+            return new(CommandOutcome.Completed, "Remembered workspace record removed; files retained.");
         }
-        catch (Exception exception) { ReportError("workspace.catalog.failed", exception, null); }
+        catch (Exception exception) { ReportError("workspace.catalog.failed", exception, null); return new(CommandOutcome.Failed, exception.Message, exception); }
     }
 
     internal async Task<bool> SwitchWorkspaceAsync(string root)
@@ -199,19 +203,23 @@ public partial class MainWindow
     }
 
     private async void BulkEnroll_OnClick(object? sender, RoutedEventArgs eventArgs)
+        => await ExecuteCommandAsync("workspace.bulkEnroll");
+
+    private async Task<CommandResult> ShowBulkEnrollmentAsync()
     {
-        if (_activeWorkspace is null || ManagementState is null || _mutationBlocked) { UpdateChrome("Open an available workspace and resolve pending operations first."); return; }
+        if (_activeWorkspace is null || ManagementState is null || _mutationBlocked) { UpdateChrome("Open an available workspace and resolve pending operations first."); return new(CommandOutcome.Unavailable, "Open a workspace and resolve pending operations first."); }
         try
         {
             _monitor.Watch(null);
             var window = new BulkEnrollmentWindow(_activeWorkspace, new BulkEnrollmentService(new WorkspaceFileOperations(ManagementState, log: _log)), ConfirmEnrollmentTabsAsync);
-            await window.ShowDialog<bool>(this);
+            var completed = await window.ShowDialog<bool>(this);
             await LoadFolderAsync(_activeWorkspace.RootPath);
             foreach (var tab in _tabs.ToArray())
                 if (tab.Session.Path is { } path) await HandleExternalChangeAsync(path);
             _mutationBlocked = (await ManagementState.GetPendingMutationsAsync()).Count > 0;
+            return new(completed ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Bulk enrollment review closed.");
         }
-        catch (Exception exception) { ReportError("enrollment.batch.failed", exception, _folder); }
+        catch (Exception exception) { ReportError("enrollment.batch.failed", exception, _folder); return new(CommandOutcome.Failed, exception.Message, exception); }
         finally { RefreshDocumentMonitors(); }
     }
 }

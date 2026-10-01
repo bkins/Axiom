@@ -195,7 +195,7 @@ public partial class MainWindow : Window
         await OpenExplorerPathAsync(Path.Combine(_folder, selected.RelativePath));
     }
 
-    private async void Pin_OnClick(object? sender, RoutedEventArgs e) => await ToggleCurrentPinAsync();
+    private async void Pin_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("document.pin");
 
     private async Task ToggleCurrentPinAsync()
     {
@@ -212,23 +212,32 @@ public partial class MainWindow : Window
     }
 
     private async void RemovePin_OnClick(object? sender, RoutedEventArgs e)
+        => await ExecuteCommandAsync("document.removeSelectedPin");
+
+    private async Task<CommandResult> RemoveSelectedPinAsync()
     {
-        if (_activeWorkspace is null || PinnedDocuments.SelectedItem is not WorkspacePin pin) return;
+        if (_activeWorkspace is null || PinnedDocuments.SelectedItem is not WorkspacePin pin)
+            return new(CommandOutcome.Unavailable, "Select a workspace pin first.");
         await _workspaces.RemovePinAsync(_activeWorkspace, pin);
         await RefreshPinsAsync();
         UpdateChrome($"Removed pin {pin.RelativePath}.");
+        return new(CommandOutcome.Completed, "Selected pin removed.");
     }
 
     private async void PinnedDocuments_OnDoubleTapped(object? sender, TappedEventArgs e)
+        => await ExecuteCommandAsync("navigation.pinnedDocument");
+
+    private async Task<CommandResult> OpenSelectedPinAsync()
     {
-        if (_activeWorkspace is null || PinnedDocuments.SelectedItem is not WorkspacePin pin) return;
+        if (_activeWorkspace is null || PinnedDocuments.SelectedItem is not WorkspacePin pin) return new(CommandOutcome.Unavailable, "Select a workspace pin first.");
         var path = Path.Combine(_activeWorkspace.RootPath, pin.RelativePath);
         if (!await _files.ExistsAsync(path))
         {
             UpdateChrome($"Pinned document is missing: {pin.RelativePath}. Remove the pin when it is no longer needed.");
-            return;
+            return new(CommandOutcome.Unavailable, "Pinned document is missing.");
         }
         await OpenDocumentAsync(path);
+        return new(_session.Path == path ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Pinned document navigation reviewed.");
     }
 
     private async Task RefreshPinsAsync()
@@ -241,9 +250,9 @@ public partial class MainWindow : Window
     }
 
     private async void WorkspaceSearch_OnClick(object? sender, RoutedEventArgs e) =>
-        await SearchWorkspaceAsync(WorkspaceSearchBox.Text ?? string.Empty);
+        await ExecuteCommandAsync("workspace.search");
 
-    private async Task SearchWorkspaceAsync(string query)
+    private async Task<CommandResult> SearchWorkspaceAsync(string query)
     {
         _workspaceSearchCancellation?.Cancel();
         _workspaceSearchCancellation?.Dispose();
@@ -254,46 +263,50 @@ public partial class MainWindow : Window
         if (_folder is null)
         {
             WorkspaceSearchStatus.Text = "Open a workspace before searching.";
-            return;
+            return new(CommandOutcome.Unavailable, WorkspaceSearchStatus.Text);
         }
         if (string.IsNullOrWhiteSpace(query))
         {
             WorkspaceSearchStatus.Text = "Enter text to search the workspace.";
-            return;
+            return new(CommandOutcome.Unavailable, WorkspaceSearchStatus.Text);
         }
 
         WorkspaceSearchStatus.Text = "Searching...";
         try
         {
             var response = await _workspaceSearch.SearchAsync(_folder, query, cancellationToken);
-            if (generation != _workspaceSearchGeneration) return;
+            if (generation != _workspaceSearchGeneration) return new(CommandOutcome.Cancelled, "Search superseded.");
             foreach (var result in response.Results) _workspaceSearchResults.Add(result);
             var skipped = response.SkippedPaths.Count == 0 ? string.Empty : $" Skipped {response.SkippedPaths.Count} unreadable path{(response.SkippedPaths.Count == 1 ? string.Empty : "s")}.";
             WorkspaceSearchStatus.Text = response.Results.Count == 0
                 ? "No matches found." + skipped
                 : $"Found {response.Results.Count} match{(response.Results.Count == 1 ? string.Empty : "es")}." + skipped;
+            return new(CommandOutcome.Completed, WorkspaceSearchStatus.Text);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // A newer query or workspace selection owns the visible result state.
+            return new(CommandOutcome.Cancelled, "Search cancelled; newer result state retained.");
         }
         catch (Exception exception)
         {
-            if (generation != _workspaceSearchGeneration) return;
+            if (generation != _workspaceSearchGeneration) return new(CommandOutcome.Cancelled, "Search superseded.");
             WorkspaceSearchStatus.Text = "Workspace search failed.";
             ReportError("workspace.search.failed", exception, _folder);
+            return new(CommandOutcome.Failed, exception.Message, exception);
         }
     }
 
     private async void WorkspaceSearchResults_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (WorkspaceSearchResults.SelectedItem is WorkspaceSearchResult result)
-            await OpenSearchResultAsync(result);
+        await ExecuteCommandAsync("navigation.searchResult");
     }
 
-    private async Task OpenSearchResultAsync(WorkspaceSearchResult result)
+    private async Task<CommandResult> OpenSearchResultAsync(WorkspaceSearchResult result)
     {
         await OpenDocumentAsync(result.FullPath);
+        if (!string.Equals(_session.Path, Path.GetFullPath(result.FullPath), StringComparison.OrdinalIgnoreCase))
+            return new(CommandOutcome.Cancelled, "Search result navigation cancelled; active selection retained.");
         if (result.MatchOffset + result.MatchedText.Length <= Editor.Text.Length &&
             Editor.Text.AsSpan(result.MatchOffset, result.MatchedText.Length).Equals(result.MatchedText, StringComparison.OrdinalIgnoreCase))
         {
@@ -306,11 +319,12 @@ public partial class MainWindow : Window
         {
             UpdateChrome("Opened search result, but the matching text has changed.");
         }
+        return new(CommandOutcome.Completed, "Search result opened; match position reviewed.");
     }
 
-    private void DocumentOutline_OnDoubleTapped(object? sender, TappedEventArgs e)
+    private async void DocumentOutline_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (DocumentOutline.SelectedItem is DocumentOutlineEntry entry) NavigateToOutlineEntry(entry);
+        await ExecuteCommandAsync("navigation.outlineHeading");
     }
 
     private void NavigateToOutlineEntry(DocumentOutlineEntry entry)
@@ -445,11 +459,14 @@ public partial class MainWindow : Window
     }
 
     private async void InsertImage_OnClick(object? sender, RoutedEventArgs e)
+        => await ExecuteCommandAsync("editor.insertImage");
+
+    private async Task<CommandResult> InsertWorkspaceImageAsync()
     {
         if (!CanInsertImageReference())
         {
             UpdateChrome("Save the document inside the active workspace before inserting an image.");
-            return;
+            return new(CommandOutcome.Unavailable, "Save the current document inside the workspace first.");
         }
 
         var workspaceFolder = await StorageProvider.TryGetFolderFromPathAsync(_activeWorkspace!.RootPath);
@@ -467,16 +484,20 @@ public partial class MainWindow : Window
             ]
         });
         var selectedFile = files.FirstOrDefault();
-        if (selectedFile is null) return;
+        if (selectedFile is null) return new(CommandOutcome.Cancelled, "Image selection cancelled.");
         if (selectedFile.TryGetLocalPath() is not { } imagePath)
         {
             const string message = "The selected image is not available as a local workspace file.";
             UpdateChrome(message);
             await ChoiceDialog.ShowAsync(this, "Image not inserted", message, "OK");
-            return;
+            return new(CommandOutcome.Unavailable, message);
         }
         if (!InsertImageReference(imagePath))
+        {
             await ChoiceDialog.ShowAsync(this, "Image not inserted", StatusText.Text ?? "The image reference could not be inserted.", "OK");
+            return new(CommandOutcome.Unavailable, "Image reference could not be inserted.");
+        }
+        return new(CommandOutcome.Completed, "Image reference inserted in the unsaved buffer.");
     }
 
     private async void Appearance_OnClick(object? sender, RoutedEventArgs e)
@@ -484,7 +505,7 @@ public partial class MainWindow : Window
         if (sender is not Control { Tag: string value } ||
             !Enum.TryParse<AppearancePreference>(value, ignoreCase: true, out var preference))
             return;
-        await ApplyAppearanceAsync(preference);
+        await ExecuteCommandAsync("view.appearance." + preference.ToString().ToLowerInvariant());
     }
 
     private async Task ApplyAppearanceAsync(AppearancePreference preference)
@@ -689,20 +710,26 @@ public partial class MainWindow : Window
         _ => kind.ToString().ToLowerInvariant()
     };
 
-    private void Enroll_OnClick(object? sender, RoutedEventArgs e)
+    private async void Enroll_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("document.enroll");
+
+    private CommandResult EnrollCurrentBuffer()
     {
-        if (_session.DocumentId is not null) return;
+        if (_session.DocumentId is not null) return new(CommandOutcome.Cancelled, "The buffer already has an Axiom identity.");
         var id = _documents.Enroll(_session);
         _loading = true;
         Editor.Text = _session.Text;
         _loading = false;
         SchedulePreview();
         UpdateChrome($"Assigned document ID {id:D}. Save to write it to Markdown.");
+        return new(CommandOutcome.Completed, "Axiom identity assigned in the unsaved buffer.");
     }
 
     private async void ResolveConflict_OnClick(object? sender, RoutedEventArgs e)
+        => await ExecuteCommandAsync("document.resolveConflict");
+
+    private async Task<CommandResult> ResolveConflictAsync()
     {
-        if (_session.Conflict is not { } conflict) return;
+        if (_session.Conflict is not { } conflict) return new(CommandOutcome.Unavailable, "No external file conflict to resolve.");
         var dialog = new ConflictWindow(conflict.LocalText, conflict.ExternalText);
         var result = await dialog.ShowDialog<string>(this);
         if (result == "external")
@@ -717,6 +744,8 @@ public partial class MainWindow : Window
         }
         ConflictBanner.IsVisible = _session.Conflict is not null;
         UpdateChrome(result == "cancel" ? "Conflict remains unresolved; both versions are preserved." : "Conflict choice applied. Save deliberately to change the file.");
+        return new(result is "external" or "local" ? CommandOutcome.Completed : CommandOutcome.Cancelled,
+            result is "external" or "local" ? "Conflict choice applied to the buffer." : "Conflict remains unresolved; both versions preserved.");
     }
 
     private void EditorTextChanged()
@@ -1129,7 +1158,11 @@ public partial class MainWindow : Window
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_sessionTransitionRunning || _navigationRunning || _metadataApplying) return;
+        if (_sessionTransitionRunning || _navigationRunning || _metadataApplying)
+        {
+            await TryExecuteShortcutAsync(e, cancellationOnly: true);
+            return;
+        }
         if (e.Key == Key.P && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift))
         {
             e.Handled = true;
@@ -1170,9 +1203,7 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.Tab && e.KeyModifiers is KeyModifiers.Control or (KeyModifiers.Control | KeyModifiers.Shift))
         {
-            var direction = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1;
-            var index = (_tabs.IndexOf(_activeTab) + direction + _tabs.Count) % _tabs.Count;
-            await SelectTabAsync(_tabs[index]);
+            await ExecuteCommandAsync(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "navigation.previousTab" : "navigation.nextTab");
             e.Handled = true;
         }
     }

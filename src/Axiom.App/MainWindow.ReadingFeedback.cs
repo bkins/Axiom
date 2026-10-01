@@ -45,7 +45,9 @@ public partial class MainWindow
         StatusDetailsButton.IsVisible = DismissStatusButton.IsVisible = true;
     }
 
-    private void DismissStatus_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private async void DismissStatus_OnClick(object? sender, RoutedEventArgs eventArgs) => await ExecuteCommandAsync("view.dismissStatus");
+
+    private void DismissStatus()
     {
         _persistentFailure = null;
         StatusDetailsButton.IsVisible = DismissStatusButton.IsVisible = false;
@@ -53,7 +55,7 @@ public partial class MainWindow
     }
 
     private async void StatusDetails_OnClick(object? sender, RoutedEventArgs eventArgs) =>
-        await ChoiceDialog.ShowAsync(this, "Operation details", _persistentFailure ?? _latestInformation, "Close");
+        await ExecuteCommandAsync("view.statusDetails");
 
     private void ScheduleDocumentStatistics()
     {
@@ -85,6 +87,6 @@ public partial class MainWindow
 
     internal void ShowFailureForTesting(string message) => ShowPersistentFailure(message);
     internal void ShowInformationForTesting(string message) => ShowInformation(message);
-    internal void DismissFailureForTesting() => DismissStatus_OnClick(null, new RoutedEventArgs());
+    internal void DismissFailureForTesting() => DismissStatus();
     internal void RefreshStatisticsForTesting() => RefreshDocumentStatistics();
 }

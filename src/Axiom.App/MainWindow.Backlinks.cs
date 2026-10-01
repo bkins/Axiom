@@ -50,8 +50,10 @@ public partial class MainWindow
         _linkIndexState = "Stale — this workspace has not been indexed yet.";
     }
 
-    private async void RebuildBacklinks_OnClick(object? sender, RoutedEventArgs eventArgs) => await RebuildBacklinksAsync();
-    private void CancelBacklinks_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private async void RebuildBacklinks_OnClick(object? sender, RoutedEventArgs eventArgs) => await ExecuteCommandAsync("workspace.rebuildBacklinks");
+    private async void CancelBacklinks_OnClick(object? sender, RoutedEventArgs eventArgs) => await ExecuteCommandAsync("workspace.cancelBacklinks");
+
+    private void CancelBacklinks()
     {
         _backlinkCancellation?.Cancel();
         _backlinkRefreshTimer.Stop();
@@ -59,9 +61,9 @@ public partial class MainWindow
         RefreshIncomingReferences();
     }
 
-    private async Task RebuildBacklinksAsync()
+    private async Task<CommandResult> RebuildBacklinksAsync()
     {
-        if (_activeWorkspace is not { } workspace || _closingApproved) return;
+        if (_activeWorkspace is not { } workspace || _closingApproved) return new(CommandOutcome.Unavailable, "Open an active workspace first.");
         _backlinkRefreshTimer.Stop();
         _backlinkCancellation?.Cancel();
         var cancellation = new CancellationTokenSource();
@@ -78,7 +80,7 @@ public partial class MainWindow
                 try
                 {
                     var cachedIndex = await cached.GetLinkIndexAsync(workspace.WorkspaceId, cancellation.Token);
-                    if (generation != _backlinkGeneration || _folder != root) return;
+                    if (generation != _backlinkGeneration || _folder != root) return new(CommandOutcome.Cancelled, "Indexing superseded.");
                     _savedLinkIndex = cachedIndex;
                 }
                 catch (Exception exception) when (exception is InvalidDataException or JsonException)
@@ -96,25 +98,28 @@ public partial class MainWindow
             var service = new WorkspaceLinkIndexService(_files, new MarkdownLinkTargetReader(_files), _recovery as IClassificationStore);
             var previous = _savedLinkIndex;
             var index = await Task.Run(() => service.BuildAsync(root, progress, cancellation.Token, previous), cancellation.Token);
-            if (generation != _backlinkGeneration || _folder != root || _closingApproved) return;
+            if (generation != _backlinkGeneration || _folder != root || _closingApproved) return new(CommandOutcome.Cancelled, "Indexing superseded.");
             if (_recovery is IWorkspaceLinkIndexStore store) await store.SaveLinkIndexAsync(workspace.WorkspaceId, index, cancellation.Token);
-            if (generation != _backlinkGeneration || _folder != root || cancellation.IsCancellationRequested) return;
+            if (generation != _backlinkGeneration || _folder != root || cancellation.IsCancellationRequested) return new(CommandOutcome.Cancelled, "Indexing superseded or cancelled.");
             _savedLinkIndex = index;
             _wikiLinkCatalog = index.WikiCatalog;
             _linkIndexState = index.Errors.Count == 0 ? $"Complete — {index.Documents.Count} saved files."
                 : $"Partial — {index.Documents.Count} saved files; {index.Errors.Count} skipped/error paths. " + string.Join("; ", index.Errors.Take(3));
             RefreshIncomingReferences();
+            return new(CommandOutcome.Completed, _linkIndexState);
         }
         catch (OperationCanceledException)
         {
             if (generation == _backlinkGeneration) { _linkIndexState = "Stale — indexing cancelled; previous results retained."; RefreshIncomingReferences(); }
+            return new(CommandOutcome.Cancelled, "Indexing cancelled; previous results retained.");
         }
         catch (Exception exception)
         {
-            if (generation != _backlinkGeneration) return;
+            if (generation != _backlinkGeneration) return new(CommandOutcome.Cancelled, "Indexing superseded.");
             _linkIndexState = "Partial/Error — " + exception.Message;
             _log.Error("backlinks.index.failed", exception, root);
             RefreshIncomingReferences();
+            return new(CommandOutcome.Failed, exception.Message, exception);
         }
         finally { cancellation.Dispose(); if (_backlinkCancellation == cancellation) _backlinkCancellation = null; }
     }
@@ -158,7 +163,7 @@ public partial class MainWindow
 
     private async void Backlinks_OnDoubleTapped(object? sender, RoutedEventArgs eventArgs)
     {
-        if (Backlinks.SelectedItem is WorkspaceLinkReference reference) await OpenBacklinkAsync(reference);
+        await ExecuteCommandAsync("navigation.backlink");
     }
 
     private async void Backlinks_OnKeyDown(object? sender, KeyEventArgs eventArgs)
@@ -166,20 +171,20 @@ public partial class MainWindow
         if (eventArgs.Key != Key.Enter || eventArgs.KeyModifiers != KeyModifiers.None
             || Backlinks.SelectedItem is not WorkspaceLinkReference reference) return;
         eventArgs.Handled = true;
-        await OpenBacklinkAsync(reference);
+        await ExecuteCommandAsync("navigation.backlink");
     }
 
-    private async Task OpenBacklinkAsync(WorkspaceLinkReference reference)
+    private async Task<CommandResult> OpenBacklinkAsync(WorkspaceLinkReference reference)
     {
-        if (_sessionTransitionRunning || _navigationRunning || _folder is not { } root) return;
-        if (!await _linkNavigationGate.WaitAsync(0)) return;
+        if (_sessionTransitionRunning || _navigationRunning || _folder is not { } root) return new(CommandOutcome.Unavailable, "Open an idle workspace first.");
+        if (!await _linkNavigationGate.WaitAsync(0)) return new(CommandOutcome.Unavailable, "Another navigation is running.");
         _navigationRunning = true;
         SetSessionCommandsEnabled(false);
         try
         {
             var path = WorkspaceMutationPolicy.Resolve(root, reference.SourceRelativePath);
             var source = await new MarkdownLinkTargetReader(_files).ReadAsync(root, path);
-            if (source.Status != MarkdownLinkResolutionStatus.Resolved) { UpdateChrome("The backlink source is unavailable; rebuild the index."); return; }
+            if (source.Status != MarkdownLinkResolutionStatus.Resolved) { UpdateChrome("The backlink source is unavailable; rebuild the index."); return new(CommandOutcome.Unavailable, "Backlink source unavailable."); }
             var structure = FindTab(path) is { } open ? GetTabStructure(open) : _structureParser.Parse(source.Text ?? string.Empty);
             MarkdownDocumentLink? link;
             var indexed = _savedLinkIndex?.Documents.FirstOrDefault(document => document.RelativePath.Equals(reference.SourceRelativePath, StringComparison.OrdinalIgnoreCase));
@@ -190,17 +195,18 @@ public partial class MainWindow
                 var candidates = structure.Links.Where(candidate => candidate.Destination == reference.Destination).ToArray();
                 link = candidates.Length == 1 ? candidates[0] : null;
             }
-            if (link is null) { UpdateChrome("The backlink changed or is ambiguous; rebuild the index before navigating."); return; }
+            if (link is null) { UpdateChrome("The backlink changed or is ambiguous; rebuild the index before navigating."); return new(CommandOutcome.Unavailable, "Backlink changed or ambiguous."); }
             var previous = CurrentNavigationLocation();
             await OpenDocumentAsync(path);
-            if (!string.Equals(_session.Path, path, StringComparison.OrdinalIgnoreCase)) return;
+            if (!string.Equals(_session.Path, path, StringComparison.OrdinalIgnoreCase)) return new(CommandOutcome.Cancelled, "Backlink navigation cancelled.");
             SetNavigationPosition(link.Source.Offset);
             if (previous is not null) _backLocations.Add(previous);
             _forwardLocations.Clear();
             UpdateNavigationCommands();
             UpdateChrome("Opened the Markdown reference at its source location.");
+            return new(CommandOutcome.Completed, "Backlink source location opened.");
         }
-        catch (Exception exception) { ReportError("backlinks.navigate.failed", exception, root); }
+        catch (Exception exception) { ReportError("backlinks.navigate.failed", exception, root); return new(CommandOutcome.Failed, exception.Message, exception); }
         finally
         {
             _navigationRunning = false;

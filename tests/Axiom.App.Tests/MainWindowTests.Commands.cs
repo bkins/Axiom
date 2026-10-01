@@ -7,6 +7,35 @@ namespace Axiom.App.Tests;
 public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
+    public async Task EnrollmentTabCyclingAndUnavailableContextCommandsPreserveSavedBytesAndDirtyTabs()
+    {
+        var root = CreateTabWorkspace();
+        try
+        {
+            var path = Path.Combine(root, "plain.md");
+            await File.WriteAllTextAsync(path, "# Plain\n\nOriginal");
+            var window = CreateWindow(root);
+            await window.OpenDocumentAsync(path);
+            foreach (var id in new[] { "document.resolveConflict", "document.removeSelectedPin", "relationship.edit", "relationship.remove", "metadata.apply", "document.cancelExport", "workspace.cancelLoading" })
+                Assert.Equal(CommandOutcome.Unavailable, (await window.ExecuteCommandAsync(id)).Outcome);
+            Assert.Equal(CommandOutcome.Completed, (await window.ExecuteCommandAsync("document.enroll")).Outcome);
+            var enrolled = window.EditorTextForTesting;
+            Assert.NotNull(DocumentIdentityPolicy.FindCanonical(enrolled));
+            Assert.Equal(CommandOutcome.Cancelled, (await window.ExecuteCommandAsync("document.enroll")).Outcome);
+            Assert.Equal("# Plain\n\nOriginal", await File.ReadAllTextAsync(path));
+            await window.ExecuteCommandAsync("document.new");
+            Assert.Equal(CommandOutcome.Completed, (await window.ExecuteCommandAsync("navigation.previousTab")).Outcome);
+            Assert.Equal(enrolled, window.EditorTextForTesting);
+            Assert.True(window.TabsForTesting[0].Session.IsDirty);
+            Assert.Equal(CommandOutcome.Completed, (await window.ExecuteCommandAsync("navigation.nextTab")).Outcome);
+            Assert.Equal(enrolled, window.TabsForTesting[0].Session.Text);
+            Assert.Equal("# Plain\n\nOriginal", await File.ReadAllTextAsync(path));
+            window.Close();
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [AvaloniaFact]
     public async Task FormattingCommandsPreserveIdentityDiskAndOneUndoWhileUnavailableMutationsDoNothing()
     {
         var root = CreateTabWorkspace();

@@ -108,7 +108,7 @@ public partial class MainWindow
         finally { WorkspaceLoadingPanel.IsVisible = false; }
     }
 
-    private void WorkspaceLoadingCancel_OnClick(object? sender, RoutedEventArgs args) => _workspaceLoadCancellation?.Cancel();
+    private async void WorkspaceLoadingCancel_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("workspace.cancelLoading");
     internal void CancelWorkspaceLoadingForTesting() => _workspaceLoadCancellation?.Cancel();
     internal Func<string, CancellationToken, Task>? BeforeWorkspaceDiscoveryForTesting { get; set; }
 }
