@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: A421E01385A2DAE43A5940B0C2BB8EFFEB3312D7455D3F69D46F8F231A3AE349. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: C52ACE441CDAAD5C5CAF37E98F1D6CD5F0425C347F13DD1D130002E6667FF629. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -28,6 +28,8 @@ In accepted 1.0.4 and later, startup restores the active remembered workspace an
 While you edit the current document, Axiom keeps the preview near the same proportional reading position after live updates. Opening or reloading another document starts that document at its own preview position. Wide tables scroll inside the preview, and large images scale down to the available width.
 
 Use **Format…** to apply bold, italic, inline code, links, paragraph or heading styles, bulleted, numbered or task lists, and fenced code blocks to the current selection or caret. `Ctrl+B`, `Ctrl+I`, and `Ctrl+K` apply bold, italic, and link formatting while the source editor has focus. Each formatting action is one undo step and remains unsaved until you choose **Save**.
+
+With the source editor focused, use **Ctrl+F** to find text or **Ctrl+H** for Find/Replace. Searches use the current editor buffer, including unsaved changes. Replace All changes that buffer; Undo restores the previous text. Your saved Markdown changes only when you save. Physical shortcut and focus checks remain pending for the current candidate.
 
 At the end of a non-empty list item, press **Enter** to continue its bullet, next visible number, or an unchecked task box. Press **Enter** on an empty list item to remove its marker and end the list. Press **Tab** or **Shift+Tab** to indent or outdent the current list item or selected list lines by one level. Outside list content, Tab keeps the editor's normal behavior.
 
