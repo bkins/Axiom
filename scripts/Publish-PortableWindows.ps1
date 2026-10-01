@@ -4,7 +4,9 @@ param(
     [string]$ReleaseVersion,
     [string]$CommitId,
     [string]$OutputDirectory,
-    [string]$TestStateName
+    [string]$TestStateName,
+    [string]$Channel = 'candidate',
+    [string]$ReleaseNotes = 'Implementation candidate; human release acceptance remains pending.'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,6 +61,8 @@ $manifest = [ordered]@{
     Branch = (& git -C $repoRoot branch --show-current)
     BuiltUtc = [DateTimeOffset]::UtcNow.ToString('O')
     SchemaVersion = [int]$schemaMatch.Groups[1].Value
+    Channel = $Channel
+    ReleaseNotes = $ReleaseNotes
     Files = $payloadFiles
 }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding utf8

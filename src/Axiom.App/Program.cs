@@ -6,9 +6,14 @@ namespace Axiom.App;
 
 internal static class Program
 {
+    internal static string? StartupDocument { get; private set; }
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--installation-window-probe" && args.Length == 2) InstallationWindowProbe.Configure(args[1]);
+        if (args.FirstOrDefault() == "--windows-installation-probe") return WindowsInstallationProbe.Run(args);
+        if (args.Length == 1 && !args[0].StartsWith("--", StringComparison.Ordinal) &&
+            Path.GetExtension(args[0]).ToLowerInvariant() is ".md" or ".markdown") StartupDocument = Path.GetFullPath(args[0]);
         if (args.FirstOrDefault() == "--workspace-git-probe" && args.Length == 2) WorkspaceGitProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--structured-wiki-probe" && args.Length == 2) StructuredWikiProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--deleted-document-probe" && args.Length == 2) DeletedDocumentProbe.Configure(args[1]);

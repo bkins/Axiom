@@ -59,7 +59,7 @@ public partial class MainWindow
             await using var stream = File.OpenRead(manifestPath);
             var manifest = await JsonSerializer.DeserializeAsync<PortablePackageManifest>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (manifest?.InformationalVersion != _buildIdentity.InformationalVersion) return result + "\nPublish metadata: contradicts the running assembly.";
-            return result + $"\nSource: {manifest.CommitId}\nBranch: {manifest.Branch}\nBuilt UTC: {manifest.BuiltUtc:u}";
+            return result + $"\nSource: {manifest.CommitId}\nBranch: {manifest.Branch}\nBuilt UTC: {manifest.BuiltUtc:u}\nChannel: {manifest.Channel ?? "unspecified (legacy manifest)"}\nRelease notes: {manifest.ReleaseNotes ?? "not supplied"}\nRetained versions: {Path.Combine(_operationalPaths.Root, "Versions")}";
         }
         catch (Exception exception) { return result + "\nPublish metadata unavailable: " + exception.Message; }
     }
@@ -96,6 +96,7 @@ public partial class MainWindow
                 throw new IOException("An update must be newer. Use Switch Portable Version for a retained older package.");
             if (await ChoiceDialog.ShowAsync(this, "Verified package", $"Version: {manifest.InformationalVersion}\nBranch: {manifest.Branch}\nBuilt UTC: {manifest.BuiltUtc:u}\nSource: {source}\n\n{(rollback ? "Switch to this retained version" : "Install into a new version folder")}? Restart keeps state at {_operationalPaths.Root}. Existing binaries remain for rollback.", "Continue", "Cancel") != "Continue") return;
             if (!await ConfirmAllTabsAsync()) return;
+            await new StateMaintenanceService(_operationalPaths).ExportBackupAsync(Path.Combine(_operationalPaths.BackupDirectory, "pre-switch-" + Guid.NewGuid().ToString("N") + ".db"));
             var destination = rollback ? source : await Task.Run(() => service.InstallAsync(source, inspection.SchemaVersion));
             await service.ValidateAsync(destination);
             if (await ChoiceDialog.ShowAsync(this, "Version ready", $"Verified version is ready at {destination}. Restart now?", "Restart", "Later") != "Restart")

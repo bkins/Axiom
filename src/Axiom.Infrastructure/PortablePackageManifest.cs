@@ -7,4 +7,6 @@ public sealed record PortablePackageManifest(int FormatVersion
                                            , string Branch
                                            , DateTimeOffset BuiltUtc
                                            , int SchemaVersion
-                                           , IReadOnlyList<PortablePackageFile> Files);
+                                           , IReadOnlyList<PortablePackageFile> Files
+                                           , string? Channel = null
+                                           , string? ReleaseNotes = null);

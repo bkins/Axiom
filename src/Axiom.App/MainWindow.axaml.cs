@@ -148,7 +148,14 @@ public partial class MainWindow : Window
         _monitor.Renamed += (_, pair) => Dispatcher.UIThread.Post(async () => await HandleRenameAsync(pair.OldPath, pair.NewPath));
         Opened += async (_, _) =>
         {
-            try { await InitializeEditorPreferencesAsync(); await InitializeShortcutsAsync(); await InitializeManagementAsync(); await RestoreDraftIfAvailableAsync(); }
+            try
+            {
+                await InitializeEditorPreferencesAsync();
+                await InitializeShortcutsAsync();
+                await InitializeManagementAsync();
+                await RestoreDraftIfAvailableAsync();
+                if (Program.StartupDocument is { } startupDocument) await OpenDocumentAsync(startupDocument);
+            }
             finally { _startupCompleted.TrySetResult(); }
         };
         Closing += MainWindow_Closing;

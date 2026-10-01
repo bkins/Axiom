@@ -24,6 +24,8 @@ public partial class MainWindow
 
     private void InitializeCommands()
     {
+        RegisterCommand("application.install", "Install Axiom for current user", null, true, (_, _) => InstallCurrentUserAsync());
+        RegisterCommand("application.checkUpdate", "Check trusted update", null, true, (_, _) => CheckTrustedUpdateAsync());
         RegisterCommand("workspace.git", "Inspect workspace Git", null, true, (_, _) => ShowWorkspaceGitAsync(),
             context => new(context.WorkspaceId is not null, context.WorkspaceId is null ? "Open a workspace before inspecting Git." : null));
         RegisterCommand("document.structure", "Browse document structure", null, false, (_, _) => ShowDocumentStructureAsync());

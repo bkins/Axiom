@@ -133,6 +133,8 @@
                 <MenuItem Header="Diagnostics…" Click="Diagnostics_OnClick" />
                 <MenuItem Header="State Maintenance…" Click="Maintenance_OnClick" />
                 <MenuItem Header="Install Portable Update…" Click="InstallUpdate_OnClick" />
+                <MenuItem Header="Install for Current User…" Click="InstallCurrentUser_OnClick" />
+                <MenuItem Header="Check Trusted Update…" Click="CheckTrustedUpdate_OnClick" />
                 <MenuItem Header="Switch Portable Version…" Tag="Switch" Click="InstallUpdate_OnClick" />
                 <MenuItem Header="About Axiom…" Click="About_OnClick" />
               </MenuFlyout>
