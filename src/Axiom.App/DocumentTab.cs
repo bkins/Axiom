@@ -25,6 +25,8 @@ internal sealed class DocumentTab : INotifyPropertyChanged
     public double HorizontalOffset { get; set; }
     public double VerticalOffset { get; set; }
     public double PreviewScrollRatio { get; set; }
+    public string? PreviewAnchorPrefix { get; set; }
+    public int PreviewAnchorRelativeOffset { get; set; }
     public string? LastProtectedText { get; set; }
     public string RecoveryStatus { get; set; } = "Recovery ready";
     public bool IsMissing { get; set; }

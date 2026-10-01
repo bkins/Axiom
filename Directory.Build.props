@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <AxiomVersion>1.0.9</AxiomVersion>
+    <AxiomVersion>1.0.10</AxiomVersion>
     <Version Condition="'$(Version)' == ''">$(AxiomVersion)</Version>
     <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(AxiomVersion)+dev</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>

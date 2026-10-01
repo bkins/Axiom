@@ -95,6 +95,8 @@ public partial class MainWindow : Window
         _markCleanExit = markCleanExit;
         _session = documents.NewDocument();
         InitializeComponent();
+        InitializeReadingFeedback();
+        InitializePreviewSynchronization();
         InitializeFileDrop();
         SizeChanged += (_, _) => ClampHelpPanelWidth();
         InitializeClassification();
@@ -121,6 +123,12 @@ public partial class MainWindow : Window
         Preview.NavigationCompleted += async (_, args) => await RestorePreviewScrollAsync(args.IsSuccess);
         Preview.NavigationStarted += (_, args) =>
         {
+            if (args.Request is { Scheme: "axiom-source" } source)
+            {
+                args.Cancel = true;
+                Dispatcher.UIThread.Post(async () => await HandlePreviewSourceAsync(source));
+                return;
+            }
             if (args.Request is { Scheme: "axiom-link" } link)
             {
                 args.Cancel = true;
@@ -708,6 +716,7 @@ public partial class MainWindow : Window
         UpdateEmptyStates();
         SchedulePreview();
         ScheduleOutline();
+        ScheduleDocumentStatistics();
         UpdateChrome(_session.IsDirty ? "Unsaved changes — recovery protection active" : "No unsaved changes");
     }
 
@@ -736,6 +745,7 @@ public partial class MainWindow : Window
             {
                 var scriptResult = await Preview.InvokeScript("(() => { const root = document.scrollingElement || document.documentElement; const range = Math.max(0, root.scrollHeight - window.innerHeight); return range === 0 ? 0 : root.scrollTop / range; })()");
                 if (TryParsePreviewScrollRatio(scriptResult, out var parsed)) scrollRatio = parsed;
+                await CapturePreviewAnchorAsync();
             }
             catch (Exception exception)
             {
@@ -747,6 +757,7 @@ public partial class MainWindow : Window
         if (scrollRatio is { } captured) _activeTab.PreviewScrollRatio = captured;
         _pendingPreviewScrollRatio = scrollRatio ?? _activeTab.PreviewScrollRatio;
         _previewLinkToken = Guid.NewGuid().ToString("N");
+        ResetPreviewSynchronization();
         _previewLinkStructure = GetCurrentStructure();
         Preview.NavigateToString(_preview.RenderDocument(_previewLinkStructure, _session.Path, _appearance, _activeWorkspace?.RootPath, _previewLinkToken));
     }
@@ -769,6 +780,7 @@ public partial class MainWindow : Window
 
         try
         {
+            if (await RestorePreviewAnchorAsync()) return;
             await Preview.InvokeScript(BuildPreviewScrollRestoreScript(ratio));
         }
         catch (Exception exception)
@@ -839,6 +851,7 @@ public partial class MainWindow : Window
                 {
                     foreach (var snapshot in snapshots) snapshot.Tab.RecoveryStatus = "Recovery protection failed";
                     _log.Error("recovery.save.failed", exception);
+                    ShowPersistentFailure("Recovery protection failed: " + exception.Message + " Keep the buffer open and save to an available destination.");
                 }
                 RecoveryText.Text = _activeTab.RecoveryStatus;
                 return;
@@ -859,6 +872,7 @@ public partial class MainWindow : Window
                 {
                     tab.RecoveryStatus = "Recovery protection failed";
                     _log.Error("recovery.save.failed", exception, session.Path);
+                    ShowPersistentFailure("Recovery protection failed: " + exception.Message + " Keep the buffer open and save to an available destination.");
                 }
             }
             RecoveryText.Text = _activeTab.RecoveryStatus;
@@ -1015,10 +1029,11 @@ public partial class MainWindow : Window
         RefreshTabLabels();
         var name = _session.Path is null ? "Untitled" : Path.GetFileName(_session.Path);
         Title = $"{name}{(_session.IsDirty ? " *" : string.Empty)} — Axiom";
-        StatusText.Text = status;
+        ShowInformation(status);
         EnrollButton.IsVisible = _session.DocumentId is null;
         UpdatePinButton();
         UpdateDurableStatus();
+        ScheduleDocumentStatistics();
         UpdateMetadataPanel();
     }
 
@@ -1069,7 +1084,7 @@ public partial class MainWindow : Window
     private void ReportError(string eventName, Exception exception, string? path)
     {
         _log.Error(eventName, exception, path);
-        StatusText.Text = exception.Message;
+        ShowPersistentFailure(exception.Message);
     }
 
     private async void MainWindow_Closing(object? sender, WindowClosingEventArgs eventArgs)

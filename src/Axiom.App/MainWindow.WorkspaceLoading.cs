@@ -41,7 +41,7 @@ public partial class MainWindow
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
-            if (generation == _workspaceLoadGeneration) StatusText.Text = "Workspace loading cancelled; current documents retained.";
+            if (generation == _workspaceLoadGeneration) ShowInformation("Workspace loading cancelled; current documents retained.");
             return null;
         }
         catch (Exception exception)
@@ -100,7 +100,7 @@ public partial class MainWindow
             UpdatePinButton();
             DuplicateWarning.Text = snapshot.Duplicates.Count == 0 && snapshot.Discovery.SkippedDirectories.Count == 0 ? "" :
                 $"{snapshot.Duplicates.Count} duplicate identity groups; {snapshot.Discovery.SkippedDirectories.Count} skipped directories.";
-            StatusText.Text = $"Opened workspace {workspace.DisplayName} with {snapshot.Discovery.Files.Count} Markdown documents.";
+            ShowInformation($"Opened workspace {workspace.DisplayName} with {snapshot.Discovery.Files.Count} Markdown documents.");
             UpdateEmptyStates();
             UpdateDurableStatus();
             ScheduleBacklinkRebuild();

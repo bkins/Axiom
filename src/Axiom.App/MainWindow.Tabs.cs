@@ -68,6 +68,7 @@ public partial class MainWindow
                 {
                     var result = await Preview.InvokeScript("(() => { const root = document.scrollingElement || document.documentElement; const range = Math.max(0, root.scrollHeight - window.innerHeight); return range === 0 ? 0 : root.scrollTop / range; })()");
                     if (TryParsePreviewScrollRatio(result, out var ratio)) previous.PreviewScrollRatio = ratio;
+                    await CapturePreviewAnchorAsync();
                 }
                 catch (Exception exception) { _log.Error("preview.tab.capture.failed", exception, previous.Session.Path); }
             }

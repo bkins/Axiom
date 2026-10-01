@@ -52,10 +52,21 @@ public sealed class FileDocumentStore(IAxiomLog? log = null) : IDocumentFileStor
     public async Task<DocumentFile> ReadAsync(string path, CancellationToken cancellationToken = default)
     {
         var fullPath = Path.GetFullPath(path);
-        var text = await File.ReadAllTextAsync(fullPath, Encoding.UTF8, cancellationToken);
+        await using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
+        var prefix = new byte[4];
+        var prefixLength = await stream.ReadAtLeastAsync(prefix, 4, throwOnEndOfStream: false, cancellationToken);
+        stream.Position = 0;
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        var text = await reader.ReadToEndAsync(cancellationToken);
+        var hasBom = prefixLength >= 3 && prefix[0] == 0xef && prefix[1] == 0xbb && prefix[2] == 0xbf ||
+            prefixLength >= 2 && (prefix[0] == 0xff && prefix[1] == 0xfe || prefix[0] == 0xfe && prefix[1] == 0xff) ||
+            prefixLength >= 4 && prefix[0] == 0 && prefix[1] == 0 && prefix[2] == 0xfe && prefix[3] == 0xff;
         var info = new FileInfo(fullPath);
         _log.Information("file.read", fullPath);
-        return new DocumentFile(fullPath, text, info.LastWriteTimeUtc, info.Length);
+        return new DocumentFile(fullPath, text, info.LastWriteTimeUtc, info.Length)
+        {
+            ObservedEncoding = reader.CurrentEncoding.WebName.ToUpperInvariant() + (hasBom ? " (BOM)" : " (assumed; no BOM)")
+        };
     }
 
     public async Task<DocumentFile> WriteAsync(string path, string text, CancellationToken cancellationToken = default)
@@ -93,4 +104,3 @@ public sealed class FileDocumentStore(IAxiomLog? log = null) : IDocumentFileStor
         return Task.FromResult(File.Exists(path));
     }
 }
-

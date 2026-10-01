@@ -76,7 +76,18 @@ public sealed class MarkdownStructureService
         Pipeline.Setup(renderer);
         renderer.ObjectRenderers.Remove(renderer.ObjectRenderers.FindExact<LinkInlineRenderer>()!);
         renderer.ObjectRenderers.Insert(0, new PreviewLinkRenderer(document, linkToken));
-        renderer.Render(document.Syntax);
+        foreach (var block in document.Syntax)
+        {
+            if (block is LinkReferenceDefinitionGroup || block.Span.Start < 0) continue;
+            var start = block.Span.Start.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            renderer.Write("<div class=\"source-block\" data-source-start=\"").Write(start)
+                .Write("\" data-source-line=\"").Write((block.Line + 1).ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Write("\" data-source-end=\"").Write(block.Span.End.ToString(System.Globalization.CultureInfo.InvariantCulture)).Write("\">");
+            renderer.Write("<a class=\"source-navigation\" aria-label=\"Show this block in the editor\" href=\"axiom-source://show/")
+                .Write(System.Net.WebUtility.HtmlEncode(linkToken)).Write("/").Write(start).Write("\">Source</a>");
+            renderer.Render(block);
+            renderer.Write("</div>");
+        }
         return writer.ToString();
     }
 

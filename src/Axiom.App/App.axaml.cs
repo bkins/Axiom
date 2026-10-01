@@ -13,6 +13,11 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = AppComposition.CreateMainWindow();
+            if (ReadingFeedbackProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await ReadingFeedbackProbe.StartAsync(window);
+            }
             if (TemplateAssetProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

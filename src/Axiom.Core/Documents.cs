@@ -6,7 +6,10 @@ public sealed record DocumentFile(
     string Path,
     string Text,
     DateTimeOffset LastWriteUtc,
-    long Length);
+    long Length)
+{
+    public string ObservedEncoding { get; init; } = "Unknown encoding";
+}
 
 public sealed record RecoveryDraft(
     string DraftKey,
@@ -42,6 +45,7 @@ public sealed class DocumentSession
     public string? Path { get; private set; }
     public string Text { get; private set; }
     public string SavedText { get; private set; }
+    public string ObservedEncoding { get; private set; } = "Unsaved — writes UTF-8";
     public DateTimeOffset? LastKnownWriteUtc { get; private set; }
     public ExternalConflict? Conflict { get; private set; }
     public bool IsDirty => !string.Equals(Text, SavedText, StringComparison.Ordinal);
@@ -51,12 +55,16 @@ public sealed class DocumentSession
     public static DocumentSession New() => new($"unsaved:{Guid.NewGuid():N}", null, string.Empty, null);
 
     public static DocumentSession Open(DocumentFile file) =>
-        new($"file:{System.IO.Path.GetFullPath(file.Path).ToUpperInvariant()}", file.Path, file.Text, file.LastWriteUtc);
+        new($"file:{System.IO.Path.GetFullPath(file.Path).ToUpperInvariant()}", file.Path, file.Text, file.LastWriteUtc)
+        {
+            ObservedEncoding = file.ObservedEncoding
+        };
 
     public static DocumentSession Recover(RecoveryDraft draft, string savedText = "") =>
         new(draft.DraftKey, draft.FilePath, draft.Text, draft.SavedFileWriteUtc)
         {
             SavedText = savedText
+          , ObservedEncoding = draft.FilePath is null ? "Unsaved — writes UTF-8" : "Recovered — encoding unobserved"
         };
 
     public void UpdateText(string text)
@@ -69,6 +77,7 @@ public sealed class DocumentSession
         Path = path;
         SavedText = Text;
         LastKnownWriteUtc = writeUtc;
+        ObservedEncoding = "UTF-8 (no BOM)";
         Conflict = null;
     }
 
@@ -77,6 +86,7 @@ public sealed class DocumentSession
         Path = file.Path;
         Text = file.Text;
         SavedText = file.Text;
+        ObservedEncoding = file.ObservedEncoding;
         LastKnownWriteUtc = file.LastWriteUtc;
         Conflict = null;
     }

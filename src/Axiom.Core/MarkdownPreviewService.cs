@@ -91,6 +91,9 @@ public sealed partial class MarkdownPreviewService
             hr { height: 1px; margin: 1.8em 0; border: 0; background: var(--border); }
             img { display: block; max-width: 100%; height: auto; object-fit: contain; border-radius: 4px; }
             .empty-state { margin-top: 2rem; color: var(--muted); font-style: italic; }
+            .source-block { position: relative; }
+            .source-navigation { display: block; width: fit-content; margin: 0 0 .15em auto; font-size: .75em; opacity: .55; }
+            .source-navigation:hover, .source-navigation:focus { opacity: 1; }
             @media (max-width: 640px) { body { padding: 22px 20px 48px; } }
             </style></head><body>{{body}}</body></html>
             """;

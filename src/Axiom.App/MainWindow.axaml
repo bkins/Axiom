@@ -132,18 +132,28 @@
           </Button>
           <Button x:Name="EnrollButton" AutomationProperties.Name="Make Axiom Document" ToolTip.Tip="Assign a stable Axiom document identity" Click="Enroll_OnClick">Make Axiom Document</Button>
           <Button x:Name="PinButton" AutomationProperties.Name="Pin current document" ToolTip.Tip="Pin or unpin the current workspace document" Click="Pin_OnClick">Pin</Button>
+          <Button x:Name="ScrollSyncButton" Content="Scroll sync: off" AutomationProperties.Name="Toggle synchronized editor and preview scrolling" ToolTip.Tip="Opt in to block-based bidirectional scroll synchronization" Click="ToggleScrollSync_OnClick" />
+          <Button Content="Preview at caret" AutomationProperties.Name="Show preview at editor caret" ToolTip.Tip="Navigate the preview to the caret's Markdown block" Click="ShowPreviewAtCaret_OnClick" />
         </WrapPanel>
-        <TextBlock x:Name="StatusText" Grid.Row="1" AutomationProperties.Name="Latest operation status" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto">
+          <TextBlock x:Name="StatusText" AutomationProperties.Name="Latest operation status" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <Button x:Name="StatusDetailsButton" Grid.Column="1" Content="Details…" IsVisible="False" AutomationProperties.Name="Read persistent operation failure" Click="StatusDetails_OnClick" />
+          <Button x:Name="DismissStatusButton" Grid.Column="2" Content="Dismiss" IsVisible="False" AutomationProperties.Name="Dismiss operation message" Click="DismissStatus_OnClick" />
+        </Grid>
       </Grid>
     </Border>
 
     <Border x:Name="BottomStatusBar" DockPanel.Dock="Bottom" Padding="8,5" Background="#111827" BorderBrush="#374151" BorderThickness="0,1,0,0">
-      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto">
+      <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto">
         <TextBlock x:Name="PathText" Grid.ColumnSpan="4" Text="No workspace selected" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Current document path" />
         <TextBlock x:Name="WorkspaceContextText" Grid.Row="1" Margin="0,3,16,0" Text="No workspace" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Active workspace" />
         <TextBlock x:Name="DocumentStateText" Grid.Row="1" Grid.Column="1" Margin="0,3,16,0" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Document state" />
         <TextBlock x:Name="RecoveryText" Grid.Row="1" Grid.Column="2" Margin="0,3,16,0" Text="Recovery ready" AutomationProperties.Name="Recovery state" />
         <TextBlock x:Name="BuildIdentityText" Grid.Row="1" Grid.Column="3" Margin="0,3,0,0" AutomationProperties.Name="Application version" />
+        <WrapPanel Grid.Row="2" Grid.ColumnSpan="4" Orientation="Horizontal">
+          <TextBlock x:Name="DocumentStatisticsText" Margin="0,3,16,0" AutomationProperties.Name="Source words and caret position" />
+          <TextBlock x:Name="DocumentFormatText" Margin="0,3,0,0" AutomationProperties.Name="Observed document encoding and newline style" />
+        </WrapPanel>
       </Grid>
     </Border>
 
