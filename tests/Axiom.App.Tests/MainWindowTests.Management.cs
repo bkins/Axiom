@@ -6,7 +6,7 @@ namespace Axiom.App.Tests;
 public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
-    public async Task SwitchingCleanWorkspacesClearsDocumentAndLoadsDistinctPinsAndEmptyFolders()
+    public async Task SwitchingCleanWorkspacesClearsDocumentAndLoadsDistinctPinsWhileHidingEmptyFolders()
     {
         var root = Path.Combine(Path.GetTempPath(), "AxiomWorkspaceUi-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -21,7 +21,7 @@ public sealed partial class MainWindowTests
             await File.WriteAllTextAsync(Path.Combine(second, "b.md"), "second content");
             var window = CreateWindow(root);
             await window.LoadFolderAsync(first);
-            Assert.Contains(window.WorkspaceTreeForTesting, node => node.Name == "empty" && !node.IsDocument && node.Children.Count == 0);
+            Assert.DoesNotContain(window.WorkspaceTreeForTesting, node => node.Name == "empty");
             await window.OpenDocumentAsync(firstDocument);
             await window.ToggleCurrentPinForTestingAsync();
             Assert.True(await window.SwitchWorkspaceAsync(second));

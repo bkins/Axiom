@@ -36,14 +36,13 @@ public sealed class WorkspaceMutationPolicyTests
     }
 
     [Fact]
-    public void PreservesUnicodeNestedPathsAndEmptyFoldersInTree()
+    public void PreservesUnicodeNestedPathsAndHidesFoldersWithoutMarkdownDescendants()
     {
         var root = Path.Combine(Path.GetTempPath(), "workspace");
         var path = WorkspaceMutationPolicy.Resolve(root, "café/☕.markdown");
         var tree = WorkspaceTreeBuilder.Build(root, [path], [Path.Combine(root, "empty")]);
-        Assert.Equal("café", tree[0].Name);
-        Assert.Equal("☕.markdown", Assert.Single(tree[0].Children).Name);
-        Assert.Equal("empty", tree[1].Name);
-        Assert.Empty(tree[1].Children);
+        var folder = Assert.Single(tree);
+        Assert.Equal("café", folder.Name);
+        Assert.Equal("☕.markdown", Assert.Single(folder.Children).Name);
     }
 }

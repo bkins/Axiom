@@ -54,6 +54,7 @@ public sealed partial class MainWindowTests
         {
             var current = Path.Combine(root, "current.md");
             await File.WriteAllTextAsync(current, "saved content");
+            await File.WriteAllTextAsync(Path.Combine(root, "nested", "existing.md"), "existing bytes");
             var window = CreateWindow(root);
             await window.LoadFolderAsync(root);
             await window.OpenDocumentAsync(current);

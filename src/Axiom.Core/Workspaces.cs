@@ -83,7 +83,8 @@ public static class WorkspaceTreeBuilder
         {
             var folders = _folders.Values
                 .OrderBy(folder => folder.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(folder => new WorkspaceTreeNode(folder.Name, folder.RelativePath, false, folder.ToNodes()));
+                .Select(folder => new WorkspaceTreeNode(folder.Name, folder.RelativePath, false, folder.ToNodes()))
+                .Where(folder => folder.Children.Count > 0);
             var documents = Documents.OrderBy(document => document.Name, StringComparer.OrdinalIgnoreCase);
             return folders.Concat(documents).ToArray();
         }

@@ -42,6 +42,29 @@ public sealed class WorkspaceServiceTests
     }
 
     [Fact]
+    public void TreeBuilderRetainsOnlyFolderBranchesWithMarkdownDescendants()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "AxiomWorkspaceTests", Guid.NewGuid().ToString("N"));
+        var markdown = Path.Combine(root, "kept", "nested", "note.md");
+        var folders = new[]
+        {
+            Path.Combine(root, "kept"),
+            Path.Combine(root, "kept", "nested"),
+            Path.Combine(root, "kept", "non-markdown-only"),
+            Path.Combine(root, "hidden"),
+            Path.Combine(root, "hidden", "also-hidden")
+        };
+
+        var tree = WorkspaceTreeBuilder.Build(root, [markdown], folders);
+
+        var kept = Assert.Single(tree);
+        Assert.Equal("kept", kept.Name);
+        var nested = Assert.Single(kept.Children);
+        Assert.Equal("nested", nested.Name);
+        Assert.Equal("note.md", Assert.Single(nested.Children).Name);
+    }
+
+    [Fact]
     public void PinPathMustBeMarkdownInsideTheWorkspace()
     {
         var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "AxiomWorkspaceTests", Guid.NewGuid().ToString("N")));
