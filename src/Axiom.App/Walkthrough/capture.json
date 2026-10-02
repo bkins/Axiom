@@ -1,5 +1,5 @@
 {
-  "applicationVersion": "1.0.23+dev",
+  "applicationVersion": "Mixed actual captures: 1.0.23+dev basics; 1.0.24+local nested outline and Tools",
   "platform": "Windows",
   "captureDate": "2026-10-02",
   "nativeFixture": "artifacts/Workbench-03",
@@ -7,5 +7,18 @@
   "method": "Computer Use skill; screenshots of the running Axiom window and Command Palette",
   "mockups": false,
   "humanAcceptance": false,
-  "maintenance": "Refresh screenshots with --workbench-probe into a fresh isolated state directory; update steps.json and run scripts/Build-WorkbenchWalkthrough.py. Keep JPEG screenshots in their native encoding."
+  "maintenance": "Refresh screenshots with --workbench-probe into a fresh isolated state directory; update steps.json and run scripts/Build-WorkbenchWalkthrough.py. Keep JPEG screenshots in their native encoding.",
+  "updatedImages": [
+    "03-outline.jpg",
+    "09-tools.jpg",
+    "10-diagnostics.jpg",
+    "11-maintenance.jpg",
+    "12-portable-update.jpg",
+    "13-user-install.jpg",
+    "14-trusted-update.jpg",
+    "15-switch-version.jpg",
+    "16-about.jpg"
+  ],
+  "updatedNativeFixture": "artifacts/Workbench-1.0.24-capture",
+  "installationDownloadAndVersionSwitchApplied": false
 }

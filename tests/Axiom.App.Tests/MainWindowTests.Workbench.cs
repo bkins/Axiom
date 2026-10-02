@@ -9,6 +9,39 @@ namespace Axiom.App.Tests;
 public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
+    public async Task FileOutlineNestsSkippedLevelsAndRetainsCollapseWhileNavigatingWorkingText()
+    {
+        var root = CreateTabWorkspace();
+        try
+        {
+            var path = Path.Combine(root, "hierarchy.md");
+            var source = "### Before title\n# TestTitle\n## TestSub1\n### TestSub2\n##### Skipped level\n## Sibling\n# Other title\n```md\n## Not a heading\n```\n";
+            await File.WriteAllTextAsync(path, source);
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+            var file = Assert.Single(window.ExplorerNodesForTesting, node => node.IsDocument);
+            await window.LoadExplorerOutlineAsync(file);
+            Assert.Equal(new[] { "Before title", "TestTitle", "Other title" }, file.Children.Select(node => node.Name));
+            var title = file.Children[1];
+            Assert.Equal(new[] { "TestSub1", "Sibling" }, title.Children.Select(node => node.Name));
+            var sub = title.Children[0];
+            Assert.Equal("TestSub2", Assert.Single(sub.Children).Name);
+            Assert.Equal(5, Assert.Single(sub.Children[0].Children).Heading!.Level);
+            sub.IsExpanded = false;
+            await window.OpenDocumentAsync(path);
+            window.SetEditorTextForTesting("Intro added.\n\n" + source);
+            await window.LoadExplorerOutlineAsync(file);
+            var rebuiltSub = file.Children[1].Children[0];
+            Assert.False(rebuiltSub.IsExpanded);
+            await window.OpenExplorerNodeForTestingAsync(rebuiltSub.Children[0]);
+            Assert.Equal(window.EditorTextForTesting.IndexOf("### TestSub2", StringComparison.Ordinal), window.EditorCaretOffsetForTesting);
+            Assert.Equal(source, await File.ReadAllTextAsync(path));
+            await CloseWorkbenchTestAsync(window);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [AvaloniaFact]
     public async Task WorkbenchFilteringRetainsFoldersAndLazyOutlinesUseWorkingBuffers()
     {
         var root = CreateTabWorkspace();
@@ -24,14 +57,15 @@ public sealed partial class MainWindowTests
             var file = Assert.Single(folder.Children);
             Assert.True(Assert.Single(file.Children).IsPlaceholder);
             await window.LoadExplorerOutlineAsync(file);
-            Assert.Equal(new[] { "Saved", "Topic" }, file.Children.Select(node => node.Name));
+            Assert.Equal("Saved", Assert.Single(file.Children).Name);
+            Assert.Equal("Topic", Assert.Single(file.Children[0].Children).Name);
             Assert.NotEqual(folder.Icon, file.Icon);
             Assert.NotEqual(file.Icon, file.Children[0].Icon);
             await window.OpenDocumentAsync(path);
             window.SetEditorTextForTesting("# Unsaved\n\n## Live heading\n");
             await window.LoadExplorerOutlineAsync(file);
-            Assert.Equal("Live heading", file.Children[1].Name);
-            await window.OpenExplorerNodeForTestingAsync(file.Children[1]);
+            Assert.Equal("Live heading", file.Children[0].Children[0].Name);
+            await window.OpenExplorerNodeForTestingAsync(file.Children[0].Children[0]);
             Assert.Equal(window.EditorTextForTesting.IndexOf("## Live", StringComparison.Ordinal), window.EditorCaretOffsetForTesting);
             window.FilterExplorerForTesting("ALPHA");
             Assert.Equal("notes", Assert.Single(window.ExplorerNodesForTesting).Name);
@@ -62,7 +96,7 @@ public sealed partial class MainWindowTests
             await window.LoadFolderAsync(root);
             var file = window.ExplorerNodesForTesting.Single(node => node.IsDocument);
             await window.LoadExplorerOutlineAsync(file);
-            var oldHeading = file.Children[1];
+            var oldHeading = file.Children[0].Children[0];
             await window.OpenDocumentAsync(path);
             window.SetEditorTextForTesting("# First\n\nNew paragraph\n\n## Destination\n");
             await window.OpenExplorerNodeForTestingAsync(oldHeading);

@@ -1,6 +1,12 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 97362F073EFCDC89B7D8241ADF26E19E01D2BBCFCE5628F2B43B667D833D83F2. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 1769DB5316B0051FAFACDB6BA50450D3AFE307EAF849F2DACF62AFE6C81809A1. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## 1.0.24 hierarchical outlines and advanced walkthrough
+
+Per-file outlines now follow heading structure: H2 sections nest below their H1, and H3 subsections nest below their H2. Headings without an earlier parent remain roots; skipped levels nest below the nearest earlier heading of a lower level. Expand/collapse heading branches with their arrows. New outlines start expanded; collapsed branches remain collapsed when the working buffer refreshes. Clicking the heading label still navigates to its current source and preview location without saving.
+
+The packaged Guided walkthrough now includes an advanced Tools chapter covering all seven actions: Diagnostics, State Maintenance and verified backups, portable updates, per-user installation, trusted update offers, portable version switching and About. Use the step selector to jump directly to a Tools topic. Captions explain prerequisites, explicit choices and cancellation; screenshots show real review screens in isolated example state. Help remains the maintained reference for recovery/update details. Following a tutorial does not automatically install, download or change your documents.
 
 ## 1.0.23 workbench and guided walkthrough
 

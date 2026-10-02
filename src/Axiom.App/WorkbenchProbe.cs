@@ -37,12 +37,17 @@ internal static class WorkbenchProbe
             var project = Path.Combine(notes, "Project Notes.md");
             var source = "# Welcome to Axiom\n\nYour workspace keeps Markdown files together. Open a file to read or edit it.\n\n## Explore your workspace\n\nExpand a folder to browse documents. Expand a document to browse its headings.\n\n## Write and preview\n\nThe editor is on the left; the rendered preview is on the right.\n\n- **Bold** and *italic* are standard Markdown.\n- Follow [Project Notes](Notes/Project%20Notes.md) to open another document.\n\n## Read without editing\n\nChoose Read or press Ctrl+Shift+R to hide the editor.\n\n## Find Help\n\nPress F1 to keep the offline User Guide beside your work.\n";
             await File.WriteAllTextAsync(welcome, source);
+            source = source.Replace("## Write and preview", "### Nested topics\n\nSubsections appear beneath their parent section in the file outline.\n\n## Write and preview", StringComparison.Ordinal);
+            await File.WriteAllTextAsync(welcome, source);
             await File.WriteAllTextAsync(project, "# Project Notes\n\nA small example project for the Axiom walkthrough.\n\n## Next steps\n\n- [ ] Draft a summary\n- [ ] Review the preview\n- [ ] Export a reading copy\n\n## Meeting notes\n\nMarkdown stays readable in any text editor.\n");
             await window.SwitchWorkspaceAsync(workspace);
             await window.OpenDocumentAsync(project);
             await window.OpenDocumentAsync(welcome);
             var file = window.ExplorerNodesForTesting.Single(node => node.IsDocument);
             await window.LoadExplorerOutlineAsync(file);
+            Require(file.Children.Count == 1 && file.Children[0].Heading?.Level == 1
+                && file.Children[0].Children[0].Heading?.Level == 2
+                && file.Children[0].Children[0].Children[0].Heading?.Level == 3, "File outline hierarchy was not built.");
             file.IsExpanded = true;
             var folder = window.ExplorerNodesForTesting.Single(node => node.Name == "Notes");
             folder.IsExpanded = true;
@@ -86,6 +91,7 @@ internal static class WorkbenchProbe
             {
                 Version = window.BuildIdentityForTesting.DisplayText
               , NativeEmbeddedViews = true
+              , HierarchicalHeadingLevels = true
               , FilterRetainedHierarchy = true
               , WorkingSourceCaretAndRecoveryPreserved = true
               , LayoutPersisted = true

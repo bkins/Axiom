@@ -204,8 +204,33 @@ public partial class MainWindow
     private static void SetExplorerHeadings(WorkspaceExplorerNode node, IEnumerable<DocumentOutlineEntry> entries, string source)
     {
         var fingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(source)));
+        var expansion = new Dictionary<(int Level, string Text, int Occurrence), bool>();
+        var occurrences = new Dictionary<(int Level, string Text), int>();
+        foreach (var existing in EnumerateExplorer(node.Children).Where(child => child.Heading is not null))
+        {
+            var identity = (existing.Heading!.Level, existing.Name);
+            occurrences.TryGetValue(identity, out var occurrence);
+            expansion[(identity.Level, identity.Name, occurrence)] = existing.IsExpanded;
+            occurrences[identity] = occurrence + 1;
+        }
         node.Children.Clear();
-        foreach (var entry in entries) node.Children.Add(new(entry.Text, node.RelativePath, heading: entry) { SourceFingerprint = fingerprint });
+        occurrences.Clear();
+        var parents = new Stack<WorkspaceExplorerNode>();
+        foreach (var entry in entries)
+        {
+            var identity = (entry.Level, entry.Text);
+            occurrences.TryGetValue(identity, out var occurrence);
+            occurrences[identity] = occurrence + 1;
+            var heading = new WorkspaceExplorerNode(entry.Text, node.RelativePath, heading: entry)
+            {
+                SourceFingerprint = fingerprint
+              , IsExpanded = !expansion.TryGetValue((entry.Level, entry.Text, occurrence), out var expanded) || expanded
+            };
+            while (parents.Count > 0 && parents.Peek().Heading!.Level >= entry.Level) parents.Pop();
+            if (parents.Count == 0) node.Children.Add(heading);
+            else parents.Peek().Children.Add(heading);
+            parents.Push(heading);
+        }
     }
 
     internal async Task LoadExplorerOutlineAsync(WorkspaceExplorerNode node)
