@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Axiom.Core/Axiom.Core.csproj" />
+    <ProjectReference Include="../../src/Axiom.Infrastructure/Axiom.Infrastructure.csproj" />
+    <Compile Remove="EpubEvaluationWriter.cs" />
+  </ItemGroup>
+</Project>

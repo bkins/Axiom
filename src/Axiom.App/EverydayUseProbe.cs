@@ -75,6 +75,17 @@ internal static class EverydayUseProbe
             });
             var export = new DocumentExportService();
             var snapshot = new ExportSnapshot(tab.Session.Text, path);
+            var epub = await export.WriteAsync(snapshot, Path.Combine(root, "export.epub"), false, [path], Path.Combine(root, "state"));
+            var openDocument = await export.WriteAsync(snapshot, Path.Combine(root, "export.odt"), false, [path], Path.Combine(root, "state"));
+            foreach (var packagePath in new[] { epub.Path, openDocument.Path })
+            {
+                using var package = System.IO.Compression.ZipFile.OpenRead(packagePath);
+                var content = package.GetEntry(packagePath.EndsWith(".epub", StringComparison.Ordinal) ? "EPUB/content.xhtml" : "content.xml")!;
+                using var contentStream = content.Open();
+                var document = System.Xml.Linq.XDocument.Load(contentStream);
+                if (!document.ToString().Contains("Editing", StringComparison.Ordinal) || document.ToString().Contains("documentId", StringComparison.Ordinal))
+                    throw new IOException("Additional export lost unsaved text or exposed identity.");
+            }
             var html = await export.WriteAsync(snapshot, Path.Combine(root, "export.html"), false, [path], Path.Combine(root, "state"));
             var word = await export.WriteAsync(snapshot, Path.Combine(root, "export.docx"), false, [path], Path.Combine(root, "state"));
             var preview = window.FindControl<NativeWebView>("Preview")!;
@@ -114,6 +125,10 @@ internal static class EverydayUseProbe
                 UnsavedHtmlRendered = true
               ,
                 WordPackageCreated = File.Exists(word.Path)
+              ,
+                EpubPackageCreated = File.Exists(epub.Path)
+              ,
+                OpenDocumentPackageCreated = File.Exists(openDocument.Path)
               ,
                 SourceUnchanged = true
               ,

@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: C52ACE441CDAAD5C5CAF37E98F1D6CD5F0425C347F13DD1D130002E6667FF629. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: E0F7C9F0012BC1F54D7D8795329E9E043B8214602F30298AE24DC2E445C8EB54. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -193,6 +193,14 @@ Use **File → Export current buffer to Word** or **Export current buffer to HTM
 Both formats support headings, paragraphs, emphasis, lists, static task checkboxes, links, tables, quotes and code. HTML is a standalone offline file; Word export requires no Word installation. Supported PNG/JPEG/GIF/BMP images are embedded relative to a saved document path, up to 20 MiB each. Missing/unsupported images or images in untitled documents retain alt text and produce warnings. Remote images are not downloaded. Raw HTML is displayed as text; unsafe links are omitted. Axiom identity markers and separate classification/relationships are not exported. Links to Markdown targets are not recursively exported or rewritten. Word page layout may differ from Preview and requires human review; export is not a lossless import/export editing workflow.
 
 Only the active document is exported. Metadata JSON transfer remains a separate workflow. Export completion shows the destination; errors and warnings explain incomplete conversion. Use **Cancel export** to stop a pending write; existing output is retained until successful commit. Choose an output location outside Axiom state and open/source documents.
+
+## EPUB and OpenDocument Text export (1.0.22 development)
+
+Choose **File → Export current buffer to EPUB** (`.epub`) for reading or **Export current buffer to OpenDocument Text** (`.odt`) for editable interchange. Both capture the active unsaved buffer and use the existing overwrite confirmation, cancellation and protected-output rules. They do not save Markdown, enroll documents or change recovery state.
+
+One Markdown document becomes one EPUB reading chapter, with a contents entry for each heading. ODT retains headings, emphasis, lists and task symbols, tables, quotes, code and bookmarks. Both embed supported local images relative to a saved source path and deduplicate identical image bytes. EPUB supports PNG/JPEG/GIF; BMP retains alt text with a warning. ODT also embeds BMP. Resources are bounded to 20 MiB per image, 64 MiB total and 1,024 unique images. Remote images are never fetched; untitled/missing images retain alt text and warnings.
+
+Safe web/mail links and valid current-document heading links are retained. Links to other local documents and missing heading targets retain their label with a warning; linked documents are not bundled. Raw active HTML, Axiom identity markers and separate metadata/relationships are excluded. EPUB reflows with the reader's font and viewport; ODT page layout and fonts depend on the office application. Format validation does not establish reader layout acceptance. Review outputs in your intended readers after implementation is complete.
 
 ## Searchable Help while working (1.0.7 development)
 

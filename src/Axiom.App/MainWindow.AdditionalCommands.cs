@@ -132,7 +132,7 @@ public partial class MainWindow
             await ScrollPreviewToSourceAsync(Editor.CaretOffset);
             return new(CommandOutcome.Completed, "Preview position reviewed.");
         });
-        foreach (var extension in new[] { "docx", "html", "txt", "pdf" })
+        foreach (var extension in new[] { "docx", "html", "txt", "pdf", "epub", "odt" })
             RegisterCommand("document.export." + extension, "Export current buffer to " + extension.ToUpperInvariant(), null, true,
                 (_, cancellation) => ExportCurrentBufferAsync(extension, cancellation),
                 _ => new(extension != "pdf" || OperatingSystem.IsWindows() || OperatingSystem.IsMacOS(), "PDF export is unavailable on this native browser platform."));

@@ -21,7 +21,7 @@ public sealed class DocumentExportService
     {
         var path = Path.GetFullPath(destination);
         var extension = Path.GetExtension(path).ToLowerInvariant();
-        if (extension is not ".html" and not ".docx" and not ".txt" and not ".pdf") throw new IOException("Choose a .html, .docx, .txt or .pdf output file.");
+        if (extension is not ".html" and not ".docx" and not ".txt" and not ".pdf" and not ".epub" and not ".odt") throw new IOException("Choose a .html, .docx, .txt, .pdf, .epub or .odt output file.");
         if (extension == ".pdf" && _pdfRenderer is null) throw new IOException("PDF export requires the native document renderer. Run export from Axiom.");
         if (!Enum.IsDefined(pdfPageSize)) throw new ArgumentOutOfRangeException(nameof(pdfPageSize));
         if (snapshot.Markdown.Length > 4 * 1024 * 1024) throw new IOException("Export supports documents up to 4 million characters. Split this document before exporting.");
@@ -49,6 +49,8 @@ public sealed class DocumentExportService
             {
                 ".html" => HtmlExportWriter.Write(document, snapshot, warnings)
               , ".txt" => TextExportWriter.Write(document, warnings)
+              , ".epub" => new EpubExportWriter(snapshot, warnings).Write(document)
+              , ".odt" => new OpenDocumentExportWriter(snapshot, warnings).Write(document)
               , _ => WordExportWriter.Write(document, snapshot, warnings)
             };
             if (bytes.Length > 128 * 1024 * 1024) throw new IOException("Export output exceeds 128 MiB. Reduce document size or images.");

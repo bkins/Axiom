@@ -41,7 +41,7 @@ public partial class MainWindow
               ,
                 ShowOverwritePrompt = false
               ,
-                FileTypeChoices = [new FilePickerFileType(extension switch { "docx" => "Word document", "txt" => "Plain text", "pdf" => "PDF document", _ => "Standalone HTML" }) { Patterns = ["*." + extension] }]
+                FileTypeChoices = [new FilePickerFileType(extension switch { "docx" => "Word document", "txt" => "Plain text", "pdf" => "PDF document", "epub" => "EPUB book", "odt" => "OpenDocument Text", _ => "Standalone HTML" }) { Patterns = ["*." + extension] }]
             });
             if (selected?.TryGetLocalPath() is not { } path) return new(CommandOutcome.Cancelled, "Export destination cancelled.");
             var replace = File.Exists(path);
