@@ -66,7 +66,7 @@ public static class WorkspaceTreeBuilder
 
     private sealed class MutableFolder(string name, string relativePath)
     {
-        private readonly Dictionary<string, MutableFolder> _folders = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, MutableFolder> _folders = new(WorkspacePathBoundary.Comparer);
         public List<WorkspaceTreeNode> Documents { get; } = [];
 
         public MutableFolder GetOrAddFolder(string childName, string childPath)

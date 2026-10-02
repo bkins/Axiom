@@ -16,7 +16,7 @@ public partial class MainWindow
     {
         _workspaceChanges.Changed += (_, root) => Dispatcher.UIThread.Post(() =>
         {
-            if (_closingApproved || !string.Equals(_folder, root, StringComparison.OrdinalIgnoreCase)) return;
+            if (_closingApproved || !string.Equals(_folder, root, WorkspacePathBoundary.Comparison)) return;
             ScheduleBacklinkRebuild();
             _workspaceRefreshTimer.Stop();
             _workspaceRefreshTimer.Start();
@@ -66,7 +66,7 @@ public partial class MainWindow
             if (_closingApproved || generation != _workspaceRefreshGeneration || root != _folder) return;
             var expanded = Traverse(_workspaceTree).Where(node => node.IsExpanded)
                                                     .Select(node => node.RelativePath)
-                                                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                                                    .ToHashSet(WorkspacePathBoundary.Comparer);
             var selected = (FileTree.SelectedItem as WorkspaceTreeNode)?.RelativePath;
             _workspaceTree.Clear();
             foreach (var node in WorkspaceTreeBuilder.Build(root, discovery.Files, folders))

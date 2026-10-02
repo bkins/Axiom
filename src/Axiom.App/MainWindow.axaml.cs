@@ -201,12 +201,12 @@ public partial class MainWindow : Window
     {
         if (_activeWorkspace is null || _session.Path is null || !IsWithinFolder(_session.Path, _activeWorkspace.RootPath)) return;
         var relativePath = WorkspaceService.GetRelativeDocumentPath(_activeWorkspace.RootPath, _session.Path);
-        if (_workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase)))
+        if (_workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, WorkspacePathBoundary.Comparison)))
             await _workspaces.UnpinAsync(_activeWorkspace, _session.Path);
         else
             await _workspaces.PinAsync(_activeWorkspace, _session.Path);
         await RefreshPinsAsync();
-        UpdateChrome(_workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase))
+        UpdateChrome(_workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, WorkspacePathBoundary.Comparison))
             ? $"Pinned {relativePath}."
             : $"Unpinned {relativePath}.");
     }
@@ -305,7 +305,7 @@ public partial class MainWindow : Window
     private async Task<CommandResult> OpenSearchResultAsync(WorkspaceSearchResult result)
     {
         await OpenDocumentAsync(result.FullPath);
-        if (!string.Equals(_session.Path, Path.GetFullPath(result.FullPath), StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(_session.Path, Path.GetFullPath(result.FullPath), WorkspacePathBoundary.Comparison))
             return new(CommandOutcome.Cancelled, "Search result navigation cancelled; active selection retained.");
         if (result.MatchOffset + result.MatchedText.Length <= Editor.Text.Length &&
             Editor.Text.AsSpan(result.MatchOffset, result.MatchedText.Length).Equals(result.MatchedText, StringComparison.OrdinalIgnoreCase))
@@ -348,6 +348,12 @@ public partial class MainWindow : Window
                 await RecordRecentOpenAsync(path);
                 return;
             }
+            if (await FindPhysicalTabAsync(path) is { } physicalTab)
+            {
+                await SelectTabAsync(physicalTab);
+                UpdateChrome("This physical file is already open; retained its original tab and unsaved source.");
+                return;
+            }
             var session = await _documents.OpenAsync(path);
             if (session.DocumentId is { } id && _duplicates.TryGetValue(id, out var duplicatePaths))
             {
@@ -357,7 +363,8 @@ public partial class MainWindow : Window
                 if (choice == "Cancel") return;
                 _documents.ReassignIdentity(session);
             }
-            if (FindTab(path) is { } openedWhileReading)
+            var openedWhileReading = FindTab(path) ?? await FindPhysicalTabAsync(path);
+            if (openedWhileReading is not null)
             {
                 await SelectTabAsync(openedWhileReading);
                 return;
@@ -414,10 +421,20 @@ public partial class MainWindow : Window
                     UpdateChrome("That file is already open in another tab. Choose another Save As path.");
                     return false;
                 }
+                if (File.Exists(path) && await FindPhysicalTabAsync(path, tab) is not null)
+                {
+                    UpdateChrome("This physical file is open under another path. Choose a separate Save As destination; buffers remain protected.");
+                    return false;
+                }
                 await _documents.SaveAsAsync(session, path);
             }
             else
             {
+                if (File.Exists(session.Path) && await FindPhysicalTabAsync(session.Path!, tab) is not null)
+                {
+                    UpdateChrome("Another tab refers to this physical file. Close the other tab or use a separate Save As destination; both buffers remain protected.");
+                    return false;
+                }
                 await _documents.SaveAsync(session);
             }
 
@@ -1125,7 +1142,7 @@ public partial class MainWindow : Window
         PinButton.IsVisible = canPin;
         if (!canPin) return;
         var relativePath = WorkspaceService.GetRelativeDocumentPath(_activeWorkspace!.RootPath, _session.Path!);
-        PinButton.Content = _workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase)) ? "Unpin" : "Pin";
+        PinButton.Content = _workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, WorkspacePathBoundary.Comparison)) ? "Unpin" : "Pin";
     }
 
     private void ReportError(string eventName, Exception exception, string? path)

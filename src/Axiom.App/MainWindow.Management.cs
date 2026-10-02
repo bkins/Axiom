@@ -80,7 +80,7 @@ public partial class MainWindow
 
     internal async Task<bool> SwitchWorkspaceAsync(string root)
     {
-        if (_folder is not null && WorkspaceService.NormalizeRootPath(root).Equals(_folder, StringComparison.OrdinalIgnoreCase))
+        if (_folder is not null && WorkspaceService.NormalizeRootPath(root).Equals(_folder, WorkspacePathBoundary.Comparison))
         {
             _workspaceLoadCancellation?.Cancel();
             ++_workspaceLoadGeneration;
@@ -157,12 +157,12 @@ public partial class MainWindow
             if (await ChoiceDialog.ShowAsync(this, "Confirm " + kind, message, "Continue", "Cancel") != "Continue") return new(CommandOutcome.Cancelled, "File operation cancelled.");
             var affectedTab = sourceRelative is null ? null : FindTab(Path.Combine(workspace.RootPath, sourceRelative));
             if (affectedTab is not null) await SelectTabAsync(affectedTab);
-            var affectsActive = sourceRelative is not null && _session.Path is not null && string.Equals(Path.Combine(workspace.RootPath, sourceRelative), _session.Path, StringComparison.OrdinalIgnoreCase);
+            var affectsActive = sourceRelative is not null && _session.Path is not null && string.Equals(Path.Combine(workspace.RootPath, sourceRelative), _session.Path, WorkspacePathBoundary.Comparison);
             if (affectsActive && !await ConfirmSafeToReplaceSessionAsync()) return new(CommandOutcome.Cancelled, "Dirty document retained.");
             if (affectsActive && Editor.Text != _session.Text) SetEditorText(_session.Text);
             if (_session.Conflict is not null && affectsActive) { UpdateChrome("Resolve the active document conflict before managing its file."); return new(CommandOutcome.Unavailable, "Resolve the active conflict first."); }
             var operations = new WorkspaceFileOperations(ManagementState, log: _log);
-            if (kind == DocumentMutationKind.Duplicate && _duplicates.Values.Any(paths => paths.Contains(Path.Combine(workspace.RootPath, sourceRelative!), StringComparer.OrdinalIgnoreCase)))
+            if (kind == DocumentMutationKind.Duplicate && _duplicates.Values.Any(paths => paths.Contains(Path.Combine(workspace.RootPath, sourceRelative!), WorkspacePathBoundary.Comparer)))
                 throw new IOException("Resolve the source document's duplicate identity first.");
             var reviewedHash = sourceRelative is null ? null : WorkspaceFileOperations.Hash(await File.ReadAllBytesAsync(Path.Combine(workspace.RootPath, sourceRelative)));
             Editor.IsEnabled = false;

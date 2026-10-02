@@ -7,6 +7,7 @@ public static class WorkspacePathBoundary
     public static StringComparison Comparison => OperatingSystem.IsWindows()
         ? StringComparison.OrdinalIgnoreCase
         : StringComparison.Ordinal;
+    public static StringComparer Comparer => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     public static bool Contains(string root, string path, bool includeRoot = false)
     {

@@ -89,7 +89,7 @@ public partial class MainWindow
             }
             var previous = CurrentNavigationLocation();
             await OpenDocumentAsync(result.TargetPath!);
-            if (!string.Equals(_session.Path, result.TargetPath, StringComparison.OrdinalIgnoreCase)) return;
+            if (!string.Equals(_session.Path, result.TargetPath, WorkspacePathBoundary.Comparison)) return;
             var offset = result.Source?.Offset ?? 0;
             if (result.Fragment is { Length: > 0 } fragment && result.Status == MarkdownLinkResolutionStatus.Resolved)
                 offset = GetCurrentStructure().FindHeading(fragment)?.Source.Offset ?? 0;
@@ -147,7 +147,7 @@ public partial class MainWindow
                 }
                 if (_sessionTransitionRunning || root != _folder) return;
                 await OpenDocumentAsync(location.Path);
-                if (!string.Equals(_session.Path, location.Path, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!string.Equals(_session.Path, location.Path, WorkspacePathBoundary.Comparison)) continue;
                 SetNavigationPosition(location.CaretOffset);
                 if (current is not null) to.Add(current);
                 UpdateChrome(skipped == 0 ? "Returned to a document location; working buffers retained."

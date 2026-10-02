@@ -2,7 +2,7 @@ using Axiom.Core;
 
 namespace Axiom.Infrastructure;
 
-internal static class ExportImageReader
+public static class ExportImageReader
 {
     public static ExportImage? Read(string destination, ExportSnapshot snapshot, List<string> warnings)
     {

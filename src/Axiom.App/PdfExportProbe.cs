@@ -51,7 +51,7 @@ internal static class PdfExportProbe
             var state = new SqliteStateStore(new AppDataPaths(Path.Combine(root, "state")));
             var draftsBefore = await state.GetRecoverableDraftsAsync();
             var captured = new ExportSnapshot(window.EditorTextForTesting, path);
-            var service = new DocumentExportService(new NativePdfExportRenderer(Path.Combine(root, "state")));
+            var service = PdfExportServiceFactory.Create(Path.Combine(root, "state"));
             var results = new List<ExportResult>();
             foreach (var size in Enum.GetValues<PdfPageSize>())
             {

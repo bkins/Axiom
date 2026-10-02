@@ -3,9 +3,12 @@ using Microsoft.Data.Sqlite;
 
 namespace Axiom.Infrastructure;
 
-public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore, IDocumentMutationStore, IWorkspaceCatalogStore, IDeletedDocumentStore
+public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log = null, bool? caseSensitivePaths = null) : IRecoveryStore, IDocumentMetadataStore, IWorkspaceStore, IAppearanceStore, IDocumentMutationStore, IWorkspaceCatalogStore, IDeletedDocumentStore
 {
-    public const int CurrentSchemaVersion = 8;
+    public const int CurrentSchemaVersion = 9;
+    private bool CaseSensitivePaths => caseSensitivePaths ?? !OperatingSystem.IsWindows();
+    private string PathCollation => CaseSensitivePaths ? "BINARY" : "NOCASE";
+    private StringComparison PathComparison => CaseSensitivePaths ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
     public AppDataPaths Paths => paths;
     private readonly IAxiomLog _log = log ?? new NullAxiomLog();
     private string ConnectionString => new SqliteConnectionStringBuilder
@@ -151,6 +154,7 @@ public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log 
                 COMMIT;
                 """, cancellationToken);
         }
+        await InitializePathPolicyAsync(connection, schemaVersion, cancellationToken);
         _log.Information("database.initialized", paths.DatabasePath);
     }
 
@@ -214,10 +218,10 @@ public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log 
         await using (var select = connection.CreateCommand())
         {
             select.Transaction = transaction;
-            select.CommandText = """
+            select.CommandText = $"""
                 SELECT WorkspaceId, RootPath, DisplayName, CreatedUtc, LastOpenedUtc
                 FROM Workspaces
-                WHERE RootPath = $root COLLATE NOCASE;
+                WHERE RootPath = $root COLLATE {PathCollation};
                 """;
             select.Parameters.AddWithValue("$root", rootPath);
             await using var reader = await select.ExecuteReaderAsync(cancellationToken);
@@ -287,7 +291,7 @@ public sealed partial class SqliteStateStore(AppDataPaths paths, IAxiomLog? log 
     {
         await using var connection = await OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM WorkspacePins WHERE WorkspaceId=$id AND RelativePath=$path COLLATE NOCASE;";
+        command.CommandText = $"DELETE FROM WorkspacePins WHERE WorkspaceId=$id AND RelativePath=$path COLLATE {PathCollation};";
         command.Parameters.AddWithValue("$id", workspaceId.ToString("D"));
         command.Parameters.AddWithValue("$path", relativePath);
         await command.ExecuteNonQueryAsync(cancellationToken);

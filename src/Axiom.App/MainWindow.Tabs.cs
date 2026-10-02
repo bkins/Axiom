@@ -27,7 +27,7 @@ public partial class MainWindow
 
     private DocumentTab? FindTab(string path) => _tabs.FirstOrDefault(tab =>
         tab.Session.Path is { } candidate &&
-        Path.GetFullPath(candidate).Equals(Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase));
+        Path.GetFullPath(candidate).Equals(Path.GetFullPath(path), WorkspacePathBoundary.Comparison));
 
     private DocumentStructure GetTabStructure(DocumentTab tab)
     {

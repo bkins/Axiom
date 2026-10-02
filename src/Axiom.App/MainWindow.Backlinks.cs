@@ -132,9 +132,9 @@ public partial class MainWindow
             BacklinkStatus.Text = "Save a document inside the workspace to inspect incoming references.";
             return;
         }
-        var overlays = new Dictionary<string, IReadOnlyList<WorkspaceLinkReference>>(StringComparer.OrdinalIgnoreCase);
+        var overlays = new Dictionary<string, IReadOnlyList<WorkspaceLinkReference>>(WorkspacePathBoundary.Comparer);
         var wiki = _wikiLinkCatalog?.WithOpenDocuments(_tabs.Where(tab => tab.Session.Path is not null && IsWithinFolder(tab.Session.Path, root))
-            .ToDictionary(tab => tab.Session.Path!, GetTabStructure, StringComparer.OrdinalIgnoreCase));
+            .ToDictionary(tab => tab.Session.Path!, GetTabStructure, WorkspacePathBoundary.Comparer));
         foreach (var tab in _tabs.Where(tab => tab.Session.IsDirty && tab.Session.Path is not null && IsWithinFolder(tab.Session.Path, root)))
         {
             var structure = GetTabStructure(tab);
@@ -187,7 +187,7 @@ public partial class MainWindow
             if (source.Status != MarkdownLinkResolutionStatus.Resolved) { UpdateChrome("The backlink source is unavailable; rebuild the index."); return new(CommandOutcome.Unavailable, "Backlink source unavailable."); }
             var structure = FindTab(path) is { } open ? GetTabStructure(open) : _structureParser.Parse(source.Text ?? string.Empty);
             MarkdownDocumentLink? link;
-            var indexed = _savedLinkIndex?.Documents.FirstOrDefault(document => document.RelativePath.Equals(reference.SourceRelativePath, StringComparison.OrdinalIgnoreCase));
+            var indexed = _savedLinkIndex?.Documents.FirstOrDefault(document => document.RelativePath.Equals(reference.SourceRelativePath, WorkspacePathBoundary.Comparison));
             if (reference.IsUnsaved || indexed?.ContentHash == WorkspaceLinkIndexService.Hash(structure.SourceText))
                 link = structure.Links.FirstOrDefault(candidate => candidate.Source.Offset == reference.Source.Offset && candidate.Destination == reference.Destination);
             else
@@ -198,7 +198,7 @@ public partial class MainWindow
             if (link is null) { UpdateChrome("The backlink changed or is ambiguous; rebuild the index before navigating."); return new(CommandOutcome.Unavailable, "Backlink changed or ambiguous."); }
             var previous = CurrentNavigationLocation();
             await OpenDocumentAsync(path);
-            if (!string.Equals(_session.Path, path, StringComparison.OrdinalIgnoreCase)) return new(CommandOutcome.Cancelled, "Backlink navigation cancelled.");
+            if (!string.Equals(_session.Path, path, WorkspacePathBoundary.Comparison)) return new(CommandOutcome.Cancelled, "Backlink navigation cancelled.");
             SetNavigationPosition(link.Source.Offset);
             if (previous is not null) _backLocations.Add(previous);
             _forwardLocations.Clear();

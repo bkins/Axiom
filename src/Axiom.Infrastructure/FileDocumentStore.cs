@@ -46,7 +46,7 @@ public sealed class FileDocumentStore(IAxiomLog? log = null) : IDocumentFileStor
         }
         return Task.FromResult(new MarkdownDiscoveryResult(
             paths.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray(),
-            skipped.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray()));
+            skipped.Distinct(WorkspacePathBoundary.Comparer).OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray()));
     }
 
     public async Task<DocumentFile> ReadAsync(string path, CancellationToken cancellationToken = default)

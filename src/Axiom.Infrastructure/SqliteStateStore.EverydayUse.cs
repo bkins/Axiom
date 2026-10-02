@@ -39,12 +39,12 @@ public sealed partial class SqliteStateStore
     public async Task RecordRecentDocumentAsync(string path, string? workspaceRoot, CancellationToken cancellationToken = default)
     {
         path = System.IO.Path.GetFullPath(path);
-        await MutateRecentsAsync(values => values.Where(value => !value.Path.Equals(path, StringComparison.OrdinalIgnoreCase))
+        await MutateRecentsAsync(values => values.Where(value => !value.Path.Equals(path, PathComparison))
             .Prepend(new RecentDocument(path, workspaceRoot, DateTimeOffset.UtcNow)).Take(20).ToArray(), cancellationToken);
     }
 
     public Task RemoveRecentDocumentAsync(string? path, CancellationToken cancellationToken = default) =>
-        MutateRecentsAsync(values => path is null ? [] : values.Where(value => !value.Path.Equals(path, StringComparison.OrdinalIgnoreCase)).ToArray(), cancellationToken);
+        MutateRecentsAsync(values => path is null ? [] : values.Where(value => !value.Path.Equals(path, PathComparison)).ToArray(), cancellationToken);
 
     private async Task MutateRecentsAsync(Func<RecentDocument[], RecentDocument[]> change, CancellationToken cancellationToken)
     {

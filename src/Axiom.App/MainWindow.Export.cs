@@ -48,7 +48,7 @@ public partial class MainWindow
             if (replace && await ChoiceDialog.ShowAsync(this, "Replace export", "Replace this output file?\n" + path, "Replace", "Cancel") != "Replace") return new(CommandOutcome.Cancelled, "Existing export retained.");
             ExportProgressPanel.IsVisible = true;
             ExportCancelRequested = () => cancellation.Cancel();
-            var result = await new DocumentExportService(new NativePdfExportRenderer(_operationalPaths.Root)).WriteAsync(snapshot, path, replace,
+            var result = await PdfExportServiceFactory.Create(_operationalPaths.Root).WriteAsync(snapshot, path, replace,
                 _tabs.Select(tab => tab.Session.Path).OfType<string>(), _operationalPaths.Root, cancellation.Token, pageSize);
             UpdateChrome("Exported " + result.Path);
             if (result.Warnings.Count > 0) await ChoiceDialog.ShowAsync(this, "Export completed with warnings", string.Join("\n", result.Warnings), "Close");

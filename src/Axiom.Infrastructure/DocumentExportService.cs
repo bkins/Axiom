@@ -5,10 +5,12 @@ namespace Axiom.Infrastructure;
 public sealed class DocumentExportService
 {
     private readonly IPdfExportRenderer? _pdfRenderer;
+    private readonly IStructuredPdfExportRenderer? _structuredPdfRenderer;
 
-    public DocumentExportService(IPdfExportRenderer? pdfRenderer = null)
+    public DocumentExportService(IPdfExportRenderer? pdfRenderer = null, IStructuredPdfExportRenderer? structuredPdfRenderer = null)
     {
         _pdfRenderer = pdfRenderer;
+        _structuredPdfRenderer = structuredPdfRenderer;
     }
 
     public async Task<ExportResult> WriteAsync(ExportSnapshot snapshot
@@ -22,7 +24,7 @@ public sealed class DocumentExportService
         var path = Path.GetFullPath(destination);
         var extension = Path.GetExtension(path).ToLowerInvariant();
         if (extension is not ".html" and not ".docx" and not ".txt" and not ".pdf" and not ".epub" and not ".odt") throw new IOException("Choose a .html, .docx, .txt, .pdf, .epub or .odt output file.");
-        if (extension == ".pdf" && _pdfRenderer is null) throw new IOException("PDF export requires the native document renderer. Run export from Axiom.");
+        if (extension == ".pdf" && _pdfRenderer is null && _structuredPdfRenderer is null) throw new IOException("PDF export requires a document renderer. Run export from Axiom.");
         if (!Enum.IsDefined(pdfPageSize)) throw new ArgumentOutOfRangeException(nameof(pdfPageSize));
         if (snapshot.Markdown.Length > 4 * 1024 * 1024) throw new IOException("Export supports documents up to 4 million characters. Split this document before exporting.");
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -39,8 +41,14 @@ public sealed class DocumentExportService
             byte[] bytes;
             if (extension == ".pdf")
             {
-                var html = System.Text.Encoding.UTF8.GetString(HtmlExportWriter.Write(document, snapshot, warnings, pdfPageSize));
-                var rendered = await _pdfRenderer!.RenderAsync(html, pdfPageSize, cancellationToken);
+                PdfRenderResult rendered;
+                if (_structuredPdfRenderer is not null)
+                    rendered = await _structuredPdfRenderer.RenderAsync(document, snapshot, pdfPageSize, cancellationToken);
+                else
+                {
+                    var html = System.Text.Encoding.UTF8.GetString(HtmlExportWriter.Write(document, snapshot, warnings, pdfPageSize));
+                    rendered = await _pdfRenderer!.RenderAsync(html, pdfPageSize, cancellationToken);
+                }
                 bytes = rendered.Bytes;
                 warnings.AddRange(rendered.Warnings);
                 if (bytes.Length < 8 || !bytes.AsSpan(0, 5).SequenceEqual("%PDF-"u8)) throw new IOException("PDF renderer returned invalid output; the destination was preserved.");

@@ -46,6 +46,8 @@ public partial class MainWindow
                 var path = file.TryGetLocalPath() ?? throw new InvalidOperationException("Choose local workspace Markdown.");
                 if (_tabs.Any(tab => tab.Session.Path is { } openPath && string.Equals(openPath, path, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)))
                     throw new InvalidOperationException("This document is open; select its reviewed buffer instead of a separate saved copy.");
+                if (await FindPhysicalTabAsync(path) is not null)
+                    throw new InvalidOperationException("This physical document is open under another path; select its reviewed buffer.");
                 var snapshot = await reader.ReadAsync(workspaceRoot, path);
                 snapshots.Add(snapshot);
                 if (snapshots.Sum(source => (long)source.Text.Length) > 200_000) throw new InvalidOperationException("Saved selection exceeds 200,000 characters.");

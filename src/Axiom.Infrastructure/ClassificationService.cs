@@ -8,10 +8,10 @@ public sealed class ClassificationService(IDocumentFileStore files, IDocumentMet
     {
         root = WorkspaceService.NormalizeRootPath(root);
         var discovery = await files.ListMarkdownFilesAsync(root, cancellationToken);
-        var discoveredPaths = discovery.Files.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var discoveredPaths = discovery.Files.ToHashSet(WorkspacePathBoundary.Comparer);
         var errors = discovery.SkippedDirectories.Select(path => $"Skipped: {path}").ToList();
         var reader = new MarkdownLinkTargetReader(files);
-        var saved = new Dictionary<string, (Guid? Id, string Hash)>(StringComparer.OrdinalIgnoreCase);
+        var saved = new Dictionary<string, (Guid? Id, string Hash)>(WorkspacePathBoundary.Comparer);
         foreach (var path in discovery.Files)
         {
             cancellationToken.ThrowIfCancellationRequested();

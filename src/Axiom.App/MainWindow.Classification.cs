@@ -83,7 +83,7 @@ public partial class MainWindow
         try
         {
             var relative = _session.Path is { } path && _folder is not null && IsWithinFolder(path, _folder) ? Path.GetRelativePath(_folder, path) : null;
-            var saved = _classificationCatalog?.Documents.FirstOrDefault(document => string.Equals(document.RelativePath, relative, StringComparison.OrdinalIgnoreCase));
+            var saved = _classificationCatalog?.Documents.FirstOrDefault(document => string.Equals(document.RelativePath, relative, WorkspacePathBoundary.Comparison));
             var liveId = DocumentIdentityPolicy.FindCanonical(_session.Text);
             var eligible = saved?.IsEligible == true && liveId == saved.DocumentId && !_activeTab.IsMissing;
             _panelValue = eligible ? saved!.Classification : null;

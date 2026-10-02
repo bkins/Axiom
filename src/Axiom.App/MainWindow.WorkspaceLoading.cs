@@ -78,7 +78,7 @@ public partial class MainWindow
                 }
             });
             var workspace = opened.Workspace;
-            var expanded = Traverse(_workspaceTree).Where(node => node.IsExpanded).Select(node => node.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var expanded = Traverse(_workspaceTree).Where(node => node.IsExpanded).Select(node => node.RelativePath).ToHashSet(WorkspacePathBoundary.Comparer);
             _workspaceSearchCancellation?.Cancel();
             ++_workspaceSearchGeneration;
             _workspaceSearchResults.Clear();

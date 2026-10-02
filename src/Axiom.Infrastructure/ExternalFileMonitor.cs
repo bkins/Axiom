@@ -6,7 +6,7 @@ public sealed class ExternalFileMonitor : IDisposable
     private Timer? _timer;
     private string? _path;
     private int _pending;
-    private readonly Dictionary<string, ExternalFileMonitor> _children = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ExternalFileMonitor> _children = new(Axiom.Core.WorkspacePathBoundary.Comparer);
 
     public event EventHandler<string>? Changed;
     public event EventHandler<(string OldPath, string NewPath)>? Renamed;
@@ -33,7 +33,7 @@ public sealed class ExternalFileMonitor : IDisposable
     {
         DisposeWatcher();
         _path = null;
-        var normalized = paths.Select(Path.GetFullPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var normalized = paths.Select(Path.GetFullPath).ToHashSet(Axiom.Core.WorkspacePathBoundary.Comparer);
         foreach (var removed in _children.Keys.Where(path => !normalized.Contains(path)).ToArray())
         {
             _children[removed].Dispose();

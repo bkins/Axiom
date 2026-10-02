@@ -91,7 +91,7 @@ public partial class MainWindow
                 }
             }
             var active = _tabs.FirstOrDefault(tab => tab.Session.Path is { } path &&
-                Path.GetRelativePath(workspace.RootPath, path).Equals(remembered.ActiveRelativePath, StringComparison.OrdinalIgnoreCase));
+                Path.GetRelativePath(workspace.RootPath, path).Equals(remembered.ActiveRelativePath, WorkspacePathBoundary.Comparison));
             if (active is not null)
             {
                 await SelectTabAsync(active);

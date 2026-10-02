@@ -7,7 +7,7 @@ public partial class MainWindow
 {
     private async Task RecordRecentOpenAsync(string path)
     {
-        if (ManagementState is null || _session.Path is null || !Path.GetFullPath(_session.Path).Equals(Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase)) return;
+        if (ManagementState is null || _session.Path is null || !Path.GetFullPath(_session.Path).Equals(Path.GetFullPath(path), WorkspacePathBoundary.Comparison)) return;
         try { await ManagementState.RecordRecentDocumentAsync(path, _activeWorkspace?.RootPath); }
         catch (Exception exception) { ReportError("recent.record.failed", exception, path); }
     }

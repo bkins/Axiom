@@ -42,7 +42,7 @@ public sealed class WorkspaceSearchService(IDocumentFileStore files)
             FindMatches(root, path, text, query, results, cancellationToken);
         }
 
-        return new WorkspaceSearchResponse(results, skipped.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+        return new WorkspaceSearchResponse(results, skipped.Distinct(WorkspacePathBoundary.Comparer).ToArray());
     }
 
     private static void FindMatches(
