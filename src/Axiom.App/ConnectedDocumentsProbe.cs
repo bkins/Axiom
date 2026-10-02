@@ -208,7 +208,7 @@ internal static class ConnectedDocumentsProbe
             if (!await window.SwitchWorkspaceAsync(workspace)) throw new IOException("Native original workspace did not restore after stress opening.");
             await window.OpenDocumentAsync(target);
             await window.ToggleReadingModeAsync();
-            window.FindControl<TabItem>("RelationshipsTab")!.IsSelected = true;
+            window.ToggleToolWindowForTesting(0);
             var help = new HelpWindow(window.HelpContext(), state.Paths.Root, AppearancePreference.System);
             var helpLoaded = false;
             help.Opened += async (_, _) =>
