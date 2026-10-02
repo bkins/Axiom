@@ -6,6 +6,8 @@ public static class WorkspaceMutationPolicy
     {
         var source = Resolve(root, sourceRelativePath);
         var normalizedRoot = WorkspaceService.NormalizeRootPath(root);
+        if (!WorkspacePathBoundary.Contains(normalizedRoot, selectedFolder, includeRoot: true))
+            throw new ArgumentException("Choose a destination folder inside the active workspace.");
         var folderRelative = Path.GetRelativePath(normalizedRoot, Path.GetFullPath(selectedFolder));
         if (Path.IsPathRooted(folderRelative) || folderRelative == ".." ||
             folderRelative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
@@ -32,8 +34,7 @@ public static class WorkspaceMutationPolicy
                 throw new ArgumentException("Choose a valid Windows file or folder name.");
         }
         var fullPath = Path.GetFullPath(Path.Combine(normalizedRoot, Path.Combine(parts)));
-        var rootPrefix = Path.EndsInDirectorySeparator(normalizedRoot) ? normalizedRoot : normalizedRoot + Path.DirectorySeparatorChar;
-        if (!fullPath.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase))
+        if (!WorkspacePathBoundary.Contains(normalizedRoot, fullPath))
             throw new ArgumentException("The target must remain inside its workspace.");
         if (document && !fullPath.EndsWith(".md", StringComparison.OrdinalIgnoreCase) && !fullPath.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Choose a .md or .markdown document.");

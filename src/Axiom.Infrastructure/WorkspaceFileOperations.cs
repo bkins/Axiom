@@ -34,7 +34,7 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
             if (source is not null && !File.Exists(source)) throw new FileNotFoundException("The source document is missing.", source);
             if (kind != DocumentMutationKind.Enroll && destination is not null && (File.Exists(destination) || Directory.Exists(destination)))
                 throw new IOException("The destination already exists; nothing was overwritten. Case-only rename is not supported.");
-            if (kind == DocumentMutationKind.Rename && !string.Equals(Path.GetDirectoryName(source), Path.GetDirectoryName(destination), StringComparison.OrdinalIgnoreCase))
+            if (kind == DocumentMutationKind.Rename && !string.Equals(Path.GetDirectoryName(source), Path.GetDirectoryName(destination), WorkspacePathBoundary.Comparison))
                 throw new ArgumentException("Rename retains the original folder. Use Move to choose another folder.");
             if (kind == DocumentMutationKind.Enroll && source != destination) throw new ArgumentException("Enrollment must retain the source path.");
             if (kind == DocumentMutationKind.Recycle && new FileInfo(source!).Length > 20 * 1024 * 1024)
@@ -186,7 +186,7 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
         var item = (await deletedDocuments.GetDeletedDocumentsAsync(workspace.WorkspaceId, cancellationToken))
             .SingleOrDefault(candidate => candidate.Intent.OperationId == recoveryOperationId);
         if (item is null || item.Status != "Available") throw new IOException("This recovery item is unavailable or already restored.");
-        if (!string.Equals(workspace.RootPath, item.Intent.RootPath, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(workspace.RootPath, item.Intent.RootPath, WorkspacePathBoundary.Comparison))
             throw new IOException("The recorded workspace root has changed. Recovery requires its original workspace.");
         if (Hash(item.Content) != item.Intent.ExpectedHash) throw new IOException("Recovery content failed its integrity check.");
         var relative = destinationRelative ?? Path.GetRelativePath(workspace.RootPath, item.Intent.SourcePath!);
@@ -226,10 +226,8 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
     public static void ValidateAncestors(string root, string path, bool requireParent = true)
     {
         var normalizedRoot = WorkspaceService.NormalizeRootPath(root);
-        var rootPrefix = Path.EndsInDirectorySeparator(normalizedRoot) ? normalizedRoot : normalizedRoot + Path.DirectorySeparatorChar;
         if (!Directory.Exists(normalizedRoot)) throw new DirectoryNotFoundException("The workspace is unavailable.");
-        if (!string.Equals(path, normalizedRoot, StringComparison.OrdinalIgnoreCase) &&
-            !path.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase))
+        if (!WorkspacePathBoundary.Contains(normalizedRoot, path, includeRoot: true))
             throw new ArgumentException("The target must remain inside its workspace.");
         for (var current = path; current is not null; current = Path.GetDirectoryName(current))
         {
