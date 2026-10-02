@@ -61,8 +61,11 @@ Native launch and feature parity have NOT been verified on this target.
 This is not a supported 1.0.20 release or a Windows portable-update package.
 Use an isolated AXIOM_STATE_ROOT for evaluation; preserve existing state/documents.
 macOS: signing/notarization and native launch are pending. Do not bypass platform trust checks.
-Linux: native WebView dependencies and /usr/bin/gio Trash support need verification; PDF export is unavailable on the Linux native WebView.
-Both targets still require path/state case-sensitivity, pickers, fonts, permissions, recovery, offline Help and workflow verification.
+Linux: native WebView dependencies and /usr/bin/gio Trash support need verification. PDF uses bundled offline graphics layout; see Help for limits and font/copying warnings.
+macOS/Linux: /usr/bin/stat is required for existing-file alias checks. State schema 9 preserves exact Unix spelling and rejects incompatible Windows/Unix path policies.
+Extract with an archive tool that preserves Unix executable permissions. Launch the macOS Axiom.app bundle or Linux Axiom/Axiom.App from this preview; preserve the whole payload. Use a fresh absolute AXIOM_STATE_ROOT for each candidate and platform. Do not reuse an older candidate's state after migration.
+Windows install/update commands are unavailable on these targets. Preview replacement is manual: close the preview, preserve its documents and state backup, and extract the next verified archive to another folder. Signed installation/update distribution is not implemented or accepted for these previews.
+Both targets still require native path/state and alias checks, pickers, fonts, permissions, recovery, offline Help and workflow verification.
 Human acceptance remains pending. See the maintained Axiom 1.0.20 plan/checklist.
 "@
 [IO.File]::WriteAllText((Join-Path $output 'PREVIEW.txt'), $instructions, [Text.UTF8Encoding]::new($false))
