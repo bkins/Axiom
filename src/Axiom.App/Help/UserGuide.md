@@ -1,6 +1,22 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: B7422551AFCC64F276E169AA8744D24DABD5A4A56764812A121F0CFD20A509F8. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 97362F073EFCDC89B7D8241ADF26E19E01D2BBCFCE5628F2B43B667D833D83F2. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## 1.0.23 workbench and guided walkthrough
+
+The 1.0.23 candidate uses a workbench layout inspired by Rider. **Workspace Files** is the left panel. Type in **Filter files** to narrow filenames and paths; matching files retain their folder hierarchy. Escape clears the filter. The magnifier beside the filter opens **Workspace Search** for document contents. `Ctrl+Shift+F` toggles that search panel.
+
+Expand a folder to browse files. Expand a document to load its headings on demand. Folder arrows, document symbols and H1–H6 heading labels distinguish each row. Click a document once to open it, or select it and press Enter. Click a heading to open that document and move to its current source and preview position. Open documents use their unsaved buffer for the outline. If a heading changes, Axiom navigates only to a unique current match and reports an ambiguous/missing heading rather than using an obsolete position. Outlines in unopened files refresh when expanded again.
+
+The right rail toggles **Search**, **Outline**, **Metadata**, **Relationships**, **Classification**, and **Backlinks**. Click the same button again or the panel's × to collapse it. Drag either panel divider to resize; widths, the selected view and visibility are remembered locally. The rail's **Reset workbench layout** button or the corresponding Command Palette action restores default widths and collapses secondary views. Opening Help replaces the secondary panel so the editor remains usable. Switching panels or resetting layout does not save, discard or modify working documents.
+
+The toolbar uses icons for actions. Hover for descriptions and shortcuts; keyboard focus and accessible action names are retained. File, Edit, Format, Theme and Tools remain named menus. Reading and synchronized scrolling change their icons and tooltip descriptions to reflect their current states. Document tabs have rounded tops, a highlighted active tab, an asterisk for unsaved changes and a close button; a crowded tab row scrolls horizontally. Existing Save/Discard/Cancel protection still applies when closing a dirty tab.
+
+**File > Workspaces and navigation** opens/refreshes workspaces and accesses recent documents or commands. **History and recovery** contains Git/history/checkpoint/deleted-document review. **Create and organize** contains document/folder creation and management. **Document** contains New, Save, Save As, Close, link navigation and structure. **Export current buffer** contains Word, HTML, text, PDF, EPUB and OpenDocument Text. **CP review and search** retains explicit reviewed CP workflows. Destructive operations, CP consent and detailed history review keep their dedicated review dialogs.
+
+Press **F1**, then choose **Guided walkthrough** in the embedded Help panel, or search for **Open captioned app walkthrough** in the Command Palette. It opens the packaged `Walkthrough/index.html` in your browser. The offline slideshow uses actual Windows app screenshots of synthetic example documents, captions explaining each step, Previous/Next controls, arrow keys and Home/End. It requires no account, network connection, autoplay or audio. If your browser does not open, open that file directly from the extracted package.
+
+Earlier version-specific sections below preserve their historical wording. These navigation paths supersede older references to left-side Files/Search/Metadata tabs or ungrouped File commands in the current candidate. Linux/macOS remains on hold; visual preference, physical accessibility/DPI and release acceptance remain pending.
 
 ## 1.0.3 candidate: manage documents and collections
 

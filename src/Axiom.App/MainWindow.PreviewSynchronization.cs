@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 
@@ -58,7 +59,8 @@ public partial class MainWindow
     private void ToggleScrollSynchronization()
     {
         _scrollSyncEnabled = !_scrollSyncEnabled;
-        ScrollSyncButton.Content = _scrollSyncEnabled ? "Scroll sync: on" : "Scroll sync: off";
+        ScrollSyncButton.Content = _scrollSyncEnabled ? "↕" : "⇵";
+        ToolTip.SetTip(ScrollSyncButton, _scrollSyncEnabled ? "Scroll synchronization is on — click for independent scrolling" : "Scroll synchronization is off — click to synchronize editor and preview");
         _editorScrollPending = _scrollSyncEnabled;
         UpdateChrome(_scrollSyncEnabled ? "Editor and preview scrolling synchronized. Toggle off for independent reading." : "Editor and preview scroll independently.");
     }

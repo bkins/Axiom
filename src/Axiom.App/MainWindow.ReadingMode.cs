@@ -28,7 +28,8 @@ public partial class MainWindow
         _readingMode = enabled;
         EditorPane.IsVisible = EditorPreviewSplitter.IsVisible = !enabled;
         EditorPreviewLayout.ColumnDefinitions = enabled ? new ColumnDefinitions("0,0,*") : _editingColumns ?? new ColumnDefinitions("*,5,*");
-        ReadingModeButton.Content = enabled ? "Show editor" : "Read";
+        ReadingModeButton.Content = enabled ? "✎" : "◉";
+        ToolTip.SetTip(ReadingModeButton, enabled ? "Show editor — Ctrl+Shift+R" : "Reading mode — hide the editor: Ctrl+Shift+R");
         if (!enabled)
         {
             var tab = _activeTab;

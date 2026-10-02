@@ -35,6 +35,24 @@ public sealed class ShortcutConfigurationTests
     }
 
     [Fact]
+    public void NewWorkbenchDefaultPreservesExistingExplicitBindingWithoutMutatingConfiguration()
+    {
+        var commands = new[] { Command("save", "Ctrl+S"), Command("new", "Ctrl+N"), Command("view.search", "Ctrl+Shift+F") };
+        var configuration = new ShortcutConfiguration { Overrides = new() { ["save"] = "shift+ctrl+f", ["new"] = "Ctrl+J" } };
+        var resolved = configuration.Resolve(commands);
+        Assert.Equal("Ctrl+Shift+F", resolved["save"]);
+        Assert.Equal("Ctrl+J", resolved["new"]);
+        Assert.Null(resolved["view.search"]);
+        Assert.Equal(2, configuration.Overrides.Count);
+        Assert.Equal("shift+ctrl+f", configuration.Overrides["save"]);
+        Assert.Equal("Ctrl+Shift+F", new ShortcutConfiguration().Resolve(commands)["view.search"]);
+        Assert.Throws<ArgumentException>(() => (configuration with
+        {
+            Overrides = new(configuration.Overrides) { ["view.search"] = "Ctrl+Shift+F" }
+        }).Resolve(commands));
+    }
+
+    [Fact]
     public void ConflictsNativeUndoOverridesAndFutureFormatsAreRejected()
     {
         var commands = new[] { Command("save", "Ctrl+S"), Command("editor.undo", "Ctrl+Z") };

@@ -1,0 +1,11 @@
+{
+  "applicationVersion": "1.0.23+dev",
+  "platform": "Windows",
+  "captureDate": "2026-10-02",
+  "nativeFixture": "artifacts/Workbench-03",
+  "workspace": "Synthetic Axiom Tutorial documents",
+  "method": "Computer Use skill; screenshots of the running Axiom window and Command Palette",
+  "mockups": false,
+  "humanAcceptance": false,
+  "maintenance": "Refresh screenshots with --workbench-probe into a fresh isolated state directory; update steps.json and run scripts/Build-WorkbenchWalkthrough.py. Keep JPEG screenshots in their native encoding."
+}

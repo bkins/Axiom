@@ -10,6 +10,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--workbench-probe" && args.Length == 2) WorkbenchProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--command-workflow-probe" && args.Length == 2) CommandWorkflowProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--installation-window-probe" && args.Length == 2) InstallationWindowProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--windows-installation-probe") return WindowsInstallationProbe.Run(args);

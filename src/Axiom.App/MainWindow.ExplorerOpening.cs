@@ -15,15 +15,16 @@ public partial class MainWindow
     {
         if (args.InitialPressMouseButton != MouseButton.Left || args.Source is not Control control || _folder is null) return;
         var item = control as TreeViewItem ?? control.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
-        if (item?.DataContext is not WorkspaceTreeNode { IsDocument: true } node) return;
-        await OpenExplorerPathAsync(Path.Combine(_folder, node.RelativePath));
+        if (control is Avalonia.Controls.Primitives.ToggleButton || control.GetVisualAncestors().OfType<Avalonia.Controls.Primitives.ToggleButton>().Any()) return;
+        if (item?.DataContext is not WorkspaceExplorerNode node) return;
+        await OpenExplorerNodeAsync(node);
     }
 
     private async void FileTree_OnKeyDown(object? sender, KeyEventArgs args)
     {
-        if (args.Key != Key.Enter || args.KeyModifiers != KeyModifiers.None || _folder is null || FileTree.SelectedItem is not WorkspaceTreeNode { IsDocument: true } node) return;
+        if (args.Key != Key.Enter || args.KeyModifiers != KeyModifiers.None || _folder is null || FileTree.SelectedItem is not WorkspaceExplorerNode node) return;
         args.Handled = true;
-        await OpenExplorerPathAsync(Path.Combine(_folder, node.RelativePath));
+        await OpenExplorerNodeAsync(node);
     }
 
     internal async Task OpenExplorerPathAsync(string path)

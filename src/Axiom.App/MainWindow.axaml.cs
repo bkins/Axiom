@@ -109,6 +109,7 @@ public partial class MainWindow : Window
 
         DocumentTabs.ItemsSource = _tabs;
         FileTree.ItemsSource = _workspaceTree;
+        InitializeWorkbench();
         WorkspaceSearchResults.ItemsSource = _workspaceSearchResults;
         DocumentOutline.ItemsSource = _outlineEntries;
         PinnedDocuments.ItemsSource = _workspacePins;
@@ -153,6 +154,7 @@ public partial class MainWindow : Window
                 await InitializeEditorPreferencesAsync();
                 await InitializeShortcutsAsync();
                 await InitializeManagementAsync();
+                await RestoreWorkbenchAsync();
                 await RestoreDraftIfAvailableAsync();
                 if (Program.StartupDocument is { } startupDocument) await OpenDocumentAsync(startupDocument);
             }
@@ -191,8 +193,7 @@ public partial class MainWindow : Window
     }
     private async void FileTree_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (_folder is null || FileTree.SelectedItem is not WorkspaceTreeNode { IsDocument: true } selected) return;
-        await OpenExplorerPathAsync(Path.Combine(_folder, selected.RelativePath));
+        if (FileTree.SelectedItem is WorkspaceExplorerNode selected) await OpenExplorerNodeAsync(selected);
     }
 
     private async void Pin_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("document.pin");
@@ -573,6 +574,11 @@ public partial class MainWindow : Window
         BottomStatusBar.Background = page;
         BottomStatusBar.BorderBrush = border;
         WorkspaceSidebar.BorderBrush = border;
+        ToolWindowHost.Background = surface;
+        ToolWindowHost.BorderBrush = border;
+        ToolWindowRail.Background = surface;
+        ToolWindowRail.BorderBrush = border;
+        ToolWindowSplitter.Background = border;
         WorkspaceSplitter.Background = border;
         EditorPreviewSplitter.Background = border;
         Editor.Background = page;
@@ -877,6 +883,7 @@ public partial class MainWindow : Window
         OutlineStatus.Text = _outlineEntries.Count == 0
             ? "No headings"
             : $"{_outlineEntries.Count} heading{(_outlineEntries.Count == 1 ? string.Empty : "s")}";
+        RefreshExplorerOutline();
     }
 
     private async Task ProtectIfNeededAsync()
@@ -1142,7 +1149,10 @@ public partial class MainWindow : Window
         PinButton.IsVisible = canPin;
         if (!canPin) return;
         var relativePath = WorkspaceService.GetRelativeDocumentPath(_activeWorkspace!.RootPath, _session.Path!);
-        PinButton.Content = _workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, WorkspacePathBoundary.Comparison)) ? "Unpin" : "Pin";
+        var pinned = _workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, WorkspacePathBoundary.Comparison));
+        PinButton.Content = pinned ? "◆" : "⌖";
+        PinButton.Tag = pinned ? "Unpin" : "Pin";
+        ToolTip.SetTip(PinButton, pinned ? "Unpin current document" : "Pin current document");
     }
 
     private void ReportError(string eventName, Exception exception, string? path)
@@ -1260,7 +1270,7 @@ public partial class MainWindow : Window
     internal ApplicationBuildIdentity BuildIdentityForTesting => _buildIdentity;
     internal IReadOnlyList<WorkspacePin> WorkspacePinsForTesting => _workspacePins;
     internal Task ToggleCurrentPinForTestingAsync() => ToggleCurrentPinAsync();
-    internal string PinButtonTextForTesting => PinButton.Content?.ToString() ?? string.Empty;
+    internal string PinButtonTextForTesting => PinButton.Tag?.ToString() ?? "Pin";
     internal string WorkspaceContextForTesting => WorkspaceContextText.Text ?? string.Empty;
     internal string DocumentStateForTesting => DocumentStateText.Text ?? string.Empty;
     internal string PathContextForTesting => PathText.Text ?? string.Empty;

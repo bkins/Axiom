@@ -67,14 +67,15 @@ public partial class MainWindow
             var expanded = Traverse(_workspaceTree).Where(node => node.IsExpanded)
                                                     .Select(node => node.RelativePath)
                                                     .ToHashSet(WorkspacePathBoundary.Comparer);
-            var selected = (FileTree.SelectedItem as WorkspaceTreeNode)?.RelativePath;
+            var selected = (FileTree.SelectedItem as WorkspaceExplorerNode)?.RelativePath;
             _workspaceTree.Clear();
             foreach (var node in WorkspaceTreeBuilder.Build(root, discovery.Files, folders))
             {
                 ApplyExpansion(node, expanded);
                 _workspaceTree.Add(node);
             }
-            FileTree.SelectedItem = Traverse(_workspaceTree).FirstOrDefault(node => node.RelativePath == selected);
+            RefreshExplorer();
+            FileTree.SelectedItem = EnumerateExplorer(_explorerNodes).FirstOrDefault(node => node.RelativePath == selected);
             _duplicates = duplicates;
             _workspaceSearchCancellation?.Cancel();
             ++_workspaceSearchGeneration;

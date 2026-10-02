@@ -31,6 +31,9 @@
             <Style Selector="Button">
               <Setter Property="Margin" Value="0,0,7,6" />
             </Style>
+            <Style Selector="Button.toolbar-icon">
+              <Setter Property="FontSize" Value="16" /><Setter Property="Width" Value="34" /><Setter Property="Height" Value="32" />
+            </Style>
             <Style Selector="Button.quiet-menu">
               <Setter Property="Background" Value="Transparent" />
               <Setter Property="BorderThickness" Value="0" />
@@ -41,52 +44,62 @@
               <Setter Property="BorderThickness" Value="1" />
             </Style>
           </WrapPanel.Styles>
-          <Button x:Name="BackButton" Content="Back" AutomationProperties.Name="Navigate back" ToolTip.Tip="Return to the previous document location: Alt+Left" IsEnabled="False" Click="Back_OnClick" />
-          <Button x:Name="ForwardButton" Content="Forward" AutomationProperties.Name="Navigate forward" ToolTip.Tip="Return to the next document location: Alt+Right" IsEnabled="False" Click="Forward_OnClick" />
-          <Button x:Name="ReadingModeButton" Content="Read" AutomationProperties.Name="Toggle reading mode" ToolTip.Tip="Hide/show the editor without saving or discarding: Ctrl+Shift+R" Click="ReadingMode_OnClick" />
-          <Button Content="Help" AutomationProperties.Name="Offline User Guide" ToolTip.Tip="Read the offline User Guide; F1 suggests a relevant topic" Click="Help_OnClick" />
-          <Button Content="Settings" AutomationProperties.Name="Application settings" ToolTip.Tip="Configure editor font, wrapping, tab width and appearance" Click="Settings_OnClick" />
+          <Button x:Name="BackButton" Content="←" AutomationProperties.Name="Navigate back" ToolTip.Tip="Return to the previous document location: Alt+Left" IsEnabled="False" Click="Back_OnClick" />
+          <Button x:Name="ForwardButton" Content="→" AutomationProperties.Name="Navigate forward" ToolTip.Tip="Return to the next document location: Alt+Right" IsEnabled="False" Click="Forward_OnClick" />
+          <Button Content="＋" AutomationProperties.Name="New document toolbar" ToolTip.Tip="New unsaved document — Ctrl+N" Click="New_OnClick" />
+          <Button Content="▣" AutomationProperties.Name="Save document toolbar" ToolTip.Tip="Save document — Ctrl+S" Click="Save_OnClick" />
+          <Button x:Name="ReadingModeButton" Classes="toolbar-icon" Content="◉" AutomationProperties.Name="Toggle reading mode" ToolTip.Tip="Reading mode — hide the editor: Ctrl+Shift+R" Click="ReadingMode_OnClick" />
+          <Button Content="?" AutomationProperties.Name="Offline User Guide" ToolTip.Tip="Read the offline User Guide; F1 suggests a relevant topic" Click="Help_OnClick" />
+          <Button Content="⚙" AutomationProperties.Name="Application settings" ToolTip.Tip="Configure editor font, wrapping, tab width and appearance" Click="Settings_OnClick" />
           <Button x:Name="FileCommandsButton" AutomationProperties.Name="File commands" ToolTip.Tip="File commands: Alt+F; Alt or F10 focuses this button">File…
             <Button.Flyout>
               <MenuFlyout>
-                <MenuItem Header="Open Workspace…" AutomationProperties.Name="Open workspace" ToolTip.Tip="Open an existing Markdown workspace" Click="OpenFolder_OnClick" />
-                <MenuItem Header="Remembered Workspaces…" AutomationProperties.Name="Remembered workspaces" Click="WorkspaceCatalog_OnClick" />
-                <MenuItem Header="Recent Documents…" Click="RecentDocuments_OnClick" />
-                <MenuItem Header="Command Palette…    Ctrl+Shift+P" Click="CommandPalette_OnClick" />
-                <MenuItem Header="Keyboard Shortcuts…" Click="ShortcutSettings_OnClick" />
-                <MenuItem Header="Document History…" Click="DocumentHistory_OnClick" />
-                <MenuItem Header="Document Structure…" Click="DocumentStructure_OnClick" />
-                <MenuItem Header="Workspace Git…" Click="WorkspaceGit_OnClick" />
-                <MenuItem Header="Recover Deleted Documents…" Click="DeletedDocuments_OnClick" />
-                <MenuItem Header="Checkpoint Saved Document…" Click="HistoryCheckpoint_OnClick" />
-                <MenuItem Header="Set Up Git History…" Click="HistorySetup_OnClick" />
-                <MenuItem Header="Refresh Workspace    F5" Click="RefreshWorkspace_OnClick" />
-                <Separator />
-                <MenuItem Header="New Workspace Document…" Click="CreateFromTemplate_OnClick" />
-                <MenuItem Header="Copy Markdown into Workspace…" Click="CopyIntoWorkspace_OnClick" />
-                <MenuItem Header="Import Image into Workspace…" Click="ImportImage_OnClick" />
-                <MenuItem Header="New Folder…" Tag="CreateFolder" Click="ManageDocument_OnClick" />
-                <MenuItem Header="Rename Document…" Tag="Rename" Click="ManageDocument_OnClick" />
-                <MenuItem Header="Move Document…" Tag="Move" Click="ManageDocument_OnClick" />
-                <MenuItem Header="Duplicate Document…" Tag="Duplicate" Click="ManageDocument_OnClick" />
-                <MenuItem Header="Delete Document to Recycle Bin…" Tag="Recycle" Click="ManageDocument_OnClick" />
-                <MenuItem Header="Bulk Make Axiom Documents…" Click="BulkEnroll_OnClick" />
-                <Separator />
-                <MenuItem Header="New" AutomationProperties.Name="New document" ToolTip.Tip="Create a new unsaved Markdown document" Click="New_OnClick" />
-                <MenuItem Header="Close Tab    Ctrl+W" AutomationProperties.Name="Close current document tab" Click="CloseActiveTab_OnClick" />
-                <MenuItem Header="Follow Markdown Link    Ctrl+Enter" AutomationProperties.Name="Follow Markdown link at editor caret" Click="FollowLink_OnClick" />
-                <MenuItem Header="Save" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
-                <MenuItem Header="Save As…" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />
-                <Separator />
-                <MenuItem Header="Export current buffer to Word…" Tag="docx" Click="Export_OnClick" />
-                <MenuItem Header="Export current buffer to HTML…" Tag="html" Click="Export_OnClick" />
-                <MenuItem Header="Export current buffer to plain text…" Tag="txt" Click="Export_OnClick" />
-                <MenuItem Header="Export current buffer to PDF…" Tag="pdf" Click="Export_OnClick" />
-                <MenuItem Header="Export current buffer to EPUB…" Tag="epub" Click="Export_OnClick" />
-                <MenuItem Header="Export current buffer to OpenDocument Text…" Tag="odt" Click="Export_OnClick" />
-                <Separator />
-                <MenuItem Header="CP connection and reviewed insights…" Click="CpAnalysis_OnClick" />
-                <MenuItem Header="Reviewed semantic search and cross-document analysis…" Click="CpWorkspaceAnalysis_OnClick" />
+                <MenuItem Header="Workspaces and navigation">
+                  <MenuItem Header="Open Workspace…" AutomationProperties.Name="Open workspace" ToolTip.Tip="Open an existing Markdown workspace" Click="OpenFolder_OnClick" />
+                  <MenuItem Header="Remembered Workspaces…" AutomationProperties.Name="Remembered workspaces" Click="WorkspaceCatalog_OnClick" />
+                  <MenuItem Header="Recent Documents…" Click="RecentDocuments_OnClick" />
+                  <MenuItem Header="Command Palette…    Ctrl+Shift+P" Click="CommandPalette_OnClick" />
+                  <MenuItem Header="Keyboard Shortcuts…" Click="ShortcutSettings_OnClick" />
+                  <MenuItem Header="Refresh Workspace    F5" Click="RefreshWorkspace_OnClick" />
+                </MenuItem>
+                <MenuItem Header="History and recovery">
+                  <MenuItem Header="Document History…" Click="DocumentHistory_OnClick" />
+                  <MenuItem Header="Workspace Git…" Click="WorkspaceGit_OnClick" />
+                  <MenuItem Header="Recover Deleted Documents…" Click="DeletedDocuments_OnClick" />
+                  <MenuItem Header="Checkpoint Saved Document…" Click="HistoryCheckpoint_OnClick" />
+                  <MenuItem Header="Set Up Git History…" Click="HistorySetup_OnClick" />
+                </MenuItem>
+                <MenuItem Header="Create and organize">
+                  <MenuItem Header="New Workspace Document…" Click="CreateFromTemplate_OnClick" />
+                  <MenuItem Header="Copy Markdown into Workspace…" Click="CopyIntoWorkspace_OnClick" />
+                  <MenuItem Header="Import Image into Workspace…" Click="ImportImage_OnClick" />
+                  <MenuItem Header="New Folder…" Tag="CreateFolder" Click="ManageDocument_OnClick" />
+                  <MenuItem Header="Rename Document…" Tag="Rename" Click="ManageDocument_OnClick" />
+                  <MenuItem Header="Move Document…" Tag="Move" Click="ManageDocument_OnClick" />
+                  <MenuItem Header="Duplicate Document…" Tag="Duplicate" Click="ManageDocument_OnClick" />
+                  <MenuItem Header="Delete Document to Recycle Bin…" Tag="Recycle" Click="ManageDocument_OnClick" />
+                  <MenuItem Header="Bulk Make Axiom Documents…" Click="BulkEnroll_OnClick" />
+                </MenuItem>
+                <MenuItem Header="Document">
+                  <MenuItem Header="Document Structure…" Click="DocumentStructure_OnClick" />
+                  <MenuItem Header="New" AutomationProperties.Name="New document" ToolTip.Tip="Create a new unsaved Markdown document" Click="New_OnClick" />
+                  <MenuItem Header="Close Tab    Ctrl+W" AutomationProperties.Name="Close current document tab" Click="CloseActiveTab_OnClick" />
+                  <MenuItem Header="Follow Markdown Link    Ctrl+Enter" AutomationProperties.Name="Follow Markdown link at editor caret" Click="FollowLink_OnClick" />
+                  <MenuItem Header="Save" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
+                  <MenuItem Header="Save As…" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />
+                </MenuItem>
+                <MenuItem Header="Export current buffer">
+                  <MenuItem Header="Export current buffer to Word…" Tag="docx" Click="Export_OnClick" />
+                  <MenuItem Header="Export current buffer to HTML…" Tag="html" Click="Export_OnClick" />
+                  <MenuItem Header="Export current buffer to plain text…" Tag="txt" Click="Export_OnClick" />
+                  <MenuItem Header="Export current buffer to PDF…" Tag="pdf" Click="Export_OnClick" />
+                  <MenuItem Header="Export current buffer to EPUB…" Tag="epub" Click="Export_OnClick" />
+                  <MenuItem Header="Export current buffer to OpenDocument Text…" Tag="odt" Click="Export_OnClick" />
+                </MenuItem>
+                <MenuItem Header="CP review and search">
+                  <MenuItem Header="CP connection and reviewed insights…" Click="CpAnalysis_OnClick" />
+                  <MenuItem Header="Reviewed semantic search and cross-document analysis…" Click="CpWorkspaceAnalysis_OnClick" />
+                </MenuItem>
               </MenuFlyout>
             </Button.Flyout>
           </Button>
@@ -121,7 +134,7 @@
           <Border x:Name="InsertImageCommandHost" Background="Transparent"
                   ToolTip.Tip="Save a document inside the active workspace before inserting an image">
             <Button x:Name="InsertImageButton" AutomationProperties.Name="Insert workspace image reference"
-                    Click="InsertImage_OnClick">Image…</Button>
+                    ToolTip.Tip="Insert workspace image reference" Click="InsertImage_OnClick">▧</Button>
           </Border>
           <Button x:Name="AppearanceButton" AutomationProperties.Name="Choose appearance" ToolTip.Tip="Choose System, Light, or Dark appearance">Theme: System
             <Button.Flyout>
@@ -145,10 +158,10 @@
               </MenuFlyout>
             </Button.Flyout>
           </Button>
-          <Button x:Name="EnrollButton" AutomationProperties.Name="Make Axiom Document" ToolTip.Tip="Assign a stable Axiom document identity" Click="Enroll_OnClick">Make Axiom Document</Button>
-          <Button x:Name="PinButton" AutomationProperties.Name="Pin current document" ToolTip.Tip="Pin or unpin the current workspace document" Click="Pin_OnClick">Pin</Button>
-          <Button x:Name="ScrollSyncButton" Content="Scroll sync: off" AutomationProperties.Name="Toggle synchronized editor and preview scrolling" ToolTip.Tip="Opt in to block-based bidirectional scroll synchronization" Click="ToggleScrollSync_OnClick" />
-          <Button Content="Preview at caret" AutomationProperties.Name="Show preview at editor caret" ToolTip.Tip="Navigate the preview to the caret's Markdown block" Click="ShowPreviewAtCaret_OnClick" />
+          <Button x:Name="EnrollButton" AutomationProperties.Name="Make Axiom Document" ToolTip.Tip="Assign a stable Axiom document identity" Click="Enroll_OnClick">◇</Button>
+          <Button x:Name="PinButton" Classes="toolbar-icon" AutomationProperties.Name="Pin current document" ToolTip.Tip="Pin the current workspace document" Click="Pin_OnClick">⌖</Button>
+          <Button x:Name="ScrollSyncButton" Classes="toolbar-icon" Content="⇵" AutomationProperties.Name="Toggle synchronized editor and preview scrolling" ToolTip.Tip="Scroll synchronization is off — click to synchronize editor and preview" Click="ToggleScrollSync_OnClick" />
+          <Button Content="◎" AutomationProperties.Name="Show preview at editor caret" ToolTip.Tip="Navigate the preview to the caret's Markdown block" Click="ShowPreviewAtCaret_OnClick" />
         </WrapPanel>
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto">
           <TextBlock x:Name="StatusText" AutomationProperties.Name="Latest operation status" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -172,12 +185,105 @@
       </Grid>
     </Border>
 
-    <Grid ColumnDefinitions="340,5,*">
+    <Grid x:Name="WorkbenchLayout" ColumnDefinitions="280,5,*,5,0,44">
       <Border x:Name="WorkspaceSidebar" BorderBrush="#374151" BorderThickness="0,0,1,0" Padding="8">
+              <DockPanel>
+                <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" TextWrapping="Wrap" Foreground="#B45309" />
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="4">
+                  <TextBlock Text="Workspace Files" FontWeight="SemiBold" Margin="4,4,4,8" />
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBox x:Name="ExplorerFilter" PlaceholderText="Filter files…" AutomationProperties.Name="Filter workspace files" TextChanged="ExplorerFilter_OnTextChanged" KeyDown="ExplorerFilter_OnKeyDown" />
+                    <Button Grid.Column="1" Content="⌕" AutomationProperties.Name="Search document contents" ToolTip.Tip="Search text inside workspace documents" Click="ExplorerSearch_OnClick" Margin="4,0,0,0" />
+                  </Grid>
+                  <TextBlock x:Name="ExplorerFilterStatus" TextWrapping="Wrap" Opacity="0.7" />
+                  <Expander Header="Workspace actions" IsExpanded="False"><StackPanel Spacing="4">
+                  <Button x:Name="BulkEnrollmentButton" Content="Enroll multiple files…" Margin="0,0,0,6"
+                          AutomationProperties.Name="Bulk enroll workspace documents"
+                          ToolTip.Tip="Choose multiple files in a separate review window; the explorer selects one document"
+                          Click="BulkEnroll_OnClick" />
+                  <Button Content="Workspace Help" Click="WorkspaceHelp_OnClick" />
+                  </StackPanel></Expander>
+                  <Expander Header="Pinned documents" IsExpanded="False"><StackPanel>
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Pinned" />
+                    <Button Grid.Column="1" AutomationProperties.Name="Remove selected pin" ToolTip.Tip="Remove the selected workspace pin" Click="RemovePin_OnClick">Remove</Button>
+                  </Grid>
+                  <TextBlock x:Name="PinnedEmptyState" Margin="0,4" Opacity="0.7" Text="No pinned documents" />
+                  <ListBox x:Name="PinnedDocuments" MaxHeight="120" AutomationProperties.Name="Pinned documents" DoubleTapped="PinnedDocuments_OnDoubleTapped">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="core:WorkspacePin">
+                        <TextBlock Text="{Binding RelativePath}" TextTrimming="CharacterEllipsis" />
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  </StackPanel></Expander>
+                  <Separator Margin="0,6,0,0" />
+                </StackPanel>
+                <TextBlock x:Name="WorkspaceEmptyState" Margin="4" Opacity="0.7" Text="Open a workspace to browse Markdown documents." TextWrapping="Wrap" />
+                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
+                  <TreeView.DataTemplates>
+                    <TreeDataTemplate DataType="app:WorkspaceExplorerNode" ItemsSource="{Binding Children}">
+                      <Grid ColumnDefinitions="32,*" Margin="0,3"><TextBlock Text="{Binding Icon}" FontWeight="SemiBold" Opacity="0.75" /><TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Description}" /></Grid>
+                    </TreeDataTemplate>
+                  </TreeView.DataTemplates>
+                  <TreeView.Styles>
+                    <Style Selector="TreeViewItem">
+                      <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                    </Style>
+                  </TreeView.Styles>
+                </TreeView>
+              </DockPanel>
+
+      </Border>
+      <GridSplitter x:Name="WorkspaceSplitter" Grid.Column="1" Width="5" ResizeDirection="Columns" PointerReleased="WorkbenchSplitter_OnPointerReleased" Background="#374151" />
+      <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
+        <ListBox x:Name="DocumentTabs" AutomationProperties.Name="Open document tabs" SelectionChanged="DocumentTabs_OnSelectionChanged"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+          <ListBox.Styles>
+            <Style Selector="ListBoxItem"><Setter Property="CornerRadius" Value="9,9,0,0" /><Setter Property="Margin" Value="2,3,2,0" /><Setter Property="Padding" Value="12,6" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+            <Style Selector="ListBoxItem:selected"><Setter Property="BorderBrush" Value="#4F8EDC" /></Style>
+          </ListBox.Styles>
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="app:DocumentTab">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="▤" Opacity="0.65" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                <Button Content="×" AutomationProperties.Name="Close document tab" ToolTip.Tip="Close this document; unsaved changes offer Save, Discard, or Cancel" Click="CloseTab_OnClick" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <Border x:Name="ConflictBanner" Grid.Row="1" IsVisible="False" Padding="8" Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="0,0,0,1">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock x:Name="ConflictText" VerticalAlignment="Center" Text="This file changed outside Axiom while you have unsaved edits. Both versions are preserved." />
+            <Button Grid.Column="1" AutomationProperties.Name="Resolve external change" ToolTip.Tip="Compare and choose between local and disk text" Click="ResolveConflict_OnClick">Resolve…</Button>
+          </Grid>
+        </Border>
+        <Grid x:Name="EditorPreviewLayout" Grid.Row="2" ColumnDefinitions="*,5,*">
+          <Grid x:Name="EditorPane">
+            <avaloniaEdit:TextEditor x:Name="Editor" AutomationProperties.Name="Markdown editor"
+                                     FontFamily="Cascadia Mono, Consolas" FontSize="15"
+                                     ShowLineNumbers="True" WordWrap="True"
+                                     HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
+            <TextBlock x:Name="EditorEmptyState" Margin="48,20" IsHitTestVisible="False" Opacity="0.65"
+                       Text="Start typing Markdown, or open a document from the workspace." TextWrapping="Wrap" />
+          </Grid>
+          <GridSplitter x:Name="EditorPreviewSplitter" Grid.Column="1" Width="5" ResizeDirection="Columns" Background="#374151" />
+          <NativeWebView x:Name="Preview" Grid.Column="2" AutomationProperties.Name="Markdown preview" ToolTip.Tip="Rendered Markdown preview" />
+        </Grid>
+      </Grid>
+      <GridSplitter x:Name="ToolWindowSplitter" Grid.Column="3" Width="5" ResizeDirection="Columns" PointerReleased="WorkbenchSplitter_OnPointerReleased" IsVisible="False" />
+      <Border x:Name="ToolWindowHost" Grid.Column="4" IsVisible="False" Padding="8" BorderThickness="1,0,0,0">
         <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Margin="4,4,4,8" FontWeight="SemiBold" Text="Markdown files" />
-          <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" Foreground="#B45309" TextWrapping="Wrap" />
-          <TabControl x:Name="SidebarTopics" TabStripPlacement="Left" SelectedIndex="3">
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <TextBlock x:Name="ToolWindowTitle" Text="Metadata" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="×" AutomationProperties.Name="Collapse tool window" ToolTip.Tip="Collapse this panel; all working state is retained" Click="CollapseToolWindow_OnClick" />
+          </Grid>
+          <TabControl x:Name="SidebarTopics" TabStripPlacement="Top" SelectedIndex="1">
+            <TabControl.Template><ControlTemplate><DockPanel><ItemsPresenter Name="PART_ItemsPresenter" DockPanel.Dock="Top" Height="0" ClipToBounds="True" IsHitTestVisible="False" ItemsPanel="{TemplateBinding ItemsPanel}" /><ContentPresenter Name="PART_SelectedContentHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" /></DockPanel></ControlTemplate></TabControl.Template>
             <TabItem x:Name="RelationshipsTab" Header="Relations" AutomationProperties.Name="Explicit document relationships">
               <DockPanel Margin="4">
                 <StackPanel DockPanel.Dock="Top" Spacing="6">
@@ -238,43 +344,6 @@
                 <ListBox x:Name="ClassificationResults" AutomationProperties.Name="Classified documents" DoubleTapped="ClassificationResults_OnDoubleTapped" KeyDown="ClassificationResults_OnKeyDown">
                   <ListBox.ItemTemplate><DataTemplate DataType="core:ClassifiedDocument"><TextBlock Text="{Binding RelativePath}" TextTrimming="CharacterEllipsis" /></DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
-              </DockPanel>
-            </TabItem>
-            <TabItem Header="Files" AutomationProperties.Name="Workspace explorer" ToolTip.Tip="Browse Markdown documents and pins">
-              <DockPanel>
-                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                  <Button x:Name="BulkEnrollmentButton" Content="Enroll multiple files…" Margin="0,0,0,6"
-                          AutomationProperties.Name="Bulk enroll workspace documents"
-                          ToolTip.Tip="Choose multiple files in a separate review window; the explorer selects one document"
-                          Click="BulkEnroll_OnClick" />
-                  <Button Content="Workspace Help" Click="WorkspaceHelp_OnClick" />
-                  <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Pinned" />
-                    <Button Grid.Column="1" AutomationProperties.Name="Remove selected pin" ToolTip.Tip="Remove the selected workspace pin" Click="RemovePin_OnClick">Remove</Button>
-                  </Grid>
-                  <TextBlock x:Name="PinnedEmptyState" Margin="0,4" Opacity="0.7" Text="No pinned documents" />
-                  <ListBox x:Name="PinnedDocuments" MaxHeight="120" AutomationProperties.Name="Pinned documents" DoubleTapped="PinnedDocuments_OnDoubleTapped">
-                    <ListBox.ItemTemplate>
-                      <DataTemplate DataType="core:WorkspacePin">
-                        <TextBlock Text="{Binding RelativePath}" TextTrimming="CharacterEllipsis" />
-                      </DataTemplate>
-                    </ListBox.ItemTemplate>
-                  </ListBox>
-                  <Separator Margin="0,6,0,0" />
-                </StackPanel>
-                <TextBlock x:Name="WorkspaceEmptyState" Margin="4" Opacity="0.7" Text="Open a workspace to browse Markdown documents." TextWrapping="Wrap" />
-                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
-                  <TreeView.DataTemplates>
-                    <TreeDataTemplate DataType="core:WorkspaceTreeNode" ItemsSource="{Binding Children}">
-                      <TextBlock Text="{Binding Name}" />
-                    </TreeDataTemplate>
-                  </TreeView.DataTemplates>
-                  <TreeView.Styles>
-                    <Style Selector="TreeViewItem">
-                      <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-                    </Style>
-                  </TreeView.Styles>
-                </TreeView>
               </DockPanel>
             </TabItem>
             <TabItem Header="Search" AutomationProperties.Name="Workspace search" ToolTip.Tip="Search Markdown text in the active workspace">
@@ -339,41 +408,19 @@
           </TabControl>
         </DockPanel>
       </Border>
-      <GridSplitter x:Name="WorkspaceSplitter" Grid.Column="1" Width="5" ResizeDirection="Columns" Background="#374151" />
-      <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
-        <ListBox x:Name="DocumentTabs" AutomationProperties.Name="Open document tabs" SelectionChanged="DocumentTabs_OnSelectionChanged"
-                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
-          <ListBox.ItemsPanel>
-            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-          </ListBox.ItemsPanel>
-          <ListBox.ItemTemplate>
-            <DataTemplate DataType="app:DocumentTab">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
-                <Button Content="×" AutomationProperties.Name="Close document tab" ToolTip.Tip="Close this document; unsaved changes offer Save, Discard, or Cancel" Click="CloseTab_OnClick" />
-              </StackPanel>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-        <Border x:Name="ConflictBanner" Grid.Row="1" IsVisible="False" Padding="8" Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="0,0,0,1">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock x:Name="ConflictText" VerticalAlignment="Center" Text="This file changed outside Axiom while you have unsaved edits. Both versions are preserved." />
-            <Button Grid.Column="1" AutomationProperties.Name="Resolve external change" ToolTip.Tip="Compare and choose between local and disk text" Click="ResolveConflict_OnClick">Resolve…</Button>
-          </Grid>
-        </Border>
-        <Grid x:Name="EditorPreviewLayout" Grid.Row="2" ColumnDefinitions="*,5,*">
-          <Grid x:Name="EditorPane">
-            <avaloniaEdit:TextEditor x:Name="Editor" AutomationProperties.Name="Markdown editor"
-                                     FontFamily="Cascadia Mono, Consolas" FontSize="15"
-                                     ShowLineNumbers="True" WordWrap="True"
-                                     HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
-            <TextBlock x:Name="EditorEmptyState" Margin="48,20" IsHitTestVisible="False" Opacity="0.65"
-                       Text="Start typing Markdown, or open a document from the workspace." TextWrapping="Wrap" />
-          </Grid>
-          <GridSplitter x:Name="EditorPreviewSplitter" Grid.Column="1" Width="5" ResizeDirection="Columns" Background="#374151" />
-          <NativeWebView x:Name="Preview" Grid.Column="2" AutomationProperties.Name="Markdown preview" ToolTip.Tip="Rendered Markdown preview" />
-        </Grid>
-      </Grid>
+      <Border x:Name="ToolWindowRail" Grid.Column="5" BorderThickness="1,0,0,0" Padding="3,8">
+        <StackPanel Spacing="6">
+          <Button Content="⌕" Tag="3" AutomationProperties.Name="Toggle workspace search panel" ToolTip.Tip="Workspace Search" Click="ToolWindow_OnClick" />
+          <Button Content="≡" Tag="4" AutomationProperties.Name="Toggle document outline panel" ToolTip.Tip="Document Outline" Click="ToolWindow_OnClick" />
+          <Button Content="◇" Tag="1" AutomationProperties.Name="Toggle metadata panel" ToolTip.Tip="Document Metadata" Click="ToolWindow_OnClick" />
+          <Button Content="↔" Tag="0" AutomationProperties.Name="Toggle relationships panel" ToolTip.Tip="Explicit Relationships" Click="ToolWindow_OnClick" />
+          <Button Content="#" Tag="2" AutomationProperties.Name="Toggle classification panel" ToolTip.Tip="Classification and Aliases" Click="ToolWindow_OnClick" />
+          <Button Content="↶" Tag="5" AutomationProperties.Name="Toggle backlinks panel" ToolTip.Tip="Incoming Markdown References" Click="ToolWindow_OnClick" />
+          <Separator />
+          <Button Content="?" AutomationProperties.Name="Offline User Guide" ToolTip.Tip="Help — F1" Click="Help_OnClick" />
+          <Button Content="⊞" AutomationProperties.Name="Reset workbench layout" ToolTip.Tip="Reset panel widths and collapse tool windows" Click="ResetWorkbench_OnClick" />
+        </StackPanel>
+      </Border>
     </Grid>
   </DockPanel>
 </Window>

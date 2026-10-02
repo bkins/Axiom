@@ -113,7 +113,7 @@ public partial class MainWindow
             return new(CommandOutcome.Unavailable, "Open a workspace and resolve pending operations first.");
         }
         var workspace = _activeWorkspace;
-        var selected = FileTree.SelectedItem as WorkspaceTreeNode;
+        var selected = FileTree.SelectedItem as WorkspaceExplorerNode;
         var sourceRelative = selected is { IsDocument: true } ? selected.RelativePath :
             _session.Path is not null && IsWithinFolder(_session.Path, workspace.RootPath) ? Path.GetRelativePath(workspace.RootPath, _session.Path) : null;
         var isCreation = kind is DocumentMutationKind.Create or DocumentMutationKind.CreateFolder;
@@ -138,7 +138,7 @@ public partial class MainWindow
             }
             else if (kind != DocumentMutationKind.Recycle)
             {
-                var selectedFolder = selected is { IsDocument: false } ? selected.RelativePath : Path.GetDirectoryName(selected?.RelativePath) ?? "";
+                var selectedFolder = selected is { IsDocument: false, Heading: null, IsPlaceholder: false } ? selected.RelativePath : Path.GetDirectoryName(selected?.RelativePath) ?? "";
                 var initial = kind switch
                 {
                     DocumentMutationKind.Create => Path.Combine(selectedFolder, "Untitled.md"),

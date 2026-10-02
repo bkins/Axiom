@@ -27,6 +27,23 @@ public partial class MainWindow
     private void InitializeCommands()
     {
         InitializeAdditionalCommands();
+        RegisterCommand("help.walkthrough", "Open captioned app walkthrough", null, false, (_, _) => ShowWalkthroughAsync());
+        foreach (var panel in new[] { ("relationships", "Relationships", 0), ("metadata", "Metadata", 1), ("classification", "Classification", 2), ("search", "Workspace Search", 3), ("outline", "Document Outline", 4), ("backlinks", "Backlinks", 5) })
+        {
+            RegisterCommand("view." + panel.Item1, "Toggle " + panel.Item2 + " panel", panel.Item1 == "search" ? "Ctrl+Shift+F" : null, false, async (_, _) =>
+            {
+                ToggleToolWindow(panel.Item3);
+                await PersistWorkbenchAsync();
+                return new(CommandOutcome.Completed, panel.Item2 + " panel toggled.");
+            });
+        }
+        RegisterCommand("view.resetLayout", "Reset workbench layout", null, false, async (_, _) =>
+        {
+            ApplyWorkbenchLayout(new());
+            HelpPanelHost.IsVisible = false;
+            await PersistWorkbenchAsync();
+            return new(CommandOutcome.Completed, "Workbench layout reset; working buffers retained.");
+        });
         RegisterCommand("document.cpAnalysis", "CP connection and reviewed document insights", null, false, (_, _) => ShowCpAnalysisAsync());
         RegisterCommand("workspace.cpAnalysis", "Reviewed semantic search and cross-document analysis", null, false, (_, _) => ShowCpWorkspaceAnalysisAsync());
         Closed += (_, _) => _cpAnalysisClient?.Dispose();

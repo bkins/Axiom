@@ -16,10 +16,13 @@ public partial class MainWindow
         if (HelpRequestedForTesting is { } show) return show(context);
         _persistentHelp ??= new HelpPanel(_operationalPaths.Root, _appearance,
             () => HelpPanelHost.IsVisible = false,
-            delta => HelpPanelHost.Width = Math.Clamp(HelpPanelHost.Width + delta, 280, Math.Max(280, Bounds.Width - 550)));
+            delta => { HelpPanelHost.Width = Math.Clamp(HelpPanelHost.Width + delta, 280, Math.Max(280, Bounds.Width - 550)); ClampWorkbenchWidths(); },
+            () => _ = ExecuteCommandAsync("help.walkthrough"));
         HelpPanelHost.Child = _persistentHelp;
+        SetToolWindowVisible(false);
         HelpPanelHost.IsVisible = true;
         ClampHelpPanelWidth();
+        ClampWorkbenchWidths();
         _persistentHelp.SetAppearance(_appearance);
         _persistentHelp.SelectContext(context);
         return Task.CompletedTask;
@@ -34,8 +37,8 @@ public partial class MainWindow
     internal Task ShowPersistentHelpForTestingAsync(string? context) => ShowHelpAsync(context);
     internal HelpPanel? PersistentHelpForTesting => _persistentHelp;
 
-    internal string? HelpContext() => RelationshipsTab.IsSelected ? "Explicit relationships" :
-        MetadataTab.IsSelected || ClassificationTab.IsSelected ? "Document metadata and classification" :
+    internal string? HelpContext() => ToolWindowHost.IsVisible && SidebarTopics.SelectedIndex == 0 ? "Explicit relationships" :
+        ToolWindowHost.IsVisible && SidebarTopics.SelectedIndex is 1 or 2 ? "Document metadata and classification" :
         FileTree.IsKeyboardFocusWithin ? "Workspace loading" :
         _readingMode ? "Workspace loading, reading mode" : "Follow Markdown links";
 }

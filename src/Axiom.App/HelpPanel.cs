@@ -18,7 +18,7 @@ internal sealed class HelpPanel : UserControl
     private bool _selectingMatch;
     private AppearancePreference _appearance;
 
-    public HelpPanel(string cacheRoot, AppearancePreference appearance, Action close, Action<double> resize)
+    public HelpPanel(string cacheRoot, AppearancePreference appearance, Action close, Action<double> resize, Action? walkthrough = null)
     {
         _appearance = appearance;
         _markdown = OfflineHelp.Read();
@@ -52,6 +52,8 @@ internal sealed class HelpPanel : UserControl
         var larger = new Button { Content = "+", [AutomationProperties.NameProperty] = "Widen Help panel" };
         smaller.Click += (_, _) => resize(-40);
         larger.Click += (_, _) => resize(40);
+        var walkthroughButton = new Button { Content = "Guided walkthrough", [AutomationProperties.NameProperty] = "Open captioned app walkthrough", IsVisible = walkthrough is not null };
+        walkthroughButton.Click += (_, _) => walkthrough?.Invoke();
         var header = new StackPanel
         {
             Margin = new Thickness(8),
@@ -59,7 +61,7 @@ internal sealed class HelpPanel : UserControl
             Children =
         {
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { closeButton, smaller, larger } },
-            _topics, search, status, results
+            walkthroughButton, _topics, search, status, results
         }
         };
         var panel = new DockPanel { Children = { header, _view } };
