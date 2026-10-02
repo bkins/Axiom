@@ -131,7 +131,11 @@ internal static class EverydayUseProbe
             nativeClient?.Dispose();
             using var offlineClient = new CpDocumentAnalysisClient(new Uri(Environment.GetEnvironmentVariable("AXIOM_CP_PROBE_ENDPOINT") ?? "http://localhost:5273"),
                 Environment.GetEnvironmentVariable("AXIOM_CP_PROBE_CREDENTIAL") ?? "native-fixture-only-credential-no-submission");
-            var semanticReview = new CpWorkspaceAnalysisWindow(offlineClient, new[] { analysisSnapshot }, _ => true);
+            var savedAnalysisPath = Path.Combine(root, "saved-analysis.md");
+            await File.WriteAllTextAsync(savedAnalysisPath, "# Saved analysis fixture\nExplicitly selected closed workspace source.");
+            var savedAnalysisSnapshot = await new WorkspaceAnalysisSnapshotReader(new FileDocumentStore()).ReadAsync(root, savedAnalysisPath);
+            var semanticReview = new CpWorkspaceAnalysisWindow(offlineClient, new[] { analysisSnapshot }, _ => true,
+                loadSaved: () => Task.FromResult<IReadOnlyList<AnalysisSnapshot>>(new[] { savedAnalysisSnapshot }));
             semanticReview.Show(window);
             semanticReview.UpdateLayout();
             var consent = semanticReview.GetLogicalDescendants().OfType<CheckBox>().Single(control => control.Tag is AnalysisSnapshot);
@@ -154,6 +158,15 @@ internal static class EverydayUseProbe
                 nativeSemanticNetworkVerified = semanticMatches.ItemsSource?.Cast<SemanticMatch>().All(match => match.Section.DocumentHash == analysisSnapshot.SourceHash) == true;
                 if (!nativeSemanticNetworkVerified) throw new IOException("Actual native semantic result hashes did not match reviewed source.");
             }
+            semanticReview.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "CpAddSavedSources")
+                          .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            await WaitAsync(() => Task.FromResult(semanticReview.GetLogicalDescendants().OfType<CheckBox>().Count(control => control.Tag is AnalysisSnapshot) == 2), 10);
+            var savedConsent = semanticReview.GetLogicalDescendants().OfType<CheckBox>().Single(control => control.Tag is AnalysisSnapshot source && source == savedAnalysisSnapshot);
+            if (savedConsent.IsChecked == true) throw new IOException("Saved source was selected without explicit consent.");
+            savedConsent.IsChecked = true;
+            if (selectedReview.Text?.Contains(savedAnalysisSnapshot.Text, StringComparison.Ordinal) != true ||
+                !savedAnalysisSnapshot.Matches(await File.ReadAllTextAsync(savedAnalysisPath)))
+                throw new IOException("Saved source review omitted or altered the original snapshot.");
             semanticReview.Close();
             if (tab.Session.Text != analysisSnapshot.Text || await File.ReadAllTextAsync(path) != "# Saved source\n")
                 throw new IOException("CP review changed the working source.");
@@ -190,6 +203,7 @@ internal static class EverydayUseProbe
                 RecoveryProtected = true
               , NativeCpReviewDisplayed = true
               , NativeSemanticConsentDisplayed = true
+              , NativeSavedWorkspaceSnapshotReviewVerified = true
               , CpReviewSourcePreserved = true
               , CpNativeNetworkSubmissionVerified = nativeNetworkVerified
               , NativeSemanticNetworkSubmissionVerified = nativeSemanticNetworkVerified

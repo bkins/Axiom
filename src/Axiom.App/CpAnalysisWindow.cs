@@ -19,7 +19,7 @@ internal sealed class CpAnalysisWindow : Window
         MinWidth = 540;
         MinHeight = 480;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var endpoint = new TextBox { Name = "CpEndpoint", Text = "http://localhost:5273", PlaceholderText = "CP Development endpoint" };
+        var endpoint = new TextBox { Name = "CpEndpoint", Text = getClient()?.Endpoint.AbsoluteUri ?? "http://localhost:5273", PlaceholderText = "CP Development endpoint" };
         var credential = new TextBox { Name = "CpCredential", PasswordChar = '●', PlaceholderText = "Dedicated analysis credential (session only)" };
         var connect = new Button { Name = "CpConnect", Content = "Connect / check capabilities" };
         var disconnect = new Button { Content = "Disconnect" };
@@ -31,13 +31,19 @@ internal sealed class CpAnalysisWindow : Window
         var output = new TextBox { Name = "CpDerivedOutput", IsReadOnly = true, AcceptsReturn = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap, MinHeight = 140 };
         var status = new TextBlock { Text = "Optional connection. No content is sent until you submit the exact snapshot shown below.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         CancellationTokenSource? requestCancellation = null;
+        bool ConnectedEndpointMatches() => getClient() is { } client && Uri.TryCreate(endpoint.Text, UriKind.Absolute, out var proposed)
+            && new Uri(proposed.AbsoluteUri.TrimEnd('/') + "/").Equals(client.Endpoint);
         void Busy(bool busy)
         {
             connect.IsEnabled = disconnect.IsEnabled = !busy;
             endpoint.IsEnabled = credential.IsEnabled = question.IsEnabled = !busy;
-            submit.IsEnabled = !busy && getClient() is not null;
+            submit.IsEnabled = !busy && ConnectedEndpointMatches();
             cancel.IsEnabled = busy;
         }
+        endpoint.PropertyChanged += (_, change) =>
+        {
+            if (change.Property == TextBox.TextProperty) submit.IsEnabled = requestCancellation is null && ConnectedEndpointMatches();
+        };
         async Task RunAsync(Func<CancellationToken, Task> operation)
         {
             requestCancellation = new CancellationTokenSource();
@@ -56,7 +62,7 @@ internal sealed class CpAnalysisWindow : Window
                 if (capabilities.Simulated) throw new InvalidOperationException("CP reports a simulated provider; live analysis is unavailable.");
                 setClient(candidate);
                 credential.Text = "";
-                status.Text = $"Authenticated. Insights configured: {capabilities.InsightsConfigured}; embeddings configured: {capabilities.EmbeddingsConfigured}. Availability: {capabilities.Availability}. No document was submitted.";
+                status.Text = $"Authenticated endpoint: {candidate.Endpoint}. Insights configured: {capabilities.InsightsConfigured}; embeddings configured: {capabilities.EmbeddingsConfigured}. Availability: {capabilities.Availability}. No document was submitted.";
             }
             catch { candidate.Dispose(); throw; }
         });
@@ -64,10 +70,11 @@ internal sealed class CpAnalysisWindow : Window
         submit.Click += async (_, _) => await RunAsync(async cancellationToken =>
         {
             if (!sourceStillCurrent()) throw new InvalidOperationException("Source changed. Close and reopen this screen to review a fresh snapshot before submitting.");
+            if (!ConnectedEndpointMatches()) throw new InvalidOperationException("Endpoint changed. Connect and check capabilities before submitting.");
             var client = getClient() ?? throw new InvalidOperationException("Connect to CP first.");
             status.Text = "Submitting only the reviewed snapshot…";
             var result = await client.GetInsightsAsync(new[] { snapshot }, question.Text, cancellationToken);
-            output.Text = result.Text;
+            output.Text = AnalysisCitationPolicy.Report(result);
             status.Text = $"Derived output — {(sourceStillCurrent() ? "source hash current" : "STALE: source changed")}; {result.Provider}; model {result.Model ?? "not attested"}; {result.Provenance}; {result.CreatedAt:u}. Citations and factual claims require review.";
         });
         cancel.Click += (_, _) => requestCancellation?.Cancel();

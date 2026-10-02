@@ -9,6 +9,7 @@ public sealed class CpDocumentAnalysisClient : IDisposable
 {
     private readonly HttpClient _http;
     public string EndpointIdentity { get; }
+    public Uri Endpoint => _http.BaseAddress!;
 
     public CpDocumentAnalysisClient(Uri endpoint, string credential, HttpMessageHandler? handler = null)
     {
