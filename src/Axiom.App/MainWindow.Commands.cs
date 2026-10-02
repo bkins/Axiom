@@ -27,6 +27,9 @@ public partial class MainWindow
     private void InitializeCommands()
     {
         InitializeAdditionalCommands();
+        RegisterCommand("document.cpAnalysis", "CP connection and reviewed document insights", null, false, (_, _) => ShowCpAnalysisAsync());
+        RegisterCommand("workspace.cpAnalysis", "Reviewed semantic search and cross-document analysis", null, false, (_, _) => ShowCpWorkspaceAnalysisAsync());
+        Closed += (_, _) => _cpAnalysisClient?.Dispose();
         RegisterCommand("application.install", "Install Axiom for current user", null, true, (_, _) => InstallCurrentUserAsync(),
             _ => new(OperatingSystem.IsWindows(), "Current-user installation requires Windows."));
         RegisterCommand("application.checkUpdate", "Check trusted update", null, true, (_, _) => CheckTrustedUpdateAsync(),

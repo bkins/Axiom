@@ -102,6 +102,61 @@ internal static class EverydayUseProbe
             host.IsVisible = false;
             await window.ShowPersistentHelpForTestingAsync(null);
             if (!host.IsVisible || window.PersistentHelpForTesting != help) throw new IOException("Help reopen did not retain its panel.");
+            var analysisSnapshot = AnalysisSnapshot.Capture("native-unsaved-fixture", tab.Session.Text);
+            CpDocumentAnalysisClient? nativeClient = null;
+            var cpReview = new CpAnalysisWindow(analysisSnapshot, () => analysisSnapshot.Matches(tab.Session.Text), () => nativeClient, candidate => { nativeClient?.Dispose(); nativeClient = candidate; });
+            cpReview.Show(window);
+            cpReview.UpdateLayout();
+            var cpReviewText = cpReview.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "CpSnapshotReview");
+            var cpCredential = cpReview.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "CpCredential");
+            if (!cpReviewText.IsReadOnly || cpReviewText.Text != tab.Session.Text || cpCredential.PasswordChar == '\0')
+                throw new IOException("Native CP review did not preserve the reviewed source or mask the credential.");
+            var nativeNetworkVerified = false;
+            if (Environment.GetEnvironmentVariable("AXIOM_CP_PROBE_ENDPOINT") is { Length: > 0 } cpEndpoint
+             && Environment.GetEnvironmentVariable("AXIOM_CP_PROBE_CREDENTIAL") is { Length: > 0 } cpKey)
+            {
+                cpReview.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "CpEndpoint").Text = cpEndpoint;
+                cpCredential.Text = cpKey;
+                cpReview.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "CpConnect")
+                        .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                await WaitAsync(() => Task.FromResult(nativeClient is not null));
+                var submit = cpReview.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "CpSubmit");
+                submit.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                var derived = cpReview.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "CpDerivedOutput");
+                await WaitAsync(() => Task.FromResult(!string.IsNullOrWhiteSpace(derived.Text)), 130);
+                nativeNetworkVerified = cpCredential.Text == "" && !string.IsNullOrWhiteSpace(derived.Text);
+                if (!nativeNetworkVerified) throw new IOException("Actual CP native submission did not clear entry or produce derived output.");
+            }
+            cpReview.Close();
+            nativeClient?.Dispose();
+            using var offlineClient = new CpDocumentAnalysisClient(new Uri(Environment.GetEnvironmentVariable("AXIOM_CP_PROBE_ENDPOINT") ?? "http://localhost:5273"),
+                Environment.GetEnvironmentVariable("AXIOM_CP_PROBE_CREDENTIAL") ?? "native-fixture-only-credential-no-submission");
+            var semanticReview = new CpWorkspaceAnalysisWindow(offlineClient, new[] { analysisSnapshot }, _ => true);
+            semanticReview.Show(window);
+            semanticReview.UpdateLayout();
+            var consent = semanticReview.GetLogicalDescendants().OfType<CheckBox>().Single(control => control.Tag is AnalysisSnapshot);
+            if (consent.IsChecked == true) throw new IOException("Semantic source consent was selected by default.");
+            consent.IsChecked = true;
+            var selectedReview = semanticReview.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "CpWorkspaceSnapshotReview");
+            if (!selectedReview.IsReadOnly || selectedReview.Text?.Contains(tab.Session.Text, StringComparison.Ordinal) != true)
+                throw new IOException("Native semantic review did not display explicitly selected source.");
+            var nativeSemanticNetworkVerified = false;
+            if (nativeNetworkVerified)
+            {
+                semanticReview.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "CpSemanticBuild")
+                              .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                var semanticSearch = semanticReview.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "CpSemanticSearch");
+                await WaitAsync(() => Task.FromResult(semanticSearch.IsEnabled), 130);
+                semanticReview.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "CpSemanticQuery").Text = "Word export";
+                semanticSearch.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                var semanticMatches = semanticReview.GetLogicalDescendants().OfType<ListBox>().Single(control => control.Name == "CpSemanticResults");
+                await WaitAsync(() => Task.FromResult(semanticMatches.ItemCount > 0), 130);
+                nativeSemanticNetworkVerified = semanticMatches.ItemsSource?.Cast<SemanticMatch>().All(match => match.Section.DocumentHash == analysisSnapshot.SourceHash) == true;
+                if (!nativeSemanticNetworkVerified) throw new IOException("Actual native semantic result hashes did not match reviewed source.");
+            }
+            semanticReview.Close();
+            if (tab.Session.Text != analysisSnapshot.Text || await File.ReadAllTextAsync(path) != "# Saved source\n")
+                throw new IOException("CP review changed the working source.");
             await File.WriteAllTextAsync(Path.Combine(root, "result.json"), JsonSerializer.Serialize(new
             {
                 Version = window.BuildIdentityForTesting.InformationalVersion
@@ -133,6 +188,11 @@ internal static class EverydayUseProbe
                 SourceUnchanged = true
               ,
                 RecoveryProtected = true
+              , NativeCpReviewDisplayed = true
+              , NativeSemanticConsentDisplayed = true
+              , CpReviewSourcePreserved = true
+              , CpNativeNetworkSubmissionVerified = nativeNetworkVerified
+              , NativeSemanticNetworkSubmissionVerified = nativeSemanticNetworkVerified
               ,
                 RecentCount = (await state.GetRecentDocumentsAsync()).Count
               ,
@@ -149,9 +209,9 @@ internal static class EverydayUseProbe
         }
     }
 
-    private static async Task WaitAsync(Func<Task<bool>> check)
+    private static async Task WaitAsync(Func<Task<bool>> check, int timeoutSeconds = 20)
     {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(20);
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(timeoutSeconds);
         while (DateTimeOffset.UtcNow < deadline)
         {
             if (await check()) return;

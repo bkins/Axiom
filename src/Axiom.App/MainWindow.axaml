@@ -84,6 +84,9 @@
                 <MenuItem Header="Export current buffer to PDF…" Tag="pdf" Click="Export_OnClick" />
                 <MenuItem Header="Export current buffer to EPUB…" Tag="epub" Click="Export_OnClick" />
                 <MenuItem Header="Export current buffer to OpenDocument Text…" Tag="odt" Click="Export_OnClick" />
+                <Separator />
+                <MenuItem Header="CP connection and reviewed insights…" Click="CpAnalysis_OnClick" />
+                <MenuItem Header="Reviewed semantic search and cross-document analysis…" Click="CpWorkspaceAnalysis_OnClick" />
               </MenuFlyout>
             </Button.Flyout>
           </Button>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <CpSourceRoot Condition="'$(CpSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\CognitivePlatform-AxiomAnalysis</CpSourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Axiom.Infrastructure\Axiom.Infrastructure.csproj" />
+    <ProjectReference Include="$(CpSourceRoot)\CognitivePlatform\CognitivePlatform.Api.csproj" />
+  </ItemGroup>
+</Project>

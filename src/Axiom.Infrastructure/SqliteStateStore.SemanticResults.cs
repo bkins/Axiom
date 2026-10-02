@@ -5,6 +5,13 @@ namespace Axiom.Infrastructure;
 
 public sealed partial class SqliteStateStore : ISemanticDocumentResultStore
 {
+    public async Task ClearAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM AppSettings WHERE SettingKey LIKE 'SemanticResult:%';";
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
     public async Task<SemanticDocumentResult?> ReadAsync(string documentKey, string providerId, string providerVersion, string contentHash, long revision, CancellationToken cancellationToken = default)
     {
         var json = await ReadSettingAsync(SemanticKey(documentKey, providerId, providerVersion, contentHash, revision), cancellationToken);
