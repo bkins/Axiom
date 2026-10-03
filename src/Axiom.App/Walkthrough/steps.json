@@ -2,13 +2,13 @@
   {
     "title": "Open a workspace and edit Markdown",
     "image": "01-workspace.jpg",
-    "caption": "Choose File → Workspaces and navigation → Open Workspace. Click a Markdown file once to open it. Edit source on the left and check the preview on the right. Ctrl+S saves; an asterisk on a tab means that document has unsaved changes.",
+    "caption": "Open the hamburger main menu → File → Workspaces and navigation → Open Workspace, or use the Workspace Files header actions. Click a Markdown file once to open it. Edit source on the left and check the preview on the right. Ctrl+S saves; an asterisk on a tab means that document has unsaved changes.",
     "shortcut": "Ctrl+S · Save"
   },
   {
     "title": "Filter files or search their contents",
     "image": "02-filter.jpg",
-    "caption": "Type a filename or path fragment in Filter files. Matching documents remain beneath their folders. Press Escape to clear the filter. The magnifier beside it opens Workspace Search for text inside documents.",
+    "caption": "Click the Workspace Files header magnifier or press Ctrl+Shift+L to reveal the filename filter. Matching documents remain beneath their folders. Escape hides the filter and retains its query; open it and choose Clear to remove the query. Ctrl+Shift+F opens Workspace Search for text inside documents.",
     "shortcut": "Ctrl+Shift+F · Workspace Search"
   },
   {
