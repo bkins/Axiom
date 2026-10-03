@@ -6,6 +6,7 @@ public sealed record EditorPreferences(string FontFamily = "Cascadia Mono, Conso
                                     , int TabWidth = 4
                                     , MenuStyle MenuStyle = MenuStyle.Quiet)
 {
+    public bool CompactTitleBar { get; init; } = true;
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(FontFamily) || FontFamily.Length > 200 || FontFamily.Any(char.IsControl))

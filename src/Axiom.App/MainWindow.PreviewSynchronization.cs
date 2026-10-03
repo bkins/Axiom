@@ -58,7 +58,8 @@ public partial class MainWindow
     private void ToggleScrollSynchronization()
     {
         _scrollSyncEnabled = !_scrollSyncEnabled;
-        ScrollSyncButton.Content = _scrollSyncEnabled ? "↕" : "⇵";
+        ScrollSyncButton.Content = CreateWorkbenchIcon("sync");
+        ScrollSyncButton.Opacity = _scrollSyncEnabled ? 1 : 0.7;
         ToolTip.SetTip(ScrollSyncButton, _scrollSyncEnabled ? "Scroll synchronization is on — click for independent scrolling" : "Scroll synchronization is off — click to synchronize editor and preview");
         _editorScrollPending = _scrollSyncEnabled;
         UpdateChrome(_scrollSyncEnabled ? "Editor and preview scrolling synchronized. Toggle off for independent reading." : "Editor and preview scroll independently.");

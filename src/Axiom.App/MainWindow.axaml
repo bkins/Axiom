@@ -3,19 +3,29 @@
         xmlns:avaloniaEdit="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
         xmlns:core="using:Axiom.Core"
         xmlns:app="using:Axiom.App"
+        xmlns:chrome="using:Avalonia.Controls.Chrome"
         x:Class="Axiom.App.MainWindow"
         x:CompileBindings="False"
         Title="Axiom"
         Icon="/Assets/Axiom.ico"
         Width="1280" Height="720" MinWidth="900" MinHeight="580">
+  <Window.Styles>
+    <Style Selector="Button.toolbar-icon"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="MinWidth" Value="30" /><Setter Property="MinHeight" Value="30" /><Setter Property="Padding" Value="5" /></Style>
+    <Style Selector="Button.toolbar-icon /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></Style>
+    <Style Selector="Button.toolbar-icon:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" /></Style>
+    <Style Selector="Button.toolbar-icon:pressed /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumLowBrush}" /></Style>
+    <Style Selector="Button.toolbar-icon:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
+  </Window.Styles>
   <DockPanel>
     <Border x:Name="HelpPanelHost" IsVisible="False" DockPanel.Dock="Right" Width="340" MinWidth="280" BorderThickness="1,0,0,0" BorderBrush="#8893A3" />
-    <Border x:Name="TopCommandBar" DockPanel.Dock="Top" Padding="10" Background="#1F2937" BorderBrush="#374151" BorderThickness="0,0,0,1">
-      <Grid RowDefinitions="Auto">
+    <Border x:Name="TopCommandBar" DockPanel.Dock="Top" Padding="6,3" Background="#1F2937" BorderBrush="#374151" BorderThickness="0,0,0,1">
+      <Grid x:Name="TitleCommandGrid" ColumnDefinitions="Auto,*">
         <WrapPanel x:Name="CommandPanel" Orientation="Horizontal">
           <WrapPanel.Styles>
             <Style Selector="Button">
-              <Setter Property="Margin" Value="0,0,7,6" />
+              <Setter Property="Margin" Value="0,0,3,0" />
+              <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+              <Setter Property="Padding" Value="5" /><Setter Property="MinWidth" Value="30" /><Setter Property="MinHeight" Value="30" />
             </Style>
             <Style Selector="Button.toolbar-icon">
               <Setter Property="FontSize" Value="16" /><Setter Property="Width" Value="34" /><Setter Property="Height" Value="32" />
@@ -131,7 +141,7 @@
               </MenuFlyout>
             </Button.Flyout>
           </Button>
-          <Button AutomationProperties.Name="Operational tools" ToolTip.Tip="Inspect diagnostics, state, builds, and portable updates">Tools…
+          <Button x:Name="ToolsCommandsButton" AutomationProperties.Name="Operational tools" ToolTip.Tip="Inspect diagnostics, state, builds, and portable updates">Tools…
             <Button.Flyout>
               <MenuFlyout>
                 <MenuItem Header="Diagnostics…" Click="Diagnostics_OnClick" />
@@ -149,6 +159,9 @@
           <Button x:Name="ScrollSyncButton" Classes="toolbar-icon" Content="⇵" AutomationProperties.Name="Toggle synchronized editor and preview scrolling" ToolTip.Tip="Scroll synchronization is off — click to synchronize editor and preview" Click="ToggleScrollSync_OnClick" />
           <Button Content="◎" AutomationProperties.Name="Show preview at editor caret" ToolTip.Tip="Navigate the preview to the caret's Markdown block" Click="ShowPreviewAtCaret_OnClick" />
         </WrapPanel>
+        <Border x:Name="TitleDragRegion" Grid.Column="1" Background="Transparent" MinWidth="40" chrome:WindowDecorationProperties.ElementRole="TitleBar">
+          <TextBlock Text="Axiom" Margin="12,0" Opacity="0.65" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        </Border>
       </Grid>
     </Border>
 
@@ -190,19 +203,24 @@
               <DockPanel>
                 <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" TextWrapping="Wrap" Foreground="#B45309" />
                 <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="4">
-                  <TextBlock Text="Workspace Files" FontWeight="SemiBold" Margin="4,4,4,8" />
-                  <Grid ColumnDefinitions="*,Auto">
+                  <Grid ColumnDefinitions="*,Auto,Auto" Margin="4,0,0,3">
+                    <TextBlock Text="Workspace Files" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Button x:Name="ExplorerFilterButton" Grid.Column="1" AutomationProperties.Name="Show or hide file filter" ToolTip.Tip="Filter workspace filenames — Ctrl+Shift+L" Click="ExplorerFilterToggle_OnClick" />
+                    <Button x:Name="WorkspaceActionsButton" Grid.Column="2" AutomationProperties.Name="Workspace actions" ToolTip.Tip="Open, refresh, create and organize workspace items" />
+                  </Grid>
+                  <Grid x:Name="ExplorerFilterPanel" IsVisible="False" ColumnDefinitions="*,Auto,Auto">
                     <TextBox x:Name="ExplorerFilter" PlaceholderText="Filter files…" AutomationProperties.Name="Filter workspace files" TextChanged="ExplorerFilter_OnTextChanged" KeyDown="ExplorerFilter_OnKeyDown" />
-                    <Button Grid.Column="1" Content="⌕" AutomationProperties.Name="Search document contents" ToolTip.Tip="Search text inside workspace documents" Click="ExplorerSearch_OnClick" Margin="4,0,0,0" />
+                    <Button Grid.Column="1" Content="×" AutomationProperties.Name="Clear filename filter" ToolTip.Tip="Clear the active filename filter" Click="ExplorerFilterClear_OnClick" />
+                    <Button Grid.Column="2" Content="⌕" AutomationProperties.Name="Search document contents" ToolTip.Tip="Search text inside workspace documents" Click="ExplorerSearch_OnClick" Margin="4,0,0,0" />
                   </Grid>
                   <TextBlock x:Name="ExplorerFilterStatus" TextWrapping="Wrap" Opacity="0.7" />
-                  <Expander Header="Workspace actions" IsExpanded="False"><StackPanel Spacing="4">
+                  <StackPanel IsVisible="False" Spacing="4">
                   <Button x:Name="BulkEnrollmentButton" Content="Enroll multiple files…" Margin="0,0,0,6"
                           AutomationProperties.Name="Bulk enroll workspace documents"
                           ToolTip.Tip="Choose multiple files in a separate review window; the explorer selects one document"
                           Click="BulkEnroll_OnClick" />
                   <Button Content="Workspace Help" Click="WorkspaceHelp_OnClick" />
-                  </StackPanel></Expander>
+                  </StackPanel>
                   <Separator Margin="0,6,0,0" />
                 </StackPanel>
                 <TextBlock x:Name="WorkspaceEmptyState" Margin="4" Opacity="0.7" Text="Open a workspace to browse Markdown documents." TextWrapping="Wrap" />
@@ -227,7 +245,7 @@
         <ListBox x:Name="DocumentTabs" AutomationProperties.Name="Open document tabs" SelectionChanged="DocumentTabs_OnSelectionChanged"
                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
           <ListBox.Styles>
-            <Style Selector="ListBoxItem"><Setter Property="CornerRadius" Value="9,9,0,0" /><Setter Property="Margin" Value="2,3,2,0" /><Setter Property="Padding" Value="12,6" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+            <Style Selector="ListBoxItem"><Setter Property="CornerRadius" Value="6,6,0,0" /><Setter Property="Margin" Value="2,2,2,0" /><Setter Property="Padding" Value="7,2" /><Setter Property="MinHeight" Value="30" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
             <Style Selector="ListBoxItem:selected"><Setter Property="BorderBrush" Value="#4F8EDC" /></Style>
           </ListBox.Styles>
           <ListBox.ItemsPanel>
@@ -236,9 +254,8 @@
           <ListBox.ItemTemplate>
             <DataTemplate DataType="app:DocumentTab">
               <StackPanel Orientation="Horizontal" Spacing="8" ContextRequested="Tab_OnContextRequested">
-                <TextBlock Text="▤" Opacity="0.65" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
-                <Button Content="×" AutomationProperties.Name="Close document tab" ToolTip.Tip="Close this document; unsaved changes offer Save, Discard, or Cancel" Click="CloseTab_OnClick" />
+                <Button Content="×" MinWidth="28" MinHeight="28" Padding="4" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Close document tab" ToolTip.Tip="Close this document; unsaved changes offer Save, Discard, or Cancel" Click="CloseTab_OnClick" />
               </StackPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
@@ -292,8 +309,11 @@
               <ScrollViewer>
                 <StackPanel Margin="4" Spacing="6">
                   <Button Content="Refresh saved identities" Click="ClassificationRefresh_OnClick" />
-                  <Button Content="Metadata Help" Click="MetadataHelp_OnClick" />
-                  <TextBlock x:Name="MetadataStatus" TextWrapping="Wrap" />
+                  <TextBlock x:Name="MetadataRefreshStatus" TextWrapping="Wrap" AutomationProperties.Name="Saved identity refresh status" />
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock x:Name="MetadataStatus" TextWrapping="Wrap" />
+                    <Button Grid.Column="1" Content="ⓘ" VerticalAlignment="Top" AutomationProperties.Name="About tags type and aliases" ToolTip.Tip="How tags, type and aliases organize documents" Click="MetadataInfo_OnClick" />
+                  </Grid>
                   <TextBlock x:Name="MetadataGuidance" TextWrapping="Wrap" />
                   <Button x:Name="MetadataEnroll" Content="Make Axiom document" IsVisible="False" Click="Enroll_OnClick" />
                   <Button x:Name="MetadataSave" Content="Save document" IsVisible="False" Click="Save_OnClick" />

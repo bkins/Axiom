@@ -1213,6 +1213,8 @@ public partial class MainWindow : Window
         ToolTip.SetTip(InsertImageCommandHost, InsertImageButton.IsEnabled
             ? "Insert a reference to an existing image inside this workspace"
             : "Save a document inside the active workspace before inserting an image");
+        Avalonia.Automation.AutomationProperties.SetHelpText(InsertImageCommandHost, ToolTip.GetTip(InsertImageCommandHost)?.ToString());
+        InsertImageCommandHost.Focusable = !InsertImageButton.IsEnabled;
     }
 
     private void UpdateEmptyStates()
@@ -1231,7 +1233,8 @@ public partial class MainWindow : Window
         if (!canPin) return;
         var relativePath = WorkspaceService.GetRelativeDocumentPath(_activeWorkspace!.RootPath, _session.Path!);
         var pinned = _workspacePins.Any(pin => pin.RelativePath.Equals(relativePath, WorkspacePathBoundary.Comparison));
-        PinButton.Content = pinned ? "◆" : "⌖";
+        PinButton.Content = CreateWorkbenchIcon("pin");
+        PinButton.Opacity = pinned ? 1 : 0.7;
         PinButton.Tag = pinned ? "Unpin" : "Pin";
         ToolTip.SetTip(PinButton, pinned ? "Unpin current document" : "Pin current document");
     }

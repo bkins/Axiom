@@ -31,6 +31,12 @@ public partial class MainWindow
     private void InitializeCommands()
     {
         InitializeAdditionalCommands();
+        RegisterCommand("workspace.filter", "Show filename filter", "Ctrl+Shift+L", false, (_, _) =>
+        {
+            ExplorerFilterPanel.IsVisible = true;
+            ExplorerFilter.Focus();
+            return Task.FromResult(new CommandResult(CommandOutcome.Completed, "Filename filter shown; existing query retained."));
+        });
         RegisterCommand("help.walkthrough", "Open captioned app walkthrough", null, false, (_, _) => ShowWalkthroughAsync());
         foreach (var panel in new[] { ("relationships", "Relationships", 0), ("metadata", "Metadata", 1), ("classification", "Classification", 2), ("search", "Workspace Search", 3), ("outline", "Document Outline", 4), ("backlinks", "Backlinks", 5) })
         {

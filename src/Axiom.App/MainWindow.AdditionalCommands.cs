@@ -101,8 +101,7 @@ public partial class MainWindow
         });
         RegisterCommand("metadata.refresh", "Refresh workspace classification", null, false, async (_, _) =>
         {
-            await RefreshClassificationAsync();
-            return new(CommandOutcome.Completed, "Classification refreshed.");
+            return new(await RefreshClassificationAsync() ? CommandOutcome.Completed : CommandOutcome.Cancelled, MetadataRefreshStatus.Text ?? "Identity refresh not completed.");
         }, WorkspaceCommandAvailability);
         RegisterCommand("metadata.filter", "Apply classification filter fields", null, false, (_, _) =>
         {

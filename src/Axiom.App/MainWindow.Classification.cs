@@ -42,11 +42,17 @@ public partial class MainWindow
         _classificationCatalog = null;
         _relationships = [];
         _classificationResults.Clear();
+        MetadataRefreshStatus.Text = "";
     }
 
-    internal async Task RefreshClassificationAsync()
+    internal async Task<bool> RefreshClassificationAsync()
     {
-        if (_folder is null || _classificationService is null) { UpdateMetadataPanel(); return; }
+        if (_folder is null || _classificationService is null)
+        {
+            MetadataRefreshStatus.Text = "Open a workspace before refreshing saved identities.";
+            UpdateMetadataPanel();
+            return false;
+        }
         _classificationCancellation?.Cancel();
         _classificationCancellation?.Dispose();
         _classificationCancellation = new();
@@ -54,23 +60,37 @@ public partial class MainWindow
         var generation = ++_classificationGeneration;
         var root = _folder;
         ClassificationStatus.Text = "Loading saved identities and metadata…";
+        MetadataRefreshStatus.Text = "Refreshing saved identities… Unsaved editor text is retained.";
+        ShowInformation("Refreshing saved document identities…");
+        var previous = System.Text.Json.JsonSerializer.Serialize(_classificationCatalog);
         try
         {
             var catalog = await Task.Run(() => _classificationService.DiscoverAsync(root, token), token);
             var relationships = _recovery is IConnectedMetadataStore connected ? await connected.GetRelationshipsAsync(token) : [];
-            if (generation != _classificationGeneration || root != _folder) return;
+            if (generation != _classificationGeneration || root != _folder) return false;
             _classificationCatalog = catalog;
             _relationships = relationships;
             ApplyClassificationFilter();
             UpdateMetadataPanel();
+            var unchanged = previous == System.Text.Json.JsonSerializer.Serialize(catalog);
+            MetadataRefreshStatus.Text = $"{(unchanged ? "Unchanged" : "Completed")}: {catalog.Documents.Count} saved files, {catalog.Documents.Count(document => document.IsEligible)} eligible identities, {catalog.Errors.Count} discovery issues. Unsaved text was not saved.";
+            ShowInformation(MetadataRefreshStatus.Text);
+            return true;
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            if (generation == _classificationGeneration) MetadataRefreshStatus.Text = "Identity refresh cancelled; prior catalog retained.";
+            return false;
+        }
         catch (Exception exception)
         {
-            if (generation != _classificationGeneration) return;
+            if (generation != _classificationGeneration) return false;
             _classificationCatalog = null;
             ClassificationStatus.Text = "Discovery failed: " + exception.Message;
             UpdateMetadataPanel();
+            MetadataRefreshStatus.Text = "Refresh failed: " + exception.Message;
+            ReportError("metadata.refresh.failed", exception, root);
+            return false;
         }
     }
 
@@ -96,7 +116,7 @@ public partial class MainWindow
             MetadataEnroll.IsVisible = !eligible && _session.DocumentId is null;
             MetadataSave.IsVisible = !eligible && liveId is not null && liveId != saved?.DocumentId;
             MetadataGuidance.Text = eligible
-                ? "Tags group documents (for example: Project, Decision). Type describes this document (for example: Note). Aliases are alternate names used by Classify, not filenames. Enter one tag or alias per line, then Apply. Metadata does not change Markdown."
+                ? "Enter one tag or alias per line, then Apply. Metadata does not change Markdown."
                 : _folder is null || relative is null
                     ? "Open a workspace and a saved Markdown document within it. Metadata belongs to a document's saved Axiom ID."
                     : liveId is null && _session.DocumentId is null

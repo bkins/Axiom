@@ -18,6 +18,7 @@ internal sealed class SettingsWindow : Window
         var font = new TextBox { Text = current.FontFamily, PlaceholderText = "Font family" };
         var size = new NumericUpDown { Minimum = 8, Maximum = 40, Value = current.FontSize, Increment = 1 };
         var wrap = new CheckBox { Content = "Wrap long editor lines", IsChecked = current.WordWrap };
+        var chrome = new CheckBox { Content = "Compact title bar (Windows); turn off for standard system title bar", IsChecked = current.CompactTitleBar };
         var tabs = new NumericUpDown { Minimum = 1, Maximum = 8, Value = current.TabWidth, Increment = 1 };
         var theme = new ComboBox { ItemsSource = Enum.GetValues<AppearancePreference>(), SelectedItem = appearance };
         AutomationProperties.SetName(font, "Editor font family");
@@ -32,7 +33,7 @@ internal sealed class SettingsWindow : Window
         {
             try
             {
-                var value = new EditorPreferences(font.Text ?? string.Empty, (int)(size.Value ?? 15), wrap.IsChecked == true, (int)(tabs.Value ?? 4), (MenuStyle)(menuStyle.SelectedItem ?? MenuStyle.Quiet));
+                var value = new EditorPreferences(font.Text ?? string.Empty, (int)(size.Value ?? 15), wrap.IsChecked == true, (int)(tabs.Value ?? 4), (MenuStyle)(menuStyle.SelectedItem ?? MenuStyle.Quiet)) { CompactTitleBar = chrome.IsChecked == true };
                 value.Validate();
                 Close((value, (AppearancePreference)(theme.SelectedItem ?? AppearancePreference.System)));
             }
@@ -57,7 +58,7 @@ internal sealed class SettingsWindow : Window
             new TextBlock { Text = "Font size (8–40)" }, size, wrap,
             new TextBlock { Text = "Tab width (1–8 columns)" }, tabs,
             new TextBlock { Text = "Application appearance" }, theme,
-            new TextBlock { Text = "Menu style" }, menuStyle, message,
+            new TextBlock { Text = "Menu style" }, menuStyle, chrome, message,
             new WrapPanel { Children = { apply, cancel, reset, helpButton } }
         }
             }

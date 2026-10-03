@@ -28,16 +28,24 @@ public partial class MainWindow
             return true;
         }
         if (eventArgs.KeyModifiers != KeyModifiers.Alt) return false;
-        Button? button = eventArgs.Key switch
+        string? section = eventArgs.Key switch
         {
-            Key.F => FileCommandsButton
-          , Key.E => EditCommandsButton
-          , Key.M => FormatCommandsButton
+            Key.F => "File"
+          , Key.E => "Edit"
+          , Key.M => "Format"
           , _     => null
         };
-        if (button is null) return false;
-        button.Focus(NavigationMethod.Tab);
-        button.Flyout?.ShowAt(button);
+        if (section is null) return false;
+        FileCommandsButton.Focus(NavigationMethod.Tab);
+        FileCommandsButton.Flyout?.ShowAt(FileCommandsButton);
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (FileCommandsButton.Flyout is MenuFlyout menu && menu.Items.OfType<MenuItem>().FirstOrDefault(item => item.Header?.ToString() == section) is { } group)
+            {
+                group.Focus(NavigationMethod.Tab);
+                group.IsSubMenuOpen = true;
+            }
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
         eventArgs.Handled = true;
         return true;
     }

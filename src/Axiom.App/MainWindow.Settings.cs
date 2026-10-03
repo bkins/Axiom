@@ -39,6 +39,7 @@ public partial class MainWindow
     private void ApplyEditorPreferences(EditorPreferences preferences)
     {
         preferences.Validate();
+        ApplyCompactTitleBar(preferences.CompactTitleBar);
         foreach (var button in new[] { FileCommandsButton, EditCommandsButton, FormatCommandsButton })
         {
             button.Classes.Set("quiet-menu", preferences.MenuStyle == MenuStyle.Quiet);

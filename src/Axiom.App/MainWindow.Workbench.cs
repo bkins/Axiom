@@ -23,6 +23,7 @@ public partial class MainWindow
     {
         FileTree.ItemsSource = _explorerNodes;
         InitializeExplorerDrag();
+        InitializeCompactWorkbench();
         _workspaceTree.CollectionChanged += (_, _) => { ++_explorerGeneration; _explorerFilterTimer.Stop(); _explorerFilterTimer.Start(); };
         _explorerFilterTimer.Tick += (_, _) => { _explorerFilterTimer.Stop(); RefreshExplorer(); };
         Closed += (_, _) => { ++_explorerGeneration; _explorerFilterTimer.Stop(); };
@@ -144,7 +145,7 @@ public partial class MainWindow
     {
         if (eventArgs.Key == Key.Escape)
         {
-            ExplorerFilter.Text = "";
+            ExplorerFilterPanel.IsVisible = false;
             eventArgs.Handled = true;
             FileTree.Focus();
         }
@@ -167,7 +168,9 @@ public partial class MainWindow
         foreach (var source in _workspaceTree)
             if (BuildExplorerNode(source, filter) is { } node) _explorerNodes.Add(node);
         var count = _explorerDocuments.Count;
-        ExplorerFilterStatus.Text = filter.Length == 0 ? "Expand a document for its headings." : $"{count} matching document{(count == 1 ? "" : "s")}; Escape clears filter.";
+        ExplorerFilterStatus.IsVisible = filter.Length > 0;
+        ExplorerFilterStatus.Text = filter.Length == 0 ? "" : $"Filter: {filter} — {count} matching document{(count == 1 ? "" : "s")}. Open the filter to clear it.";
+        ToolTip.SetTip(ExplorerFilterButton, filter.Length == 0 ? "Filter workspace filenames — Ctrl+Shift+L" : $"Active filename filter: {filter}. Click to edit or clear; Escape hides without clearing.");
         RefreshExplorerOutline();
         var restored = previous is null ? null : EnumerateExplorer(_explorerNodes).FirstOrDefault(node =>
             node.Heading is null && node.RelativePath.Equals(previous.RelativePath, WorkspacePathBoundary.Comparison) &&

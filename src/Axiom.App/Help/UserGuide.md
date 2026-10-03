@@ -1,6 +1,16 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: BA7965508835747AC219E8F752BCDBDC5B26440D17C54D68FEA4588B0C81CF1A. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 48F08B1E82B6EA1D8EA9FC25F0D2192FA881C8DC50B4935B246ABAC1F8E6FB2C. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## Compact workbench in 1.0.27
+
+The main toolbar uses a consistent outline icon family with transparent idle backgrounds. The hamburger opens File, Edit, Format and Tools. Alt or F10 focuses it; Alt+F, Alt+E and Alt+M open those sections. The command palette and your customized shortcuts remain available. Quiet and Rounded menu styles remain in Settings.
+
+On Windows, the toolbar shares a compact title region while retaining system minimize, maximize/restore and close buttons. Drag the blank title area or double-click it to maximize/restore. Settings → **Compact title bar (Windows)** can restore the standard system title bar; this preference persists. Appearance (System/Light/Dark) is in Settings and remains available through the command palette.
+
+The Workspace Files header has a magnifier for the filename filter and an actions button for Open, remembered workspaces, Refresh, New document, New folder, bulk enrollment and Workspace Help. Ctrl+Shift+L opens and focuses the filename filter. Ctrl+Shift+F still opens full-text workspace search. Escape hides the filename filter and preserves its query; an active-filter status remains visible. Open the filter and choose Clear to remove the query. Open document tabs use less vertical space while retaining dirty indicators, close targets, horizontal overflow and context actions.
+
+Disabled navigation and image commands provide their unavailable reason through a hover/focus host; keyboard focus reports the reason in the footer, and commands remain unable to execute. Metadata refresh shows local progress and completed/unchanged/error feedback with saved-file and eligible-identity counts. It does not save or enroll your current buffer. The info icon beside Metadata opens optional tags/type/alias guidance and a link to Metadata Help; eligibility instructions and errors remain visible.
 
 ## Workspace navigation and safe moves in 1.0.26
 
