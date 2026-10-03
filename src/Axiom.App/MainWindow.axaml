@@ -412,6 +412,14 @@
                 </ListBox>
               </DockPanel>
             </TabItem>
+            <TabItem Header="Git Changes">
+              <ContentControl x:Name="GitPanelHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                <StackPanel Spacing="8" Margin="8">
+                  <TextBlock Text="Open Git to inspect local saved changes, diffs and commits." TextWrapping="Wrap" />
+                  <Button Content="Open workspace Git" Click="WorkspaceGit_OnClick" />
+                </StackPanel>
+              </ContentControl>
+            </TabItem>
           </TabControl>
         </DockPanel>
       </Border>
@@ -423,6 +431,7 @@
           <Button Content="↔" Tag="0" AutomationProperties.Name="Toggle relationships panel" ToolTip.Tip="Explicit Relationships" Click="ToolWindow_OnClick" />
           <Button Content="#" Tag="2" AutomationProperties.Name="Toggle classification panel" ToolTip.Tip="Classification and Aliases" Click="ToolWindow_OnClick" />
           <Button Content="↶" Tag="5" AutomationProperties.Name="Toggle backlinks panel" ToolTip.Tip="Incoming Markdown References" Click="ToolWindow_OnClick" />
+          <Button Content="⑂" Tag="6" AutomationProperties.Name="Toggle Git changes panel" ToolTip.Tip="Git Changes — local saved changes, diffs and commits" Click="ToolWindow_OnClick" />
           <Separator />
           <Button Content="?" AutomationProperties.Name="Offline User Guide" ToolTip.Tip="Help — F1" Click="Help_OnClick" />
           <Button Content="⊞" AutomationProperties.Name="Reset workbench layout" ToolTip.Tip="Reset panel widths and collapse tool windows" Click="ResetWorkbench_OnClick" />

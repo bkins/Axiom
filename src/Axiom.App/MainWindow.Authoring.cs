@@ -52,6 +52,7 @@ public partial class MainWindow
         var cancellation = _spellingCancellation = new CancellationTokenSource();
         var token = cancellation.Token;
         _spellingRenderer.Issues = [];
+        _gitView?.RefreshAvailability();
         Editor.TextArea.TextView.InvalidateLayer(AvaloniaEdit.Rendering.KnownLayer.Selection);
         if (!_editorPreferences.SpellCheck) return;
         var source = Editor.Text;

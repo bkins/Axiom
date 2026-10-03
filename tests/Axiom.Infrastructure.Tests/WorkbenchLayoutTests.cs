@@ -10,12 +10,12 @@ public sealed class WorkbenchLayoutTests
     public async Task WorkbenchRestartRestoresDimensionsAndInvalidInputRetainsPreviousLayout()
     {
         using var fixture = new MutationTestWorkspace();
-        var selected = new WorkbenchLayout(310, 380, 3, true);
+        var selected = new WorkbenchLayout(310, 380, 6, true);
         await fixture.State.SetWorkbenchLayoutAsync(selected);
         var reopened = new SqliteStateStore(fixture.State.Paths);
         Assert.Equal(selected, await reopened.GetWorkbenchLayoutAsync());
         await Assert.ThrowsAsync<ArgumentException>(() => reopened.SetWorkbenchLayoutAsync(selected with { WorkspaceWidth = double.NaN }));
-        await Assert.ThrowsAsync<ArgumentException>(() => reopened.SetWorkbenchLayoutAsync(selected with { ToolIndex = 6 }));
+        await Assert.ThrowsAsync<ArgumentException>(() => reopened.SetWorkbenchLayoutAsync(selected with { ToolIndex = 7 }));
         Assert.Equal(selected, await reopened.GetWorkbenchLayoutAsync());
     }
 

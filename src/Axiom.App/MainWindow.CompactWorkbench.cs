@@ -69,6 +69,7 @@ public partial class MainWindow
               , "Toggle workspace search panel" => "search"
               , "Toggle document outline panel" => "list"
               , "Toggle backlinks panel" => "back"
+              , "Toggle Git changes panel" => "git"
               , "Offline User Guide" => "help"
               , _ => "grid"
             });
@@ -150,6 +151,7 @@ public partial class MainWindow
       , "target" => "M19,12 A7,7 0 1 1 5,12 A7,7 0 1 1 19,12 M12,1 L12,7 M12,17 L12,23 M1,12 L7,12 M17,12 L23,12"
       , "search" => "M17,10 A7,7 0 1 1 3,10 A7,7 0 1 1 17,10 M15,15 L22,22"
       , "grid" => "M3,3 L21,3 L21,21 L3,21 Z M3,9 L21,9 M9,3 L9,21"
+      , "git" => "M6,6 A2,2 0 1 1 6,2 A2,2 0 1 1 6,6 M6,6 L6,18 M6,22 A2,2 0 1 1 6,18 A2,2 0 1 1 6,22 M18,10 A2,2 0 1 1 18,6 A2,2 0 1 1 18,10 M18,10 C18,16 6,12 6,18"
       , "list" => "M3,5 L5,5 M9,5 L21,5 M3,12 L5,12 M9,12 L21,12 M3,19 L5,19 M9,19 L21,19"
       , _ => "M4,10 A2,2 0 1 1 4,14 A2,2 0 1 1 4,10 M12,10 A2,2 0 1 1 12,14 A2,2 0 1 1 12,10 M20,10 A2,2 0 1 1 20,14 A2,2 0 1 1 20,10"
     });

@@ -7,5 +7,5 @@ public sealed record WorkbenchLayout(double WorkspaceWidth = 280
 {
     public bool IsValid => double.IsFinite(WorkspaceWidth) && WorkspaceWidth is >= 180 and <= 480
                         && double.IsFinite(ToolWidth) && ToolWidth is >= 260 and <= 480
-                        && ToolIndex is >= 0 and <= 5;
+                        && ToolIndex is >= 0 and <= 6;
 }

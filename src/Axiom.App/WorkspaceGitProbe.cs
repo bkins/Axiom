@@ -50,7 +50,9 @@ internal static class WorkspaceGitProbe
             window.SetEditorTextForTesting(saved + "Unsaved buffer\n");
             await window.ProtectIfNeededForTestingAsync();
             var dirtyCommand = window.ExecuteCommandAsync("workspace.git");
-            var browser = await WaitForWindowAsync<WorkspaceGitWindow>();
+            await dirtyCommand;
+            var browser = window.GitViewForTesting ?? throw new IOException("Git changes panel is missing.");
+            Require(Windows().Count() == 1, "Git changes did not open as an embedded panel.");
             Select(browser, "notes.md");
             Require(!FindButton(browser, "Stage selected…").IsEnabled, "Git allowed staging a dirty editor buffer.");
             Click(browser, "Close");
@@ -58,12 +60,16 @@ internal static class WorkspaceGitProbe
             Require(window.EditorTextForTesting.Contains("Unsaved buffer", StringComparison.Ordinal) && await File.ReadAllTextAsync(sourcePath) == saved, "Git inspection saved or discarded dirty text.");
             window.SetEditorTextForTesting(saved);
             var command = window.ExecuteCommandAsync("workspace.git");
-            browser = await WaitForWindowAsync<WorkspaceGitWindow>();
+            await command;
+            browser = window.GitViewForTesting!;
             Select(browser, "notes.md");
+            Require(FindButton(browser, "Stage selected…").IsEnabled, "Clean saved file could not be staged.");
+            window.SetEditorTextForTesting(saved + "Edited while Git panel is open\n");
+            Require(!FindButton(browser, "Stage selected…").IsEnabled && Windows().Count() == 1, "Embedded panel blocked editing or retained stale staging availability.");
+            window.SetEditorTextForTesting(saved);
             Click(browser, "Saved diff");
-            var diff = await WaitForWindowAsync<LineDiffWindow>();
-            Require(diff.GetLogicalDescendants().OfType<TextBox>().Single().Text!.Contains("Baseline", StringComparison.Ordinal), "Saved Git diff missed HEAD source.");
-            Click(diff, "Close");
+            await WaitAsync(() => browser.DiffText.Text?.Contains("Baseline", StringComparison.Ordinal) == true);
+            Require(Windows().Count() == 1, "Saved diff opened a separate window.");
             Click(browser, "Stage selected…");
             Click(await WaitForWindowAsync<ChoiceDialog>(), "Continue");
             await WaitAsync(() => Rows(browser).Any(file => file.RelativePath == "notes.md" && file.IndexStatus == "M"));
@@ -77,17 +83,19 @@ internal static class WorkspaceGitProbe
             await WaitAsync(() => Rows(browser).Any(file => file.RelativePath == "notes.md" && file.IndexStatus == "M"));
             Select(browser, "notes.md");
             Click(browser, "Staged diff");
-            diff = await WaitForWindowAsync<LineDiffWindow>();
-            Require(diff.GetLogicalDescendants().OfType<TextBox>().Single().Text!.Contains("Selected saved notes", StringComparison.Ordinal), "Staged diff missed selected content.");
-            Click(diff, "Close");
+            await WaitAsync(() => browser.DiffText.Text?.Contains("Staged index", StringComparison.Ordinal) == true && browser.DiffText.Text.Contains("Selected saved notes", StringComparison.Ordinal));
+            browser.CommitMessage.Text = "Native selected document commit";
+            await Task.Delay(100);
+            window.UpdateLayout();
+            using (var screenshot = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)window.ClientSize.Width, (int)window.ClientSize.Height), new Vector(96,96)))
+            {
+                screenshot.Render(window); screenshot.Save(Path.Combine(root, "embedded-git-avalonia-surface.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+            }
             Click(browser, "Commit selected staged…");
-            Click(await WaitForWindowAsync<TextEntryDialog>(), "Cancel");
+            Click(await WaitForWindowAsync<ChoiceDialog>(), "Cancel");
             await WaitAsync(() => FindButton(browser, "Commit selected staged…").IsEnabled);
             Require(Git(workspace, "rev-parse", "HEAD") == originalHead, "Cancelled native commit changed HEAD.");
             Click(browser, "Commit selected staged…");
-            var message = await WaitForWindowAsync<TextEntryDialog>();
-            message.GetLogicalDescendants().OfType<TextBox>().Single().Text = "Native selected document commit";
-            Click(message, "Continue");
             Click(await WaitForWindowAsync<ChoiceDialog>(), "Commit");
             await WaitAsync(() => FindButton(browser, "Close").IsEnabled && browser.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.StartsWith("Committed selected staged documents:", StringComparison.Ordinal) == true));
             Require(Git(workspace, "rev-parse", "HEAD") != originalHead, "Native commit did not publish the reviewed branch.");
@@ -96,11 +104,16 @@ internal static class WorkspaceGitProbe
             Require(await File.ReadAllTextAsync(sourcePath) == saved && await File.ReadAllTextAsync(otherPath) == "Unrelated staged edit", "Git changed working files.");
             Click(browser, "Close");
             Require((await command).Outcome == CommandOutcome.Completed, "Workspace Git command failed.");
+            var nextWorkspace = Path.Combine(root, "workspace-without-git"); Directory.CreateDirectory(nextWorkspace);
+            Require(await window.SwitchWorkspaceAsync(nextWorkspace) && window.GitViewForTesting is null, "Workspace switch retained a stale Git panel.");
             await File.WriteAllTextAsync(Path.Combine(root, "result.json"), JsonSerializer.Serialize(new
             {
                 Version = window.BuildIdentityForTesting.InformationalVersion
               , Workspace = workspace
               , NativeStatusAndSavedStagedDiffs = true
+              , EmbeddedChangesDiffAndCommitMessage = true
+              , EditingAndDirtyAvailabilityWhilePanelOpen = true
+              , WorkspaceSwitchClearsStalePanel = true
               , DirtyBufferStageBlocked = true
               , ActualStageUnstageAndCommitDialogs = true
               , CommitCancellationPreservedHead = true
@@ -139,10 +152,10 @@ internal static class WorkspaceGitProbe
         return output.TrimEnd('\r', '\n');
     }
     private static IEnumerable<Window> Windows() => ((IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows;
-    private static Button FindButton(Window window, string label) => window.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, label));
-    private static void Click(Window window, string label) => FindButton(window, label).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-    private static IReadOnlyList<GitChangedFile> Rows(Window window) => window.GetLogicalDescendants().OfType<ListBox>().Single().ItemsSource!.Cast<GitChangedFile>().ToArray();
-    private static void Select(Window window, string path) => window.GetLogicalDescendants().OfType<ListBox>().Single().SelectedItem = Rows(window).Single(file => file.RelativePath == path);
+    private static Button FindButton(Control window, string label) => window.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, label));
+    private static void Click(Control window, string label) => FindButton(window, label).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    private static IReadOnlyList<GitChangedFile> Rows(Control window) => window.GetLogicalDescendants().OfType<ListBox>().Single().ItemsSource!.Cast<GitChangedFile>().ToArray();
+    private static void Select(Control window, string path) => window.GetLogicalDescendants().OfType<ListBox>().Single().SelectedItem = Rows(window).Single(file => file.RelativePath == path);
     private static async Task<TWindow> WaitForWindowAsync<TWindow>() where TWindow : Window
     {
         await WaitAsync(() => Windows().OfType<TWindow>().Any());

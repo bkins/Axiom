@@ -30,6 +30,7 @@ public partial class MainWindow
 
     private void SetSessionCommandsEnabled(bool enabled)
     {
+        _gitView?.RefreshAvailability();
         Editor.IsEnabled = enabled;
         DocumentTabs.IsEnabled = enabled;
         CommandPanel.IsEnabled = enabled;

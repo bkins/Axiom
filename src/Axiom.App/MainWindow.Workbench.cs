@@ -27,6 +27,7 @@ public partial class MainWindow
         _workspaceTree.CollectionChanged += (_, _) => { ++_explorerGeneration; _explorerFilterTimer.Stop(); _explorerFilterTimer.Start(); };
         _explorerFilterTimer.Tick += (_, _) => { _explorerFilterTimer.Stop(); RefreshExplorer(); };
         Closed += (_, _) => { ++_explorerGeneration; _explorerFilterTimer.Stop(); };
+        Closed += (_, _) => _gitView?.CancelOperation();
         SizeChanged += (_, _) => ClampWorkbenchWidths();
         _workbenchReady = true;
     }
@@ -75,6 +76,11 @@ public partial class MainWindow
     private async void ToolWindow_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is not Button { Tag: string tag } || !int.TryParse(tag, out var index)) return;
+        if (index == 6 && _gitView is null)
+        {
+            await ExecuteCommandAsync("workspace.git");
+            return;
+        }
         ToggleToolWindow(index);
         await PersistWorkbenchAsync();
     }
@@ -118,7 +124,7 @@ public partial class MainWindow
         try
         {
             await store.SetWorkbenchLayoutAsync(new(Math.Clamp(WorkbenchLayout.ColumnDefinitions[0].Width.Value, 180, 480),
-                _toolWidth, Math.Clamp(SidebarTopics.SelectedIndex, 0, 5), ToolWindowHost.IsVisible));
+                _toolWidth, Math.Clamp(SidebarTopics.SelectedIndex, 0, 6), ToolWindowHost.IsVisible));
         }
         catch (Exception exception) { ReportError("workbench.save.failed", exception, null); }
         finally { _layoutSaveGate.Release(); }

@@ -1,6 +1,17 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: BF67859E754B3335E9D842CC83E814AF258CC38CC1F7A7D17F19A6B343BFC8A3. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 09F36F5F1F1DABDF420AB6CD265FEE8905600C30A369074294ACB5FBA00CCF33. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## Embedded local Git in 1.0.29
+
+Workspace Git opens the Git Changes tool panel in the main workbench. Use its branch icon in the right rail or the workspace.git command. Repository details and limits expand on demand. Select changed saved Markdown files to review Saved diff (HEAD against disk) or Staged diff (HEAD against index). The read-only comparison remains beside the editor and shows added/removed/unchanged lines, both line numbers and newline markers. Refresh clears old diff output and loads current Git status.
+
+Stage/Unstage operates only on explicitly selected supported saved Markdown files, with review confirmation. Dirty or conflicted editor buffers cannot be staged or committed. You can continue editing while the panel is open; availability updates when a buffer changes. Enter a commit message in the panel, choose Commit selected staged or Ctrl+Enter, and review the final branch/files/message confirmation. Cancel preserves HEAD. A selected-only local commit retains unrelated staging and working files. No automatic Save occurs.
+
+Close or Escape collapses the panel and returns editor focus; Escape during a Git operation cancels that operation. Completed operations remain completed, so refresh before retrying a cancelled sequence. Switching/forgetting the workspace clears the stale panel and cancels its pending operation; reopened Git inspects the current workspace. Panel choice/width use the existing workbench layout settings. If a restored Git panel has no current snapshot, choose Open workspace Git.
+
+This initial workflow covers local changes, saved/staged diffs, deliberate stage/unstage and unsigned selected-file commit. Git must be installed. Remote operations, branch switching, conflict resolution, filtered/LFS files, submodules, renames and sparse checkout remain outside this supported workflow. Existing repository policy checks and disabled hooks/filters remain visible in the review. Axiom history checkpoints remain separate from branch commits. Human acceptance is still pending.
+
 
 ## Authoring assistance in 1.0.28
 

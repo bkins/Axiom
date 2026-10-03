@@ -85,6 +85,7 @@ public partial class MainWindow
             WorkspaceSearchStatus.Text = "";
             _folder = workspace.RootPath;
             _activeWorkspace = workspace;
+            ClearStaleGitPanel();
             BeginClassificationWorkspace();
             _classificationCatalog = snapshot.Classifications;
             _relationships = snapshot.Relationships;

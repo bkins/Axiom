@@ -55,6 +55,7 @@ public partial class MainWindow
                     ++_workspaceSearchGeneration;
                     _workspaceSearchResults.Clear();
                     _activeWorkspace = null;
+                    ClearStaleGitPanel();
                     _folder = null;
                     ++_backlinkGeneration;
                     _backlinkCancellation?.Cancel();
