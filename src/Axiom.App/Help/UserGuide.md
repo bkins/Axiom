@@ -1,10 +1,14 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 5DCCA3D7F2B72AEE0D7626D6E7AEEAF512ADE7DB4E4F2DF7F0E065EA17068A7A. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: D3B4A2B1F21A35B582949574D785D653751E0C004AF8D103A86E4EA06F4A5FA8. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
 ## 1.0.24 hierarchical outlines and advanced walkthrough
 
 Workspace Files shows only Markdown content. A folder appears when it contains a `.md` or `.markdown` document directly or anywhere in its subfolders; Axiom keeps every parent needed to reach that document. Empty folders and branches containing only other file types are hidden. Adding or removing the last Markdown document updates the visible branch after the workspace refreshes.
+
+When editing causes the rendered preview to refresh, Axiom keeps the visible source block in place and uses the prior proportional position if that block no longer exists. This applies whether synchronized scrolling is on or off. Synchronized scrolling still controls whether deliberate scrolling in one pane moves the other pane.
+
+Operation messages and progress now appear in the bottom status area. Workspace loading and current-buffer export show their progress and Cancel action there; persistent failure Details and Dismiss actions are there as well. The top area remains dedicated to commands.
 
 Per-file outlines now follow heading structure: H2 sections nest below their H1, and H3 subsections nest below their H2. Headings without an earlier parent remain roots; skipped levels nest below the nearest earlier heading of a lower level. Expand/collapse heading branches with their arrows. New outlines start expanded; collapsed branches remain collapsed when the working buffer refreshes. Clicking the heading label still navigates to its current source and preview location without saving.
 

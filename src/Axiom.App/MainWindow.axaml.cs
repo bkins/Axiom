@@ -843,8 +843,14 @@ public partial class MainWindow : Window
 
         try
         {
-            if (await RestorePreviewAnchorAsync()) return;
-            await Preview.InvokeScript(BuildPreviewScrollRestoreScript(ratio));
+            var restoredAnchor = await RestorePreviewAnchorAsync();
+            if (!restoredAnchor) await Preview.InvokeScript(BuildPreviewScrollRestoreScript(ratio));
+            var token = _previewLinkToken;
+            var tab = _activeTab;
+            await Task.Delay(75);
+            if (token != _previewLinkToken || tab != _activeTab) return;
+            if (restoredAnchor) await RestorePreviewAnchorAsync();
+            else await Preview.InvokeScript(BuildPreviewScrollRestoreScript(ratio));
         }
         catch (Exception exception)
         {

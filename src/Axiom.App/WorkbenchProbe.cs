@@ -43,6 +43,15 @@ internal static class WorkbenchProbe
             await window.SwitchWorkspaceAsync(workspace);
             await window.OpenDocumentAsync(project);
             await window.OpenDocumentAsync(welcome);
+            var preview = window.FindControl<NativeWebView>("Preview")!;
+            await WaitAsync(async () => (await preview.InvokeScript("document.querySelectorAll('.source-block').length > 4"))?.Trim().Trim('"') == "true");
+            await preview.InvokeScript("window.scrollTo(0, Math.max(0, (document.scrollingElement.scrollHeight - window.innerHeight) * 0.6)); true");
+            var preservedSource = source + "\nTyping should preserve the preview position.\n";
+            window.SetEditorTextForTesting(preservedSource);
+            await WaitAsync(async () => (await preview.InvokeScript("document.body.innerText.includes('Typing should preserve the preview position.')"))?.Trim().Trim('"') == "true");
+            var preservedRatio = await preview.InvokeScript("(() => { const root = document.scrollingElement; const range = root.scrollHeight - window.innerHeight; return range <= 0 ? 0 : root.scrollTop / range; })()");
+            Require(MainWindow.TryParsePreviewScrollRatioForTesting(preservedRatio ?? "", out var ratio) && ratio > 0.35, "Preview refresh returned to the top while typing.");
+            window.SetEditorTextForTesting(source);
             var file = window.ExplorerNodesForTesting.Single(node => node.IsDocument);
             await window.LoadExplorerOutlineAsync(file);
             Require(file.Children.Count == 1 && file.Children[0].Heading?.Level == 1
@@ -98,6 +107,7 @@ internal static class WorkbenchProbe
               , ResetPreservedSource = true
               , SavedMarkdownUnchanged = true
               , PackagedWalkthroughDispatchVerified = true
+              , PreviewPositionPreservedDuringTyping = true
               , HumanAcceptance = false
               , ScreenshotCapture = "Interactive capture follows ready.txt; actual Windows screenshot evidence is separate."
             }, new JsonSerializerOptions { WriteIndented = true }));
@@ -113,5 +123,15 @@ internal static class WorkbenchProbe
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new IOException(message);
+    }
+
+    private static async Task WaitAsync(Func<Task<bool>> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (!await condition())
+        {
+            if (DateTime.UtcNow >= deadline) throw new TimeoutException("The native workbench condition was not reached.");
+            await Task.Delay(50);
+        }
     }
 }
