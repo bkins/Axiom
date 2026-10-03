@@ -10,6 +10,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--usage-reliability-probe" && args.Length == 2) UsageReliabilityProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--workbench-probe" && args.Length == 2) WorkbenchProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--command-workflow-probe" && args.Length == 2) CommandWorkflowProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--installation-window-probe" && args.Length == 2) InstallationWindowProbe.Configure(args[1]);
@@ -35,6 +36,14 @@ internal static class Program
             MultiBufferRecoveryProbe.Configure(args[1], args.Length == 3 && args[2] == "--reading-mode");
         if (args.FirstOrDefault() is "--connected-documents-probe" or "--verify-connected-documents" && args.Length == 2)
             ConnectedDocumentsProbe.Configure(args[1], args[0] == "--verify-connected-documents");
+        using var instance = new SingleInstanceCoordinator(new AppDataPaths().Root);
+        if (!instance.IsPrimary)
+        {
+            var forwarded = instance.ForwardAsync(StartupDocument).GetAwaiter().GetResult();
+            if (!forwarded) StartupFailure.Show("Axiom is already running with this application state. The existing instance did not respond; close it normally and retry. Your documents were not changed.");
+            return forwarded ? 0 : 1;
+        }
+        instance.Listen(App.RequestActivation);
         return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

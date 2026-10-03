@@ -13,6 +13,7 @@ internal sealed class HelpPanel : UserControl
     private readonly NativeWebView _view = new() { Name = "PersistentHelpPreview" };
     private readonly DocumentStructure _guide;
     private readonly ComboBox _topics;
+    private readonly TextBox _search;
     private readonly string _markdown;
     private bool _ready;
     private bool _selectingMatch;
@@ -26,6 +27,7 @@ internal sealed class HelpPanel : UserControl
         _topics = new ComboBox { Name = "PersistentHelpTopics", ItemsSource = _guide.Headings, DisplayMemberBinding = new Avalonia.Data.Binding(nameof(DocumentHeading.Text)), HorizontalAlignment = HorizontalAlignment.Stretch };
         _topics.SelectionChanged += async (_, _) => { if (!_selectingMatch) await NavigateAsync(); };
         var search = new TextBox { Name = "HelpSearch", PlaceholderText = "Search Help text", MaxLength = 200 };
+        _search = search;
         var results = new ListBox { Name = "HelpSearchResults", MaxHeight = 170, DisplayMemberBinding = new Avalonia.Data.Binding(nameof(HelpSearchResult.Label)) };
         AutomationProperties.SetName(_topics, "Browse offline Help topics");
         AutomationProperties.SetName(search, "Search offline Help headings and body");
@@ -81,6 +83,7 @@ internal sealed class HelpPanel : UserControl
     }
 
     internal NativeWebView PreviewForTesting => _view;
+    internal void FocusSearch() => _search.Focus();
     internal string? SelectedTopicForTesting => (_topics.SelectedItem as DocumentHeading)?.Text;
 
     internal void SetAppearance(AppearancePreference appearance)

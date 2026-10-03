@@ -1,6 +1,18 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: D3B4A2B1F21A35B582949574D785D653751E0C004AF8D103A86E4EA06F4A5FA8. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 9AFC54EB4FA94A13EDD4D3D7D8CF5CA65420BE86B1A91E3B22312796D675BC13. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## Editing reliability in 1.0.25
+
+Wrap long editor lines in Settings to fit text within the editor. Wrapped visual rows retain the original Markdown line number; switching wrapping does not insert line breaks. With wrapping off, Enter in a long list reveals the full marker of the continued list item.
+
+Scroll synchronization follows editor scrolling to Preview and Preview scrolling to the editor. Turn it off to read each pane independently. Typing retains the Preview position unless synchronized editor scrolling needs to follow the writing position. Refreshing Preview does not intentionally move keyboard focus.
+
+Help opens with focus in Search Help text. Type a term to find headings and passages, then return to the editor to keep writing with Help open. Commands that return to the editor focus its typing area.
+
+Opening Axiom again with the same application-state root activates the existing window. Opening a Markdown file from a second launch forwards it to that window and reuses an existing tab where applicable; dirty tabs stay protected. Separate explicitly configured state roots remain available for isolated testing and preserved versions. If activation fails, close the existing instance normally after preserving unsaved work and retry. A second writer is not started automatically.
+
+Tools → Diagnostics shows readable timestamps, severity, actions and reported problems. Use Show/hide technical details to inspect the original log records. Refresh reloads the bounded log tail; Copy copies the displayed view. For a file-lock report, preserve unsaved work and close competing Axiom windows normally before retrying.
 
 ## 1.0.24 hierarchical outlines and advanced walkthrough
 

@@ -89,7 +89,7 @@ public partial class MainWindow
             if (_session.Path != savedPath || !snapshot.Matches(Editor.Text ?? "")) return new(CommandOutcome.Unavailable, "Opened source differs from reviewed snapshot.");
             Editor.Select(selected.Section.Offset, selected.Section.Length);
             SetNavigationPosition(selected.Section.Offset);
-            Editor.Focus();
+            Editor.TextArea.Focus();
             return new(CommandOutcome.Completed, "Opened reviewed saved source section without edits.");
         }
         var target = entries.First(entry => entry.Snapshot.ReferenceKey == selected.Section.DocumentKey);
@@ -98,7 +98,7 @@ public partial class MainWindow
         if (_activeTab != target.Tab) return new(CommandOutcome.Cancelled, "Source navigation cancelled.");
         Editor.Select(selected.Section.Offset, selected.Section.Length);
         SetNavigationPosition(selected.Section.Offset);
-        Editor.Focus();
+        Editor.TextArea.Focus();
         return new(CommandOutcome.Completed, "Opened semantic source section; no relationship or source edits.");
     }
 

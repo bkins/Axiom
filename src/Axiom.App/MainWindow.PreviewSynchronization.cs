@@ -78,7 +78,7 @@ public partial class MainWindow
         Editor.CaretOffset = offset;
         Editor.Select(offset, 0);
         Editor.ScrollToLine(Editor.Document.GetLineByOffset(offset).LineNumber);
-        Editor.Focus();
+        Editor.TextArea.Focus();
         UpdateChrome("Moved to this preview block's Markdown source.");
     }
 
@@ -120,9 +120,10 @@ public partial class MainWindow
         {
             if (_editorScrollPending)
             {
-                _editorScrollPending = false;
+                Editor.UpdateLayout();
                 Editor.TextArea.TextView.EnsureVisualLines();
-                var line = Editor.TextArea.TextView.VisualLines.FirstOrDefault()?.FirstDocumentLine.LineNumber ?? 1;
+                var line = Editor.TextArea.TextView.GetDocumentLineByVisualTop(Editor.TextArea.TextView.VerticalOffset).LineNumber;
+                _editorScrollPending = false;
                 await ScrollPreviewToSourceAsync(Editor.Document.GetLineByNumber(line).Offset);
                 return;
             }
@@ -159,10 +160,10 @@ public partial class MainWindow
         finally { _scrollSyncRunning = false; }
     }
 
-    private void ResetPreviewSynchronization()
+    private void ResetPreviewSynchronization(bool resetUserCounter = true)
     {
         _editorScrollPending = false;
-        _lastPreviewUserScroll = 0;
+        if (resetUserCounter) _lastPreviewUserScroll = 0;
         _suppressEditorScrollUntil = Environment.TickCount64 + 500;
     }
 

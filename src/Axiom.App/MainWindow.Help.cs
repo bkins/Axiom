@@ -25,6 +25,10 @@ public partial class MainWindow
         ClampWorkbenchWidths();
         _persistentHelp.SetAppearance(_appearance);
         _persistentHelp.SelectContext(context);
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (HelpPanelHost.IsVisible) _persistentHelp.FocusSearch();
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
         return Task.CompletedTask;
     }
 

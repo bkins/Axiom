@@ -16,7 +16,7 @@ public partial class MainWindow
         if (current is null) return new(CommandOutcome.Unavailable, "This structure node changed or became ambiguous. Refresh the structure browser.");
         SetNavigationPosition(current.Source.Offset);
         Editor.Select(current.Source.Offset, current.Source.Length);
-        Editor.Focus();
+        Editor.TextArea.Focus();
         return new(CommandOutcome.Completed, "Selected " + current.Kind + " source at line " + current.Source.LineNumber);
     }
 }

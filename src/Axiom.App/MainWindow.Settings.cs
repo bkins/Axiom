@@ -49,6 +49,10 @@ public partial class MainWindow
         Editor.FontFamily = new FontFamily(available ? preferences.FontFamily : "Consolas, monospace");
         Editor.FontSize = preferences.FontSize;
         Editor.WordWrap = preferences.WordWrap;
+        // XAML or a previous setting can leave horizontal scrolling enabled even when WordWrap has not changed.
+        Editor.HorizontalScrollBarVisibility = preferences.WordWrap
+            ? Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled
+            : Avalonia.Controls.Primitives.ScrollBarVisibility.Auto;
         Editor.Options.IndentationSize = preferences.TabWidth;
         if (!available) UpdateChrome("Requested editor font is unavailable; using Consolas/monospace fallback.");
     }

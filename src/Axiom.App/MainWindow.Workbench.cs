@@ -88,7 +88,7 @@ public partial class MainWindow
     private async void CollapseToolWindow_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         SetToolWindowVisible(false);
-        Editor.Focus();
+        Editor.TextArea.Focus();
         await PersistWorkbenchAsync();
     }
 
@@ -283,7 +283,7 @@ public partial class MainWindow
         SetNavigationPosition(match.Offset);
         _pendingHeadingFragment = GetCurrentStructure().Headings.FirstOrDefault(entry => entry.Source.Offset == match.Offset)?.Fragment;
         await RestoreHeadingFragmentAsync();
-        if (!_readingMode) Editor.Focus();
+        if (!_readingMode) Editor.TextArea.Focus();
     }
 
     internal IReadOnlyList<WorkspaceExplorerNode> ExplorerNodesForTesting => _explorerNodes;

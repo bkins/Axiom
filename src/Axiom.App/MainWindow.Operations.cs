@@ -17,8 +17,15 @@ public partial class MainWindow
 
     private async Task<CommandResult> ShowDiagnosticsAsync()
     {
-        var window = new InformationWindow("Axiom diagnostics", () => Task.Run(() =>
-            $"State: {_operationalPaths.Root}\nLogs: {_operationalPaths.LogDirectory}\n\n{new DiagnosticsReader(_operationalPaths).ReadTail()}"));
+        var detailsVisible = false;
+        Task<string> ReadDiagnosticsAsync() => Task.Run(() =>
+        {
+            var raw = new DiagnosticsReader(_operationalPaths).ReadTail();
+            var summary = $"State: {_operationalPaths.Root}\nLogs: {_operationalPaths.LogDirectory}\n\n{DiagnosticsPresentation.Summarize(raw)}";
+            return detailsVisible ? summary + "\n\nTechnical details (original records):\n" + raw : summary;
+        });
+        var window = new InformationWindow("Axiom diagnostics", ReadDiagnosticsAsync,
+            () => { detailsVisible = !detailsVisible; return ReadDiagnosticsAsync(); }, "Show/hide technical details");
         await window.ShowDialog(this);
         return new(CommandOutcome.Completed, "Diagnostics closed.");
     }

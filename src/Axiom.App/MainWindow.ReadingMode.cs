@@ -39,7 +39,7 @@ public partial class MainWindow
                 Editor.UpdateLayout();
                 Editor.ScrollToHorizontalOffset(tab.HorizontalOffset);
                 Editor.ScrollToVerticalOffset(tab.VerticalOffset);
-                Editor.Focus();
+                Editor.TextArea.Focus();
             }, DispatcherPriority.Loaded);
         }
         else Preview.Focus();

@@ -314,7 +314,7 @@ public partial class MainWindow : Window
         {
             Editor.Select(result.MatchOffset, result.MatchedText.Length);
             Editor.ScrollToLine(result.LineNumber);
-            Editor.Focus();
+            Editor.TextArea.Focus();
             UpdateChrome($"Opened search match at line {result.LineNumber}.");
         }
         else
@@ -334,7 +334,7 @@ public partial class MainWindow : Window
         if (entry.Offset < 0 || entry.Offset > Editor.Text.Length) return;
         Editor.TextArea.Caret.Offset = entry.Offset;
         Editor.ScrollToLine(entry.LineNumber);
-        Editor.Focus();
+        Editor.TextArea.Focus();
         UpdateChrome($"Moved to {entry.Text} at line {entry.LineNumber}.");
     }
 
@@ -624,7 +624,7 @@ public partial class MainWindow : Window
         }
         Editor.Select(edit.SelectionStart, edit.SelectionLength);
         Editor.TextArea.Caret.BringCaretToView();
-        Editor.Focus();
+        Editor.TextArea.Focus();
         UpdateChrome($"Inserted reference to {Path.GetFileName(imagePath)}. Save deliberately to change the Markdown file.");
         return true;
     }
@@ -651,7 +651,7 @@ public partial class MainWindow : Window
         }
         Editor.Select(result.SelectionStart, result.SelectionLength);
         Editor.TextArea.Caret.BringCaretToView();
-        Editor.Focus();
+        Editor.TextArea.Focus();
         UpdateChrome($"Applied {GetMarkdownEditLabel(kind)} formatting.");
         return true;
     }
@@ -715,6 +715,8 @@ public partial class MainWindow : Window
         }
         Editor.Select(result.SelectionStart, result.SelectionLength);
         Editor.TextArea.Caret.BringCaretToView();
+        if (kind == MarkdownListEditKind.Continue)
+            ((Avalonia.Controls.Primitives.ILogicalScrollable)Editor.TextArea.TextView).Offset = new Avalonia.Vector(0, Editor.TextArea.TextView.VerticalOffset);
         UpdateChrome(kind == MarkdownListEditKind.Continue
             ? "Continued Markdown list."
             : $"{(kind == MarkdownListEditKind.Indent ? "Indented" : "Outdented")} Markdown list.");
@@ -819,8 +821,9 @@ public partial class MainWindow : Window
 
         if (generation != _previewRenderGeneration) return;
         if (scrollRatio is { } captured) _activeTab.PreviewScrollRatio = captured;
+        var pendingEditorScroll = _editorScrollPending && _scrollSyncEnabled;
         _previewLinkToken = Guid.NewGuid().ToString("N");
-        ResetPreviewSynchronization();
+        ResetPreviewSynchronization(resetUserCounter: !preservePosition);
         _previewLinkStructure = GetCurrentStructure();
         var html = _preview.RenderDocument(_previewLinkStructure, _session.Path, _appearance, _activeWorkspace?.RootPath, _previewLinkToken);
         if (preservePosition)
@@ -830,6 +833,7 @@ public partial class MainWindow : Window
             {
                 _pendingPreviewScrollRatio = null;
                 await Preview.InvokeScript(BuildLivePreviewReplaceScript(html, _previewLinkToken, anchorOffset, scrollRatio ?? _activeTab.PreviewScrollRatio));
+                if (generation == _previewRenderGeneration) _editorScrollPending = pendingEditorScroll;
                 return;
             }
             catch (Exception exception)
