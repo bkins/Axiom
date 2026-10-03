@@ -38,6 +38,7 @@ internal static class WorkbenchProbe
             var source = "# Welcome to Axiom\n\nYour workspace keeps Markdown files together. Open a file to read or edit it.\n\n## Explore your workspace\n\nExpand a folder to browse documents. Expand a document to browse its headings.\n\n## Write and preview\n\nThe editor is on the left; the rendered preview is on the right.\n\n- **Bold** and *italic* are standard Markdown.\n- Follow [Project Notes](Notes/Project%20Notes.md) to open another document.\n\n## Read without editing\n\nChoose Read or press Ctrl+Shift+R to hide the editor.\n\n## Find Help\n\nPress F1 to keep the offline User Guide beside your work.\n";
             await File.WriteAllTextAsync(welcome, source);
             source = source.Replace("## Write and preview", "### Nested topics\n\nSubsections appear beneath their parent section in the file outline.\n\n## Write and preview", StringComparison.Ordinal);
+            source += "\n" + string.Join("\n\n", Enumerable.Range(1, 36).Select(index => $"Reading-position fixture paragraph {index}. This keeps the rendered document tall enough to verify scrolling while the source changes.")) + "\n";
             await File.WriteAllTextAsync(welcome, source);
             await File.WriteAllTextAsync(project, "# Project Notes\n\nA small example project for the Axiom walkthrough.\n\n## Next steps\n\n- [ ] Draft a summary\n- [ ] Review the preview\n- [ ] Export a reading copy\n\n## Meeting notes\n\nMarkdown stays readable in any text editor.\n");
             await window.SwitchWorkspaceAsync(workspace);
@@ -45,12 +46,13 @@ internal static class WorkbenchProbe
             await window.OpenDocumentAsync(welcome);
             var preview = window.FindControl<NativeWebView>("Preview")!;
             await WaitAsync(async () => (await preview.InvokeScript("document.querySelectorAll('.source-block').length > 4"))?.Trim().Trim('"') == "true");
-            await preview.InvokeScript("window.scrollTo(0, Math.max(0, (document.scrollingElement.scrollHeight - window.innerHeight) * 0.6)); true");
+            await Task.Delay(500);
+            await preview.InvokeScript("(() => { window.scrollTo(0, Math.max(0, (document.scrollingElement.scrollHeight - window.innerHeight) * 0.6)); return true; })()");
+            await WaitForPreviewRatioAsync(preview, 0.35);
             var preservedSource = source + "\nTyping should preserve the preview position.\n";
             window.SetEditorTextForTesting(preservedSource);
             await WaitAsync(async () => (await preview.InvokeScript("document.body.innerText.includes('Typing should preserve the preview position.')"))?.Trim().Trim('"') == "true");
-            var preservedRatio = await preview.InvokeScript("(() => { const root = document.scrollingElement; const range = root.scrollHeight - window.innerHeight; return range <= 0 ? 0 : root.scrollTop / range; })()");
-            Require(MainWindow.TryParsePreviewScrollRatioForTesting(preservedRatio ?? "", out var ratio) && ratio > 0.35, "Preview refresh returned to the top while typing.");
+            await WaitForPreviewRatioAsync(preview, 0.35);
             window.SetEditorTextForTesting(source);
             var file = window.ExplorerNodesForTesting.Single(node => node.IsDocument);
             await window.LoadExplorerOutlineAsync(file);
@@ -134,4 +136,10 @@ internal static class WorkbenchProbe
             await Task.Delay(50);
         }
     }
+
+    private static Task WaitForPreviewRatioAsync(NativeWebView preview, double minimum) => WaitAsync(async () =>
+    {
+        var result = await preview.InvokeScript("(() => { const root = document.scrollingElement; const range = root.scrollHeight - window.innerHeight; return range <= 0 ? 0 : root.scrollTop / range; })()");
+        return MainWindow.TryParsePreviewScrollRatioForTesting(result ?? "", out var ratio) && ratio > minimum;
+    });
 }

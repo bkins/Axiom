@@ -37,8 +37,7 @@ public partial class MainWindow
         var source = Editor.Text;
         var found = source.IndexOf(prefix, StringComparison.Ordinal);
         if (found < 0 || found != source.LastIndexOf(prefix, StringComparison.Ordinal)) return false;
-        await ScrollPreviewToSourceAsync(found + _activeTab.PreviewAnchorRelativeOffset);
-        return true;
+        return await TryScrollPreviewToSourceAsync(found + _activeTab.PreviewAnchorRelativeOffset);
     }
 
     private void InitializePreviewSynchronization()
@@ -83,9 +82,12 @@ public partial class MainWindow
         UpdateChrome("Moved to this preview block's Markdown source.");
     }
 
-    internal async Task ScrollPreviewToSourceAsync(int offset)
+    internal async Task ScrollPreviewToSourceAsync(int offset) =>
+        _ = await TryScrollPreviewToSourceAsync(offset);
+
+    private async Task<bool> TryScrollPreviewToSourceAsync(int offset)
     {
-        if (!_previewReady || _previewLinkStructure?.SourceText != Editor.Text || _previewLinkToken is null) return;
+        if (!_previewReady || _previewLinkStructure?.SourceText != Editor.Text || _previewLinkToken is null) return false;
         var token = _previewLinkToken;
         var safeOffset = Math.Clamp(offset, 0, Editor.Document.TextLength).ToString(CultureInfo.InvariantCulture);
         var script = $$"""
@@ -103,8 +105,8 @@ public partial class MainWindow
               return true;
             })()
             """;
-        try { await Preview.InvokeScript(script); }
-        catch (Exception exception) { _log.Error("preview.source.scroll.failed", exception, _session.Path); }
+        try { return (await Preview.InvokeScript(script))?.Trim().Trim('"') == "true"; }
+        catch (Exception exception) { _log.Error("preview.source.scroll.failed", exception, _session.Path); return false; }
     }
 
     private async Task SynchronizeScrollAsync()

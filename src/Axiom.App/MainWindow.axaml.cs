@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -818,11 +819,69 @@ public partial class MainWindow : Window
 
         if (generation != _previewRenderGeneration) return;
         if (scrollRatio is { } captured) _activeTab.PreviewScrollRatio = captured;
-        _pendingPreviewScrollRatio = scrollRatio ?? _activeTab.PreviewScrollRatio;
         _previewLinkToken = Guid.NewGuid().ToString("N");
         ResetPreviewSynchronization();
         _previewLinkStructure = GetCurrentStructure();
-        Preview.NavigateToString(_preview.RenderDocument(_previewLinkStructure, _session.Path, _appearance, _activeWorkspace?.RootPath, _previewLinkToken));
+        var html = _preview.RenderDocument(_previewLinkStructure, _session.Path, _appearance, _activeWorkspace?.RootPath, _previewLinkToken);
+        if (preservePosition)
+        {
+            var anchorOffset = FindPreviewAnchorOffset(_previewLinkStructure.SourceText);
+            try
+            {
+                _pendingPreviewScrollRatio = null;
+                await Preview.InvokeScript(BuildLivePreviewReplaceScript(html, _previewLinkToken, anchorOffset, scrollRatio ?? _activeTab.PreviewScrollRatio));
+                return;
+            }
+            catch (Exception exception)
+            {
+                _log.Error("preview.live.replace.failed", exception, _session.Path);
+            }
+        }
+        _pendingPreviewScrollRatio = scrollRatio ?? _activeTab.PreviewScrollRatio;
+        Preview.NavigateToString(html);
+    }
+
+    private int? FindPreviewAnchorOffset(string source)
+    {
+        if (_activeTab.PreviewAnchorPrefix is not { Length: > 0 } prefix) return null;
+        var found = source.IndexOf(prefix, StringComparison.Ordinal);
+        return found >= 0 && found == source.LastIndexOf(prefix, StringComparison.Ordinal)
+            ? found + _activeTab.PreviewAnchorRelativeOffset
+            : null;
+    }
+
+    private static string BuildLivePreviewReplaceScript(string html, string token, int? sourceOffset, double ratio)
+    {
+        var encodedHtml = JsonSerializer.Serialize(html);
+        var encodedToken = JsonSerializer.Serialize(token);
+        var offset = sourceOffset?.ToString(CultureInfo.InvariantCulture) ?? "null";
+        var normalized = Math.Clamp(ratio, 0, 1).ToString("R", CultureInfo.InvariantCulture);
+        return $$"""
+            (() => {
+              const parsed = new DOMParser().parseFromString({{encodedHtml}}, 'text/html');
+              document.documentElement.replaceWith(document.adoptNode(parsed.documentElement));
+              const restore = () => {
+                if (document.documentElement.dataset.linkToken !== {{encodedToken}}) return;
+                const root = document.scrollingElement || document.documentElement;
+                const target = {{offset}};
+                if (target !== null) {
+                  const blocks = [...document.querySelectorAll('.source-block')];
+                  let block = blocks[0];
+                  for (const candidate of blocks) { if (+candidate.dataset.sourceStart <= target) block = candidate; else break; }
+                  if (block) {
+                    const first = +block.dataset.sourceStart, last = +block.dataset.sourceEnd;
+                    const fraction = Math.max(0, Math.min(1, (target - first) / Math.max(1, last - first)));
+                    window.scrollTo(0, window.scrollY + block.getBoundingClientRect().top + fraction * block.offsetHeight - 12);
+                    return;
+                  }
+                }
+                root.scrollTop = {{normalized}} * Math.max(0, root.scrollHeight - window.innerHeight);
+              };
+              restore();
+              requestAnimationFrame(() => requestAnimationFrame(restore));
+              return true;
+            })()
+            """;
     }
 
     private async Task RestorePreviewScrollAsync(bool navigationSucceeded)
@@ -830,6 +889,17 @@ public partial class MainWindow : Window
         if (!navigationSucceeded)
         {
             _pendingPreviewScrollRatio = null;
+            return;
+        }
+        var expectedToken = _previewLinkToken;
+        try
+        {
+            var navigatedToken = (await Preview.InvokeScript("document.documentElement.dataset.linkToken"))?.Trim().Trim('"');
+            if (expectedToken is null || navigatedToken != expectedToken) return;
+        }
+        catch (Exception exception)
+        {
+            _log.Error("preview.scroll.identity.failed", exception, _session.Path);
             return;
         }
         if (_pendingHeadingFragment is { Length: > 0 })
@@ -845,7 +915,7 @@ public partial class MainWindow : Window
         {
             var restoredAnchor = await RestorePreviewAnchorAsync();
             if (!restoredAnchor) await Preview.InvokeScript(BuildPreviewScrollRestoreScript(ratio));
-            var token = _previewLinkToken;
+            var token = expectedToken;
             var tab = _activeTab;
             await Task.Delay(75);
             if (token != _previewLinkToken || tab != _activeTab) return;
