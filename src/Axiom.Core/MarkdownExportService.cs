@@ -24,6 +24,8 @@ public sealed class MarkdownExportService
 
     private static ExportBlock ConvertBlock(Block block, List<string> warnings)
     {
+        if (block is FencedCodeBlock diagram && string.Equals(diagram.Info, "mermaid", StringComparison.OrdinalIgnoreCase))
+            warnings.Add("Mermaid diagrams are exported as readable diagram source. Rendered diagrams are available in Axiom Preview.");
         var children = block is ContainerBlock container
             ? container.Select(child => ConvertBlock(child, warnings)).ToArray() : [];
         var runs = block is LeafBlock leaf ? ReadRuns(leaf.Inline).ToArray() : [];
@@ -31,6 +33,7 @@ public sealed class MarkdownExportService
         {
             HeadingBlock heading => new("heading", runs, children, heading.Level, Fragment: heading.GetAttributes().Id),
             ParagraphBlock => new("paragraph", runs, children),
+            Markdig.Extensions.Alerts.AlertBlock alert => new("quote", [], [new ExportBlock("paragraph", [new ExportRun(alert.Kind.ToString(), Bold: true)], []), .. children]),
             CodeBlock code => new("code", [new ExportRun(code.Lines.ToString(), Code: true)], []),
             QuoteBlock => new("quote", [], children),
             ListBlock list => new("list", [], children, Ordered: list.IsOrdered, Start: int.TryParse(list.OrderedStart, out var start) ? start : 1),

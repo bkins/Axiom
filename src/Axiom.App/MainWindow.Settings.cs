@@ -31,6 +31,7 @@ public partial class MainWindow
             _appearance = choice.Value.Appearance;
             SetRequestedAppearance(_appearance);
             ApplyAppearanceVisuals();
+            RenderPreview(preservePosition: true);
             return new(CommandOutcome.Completed, "Settings applied.");
         }
         catch (Exception exception) { ReportError("settings.apply.failed", exception, null); return new(CommandOutcome.Failed, exception.Message, exception); }
@@ -39,6 +40,7 @@ public partial class MainWindow
     private void ApplyEditorPreferences(EditorPreferences preferences)
     {
         preferences.Validate();
+        _editorPreferences = preferences;
         ApplyCompactTitleBar(preferences.CompactTitleBar);
         foreach (var button in new[] { FileCommandsButton, EditCommandsButton, FormatCommandsButton })
         {
@@ -55,6 +57,14 @@ public partial class MainWindow
             ? Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled
             : Avalonia.Controls.Primitives.ScrollBarVisibility.Auto;
         Editor.Options.IndentationSize = preferences.TabWidth;
+        Editor.Options.HighlightCurrentLine = preferences.HighlightCurrentLine;
+        Editor.Options.ShowSpaces = preferences.ShowNonPrintingCharacters;
+        Editor.Options.ShowTabs = preferences.ShowNonPrintingCharacters;
+        _endOfLineMarkers.Enabled = preferences.ShowNonPrintingCharacters;
+        Editor.TextArea.TextView.Redraw();
+        Editor.TextArea.TextView.CurrentLineBackground = new SolidColorBrush(Color.Parse("#187B9BD1"));
+        Editor.TextArea.TextView.CurrentLineBorder = null;
+        ScheduleSpelling();
         if (!available) UpdateChrome("Requested editor font is unavailable; using Consolas/monospace fallback.");
     }
 

@@ -98,5 +98,10 @@ public partial class App : Application
             }
         }
         base.OnFrameworkInitializationCompleted();
+        if (AuthoringAssistanceProbe.Root is not null && ApplicationLifetime is IClassicDesktopStyleApplicationLifetime authoringDesktop)
+        {
+            var window = (MainWindow)authoringDesktop.MainWindow!;
+            window.Opened += async (_, _) => await AuthoringAssistanceProbe.StartAsync(window);
+        }
     }
 }

@@ -7,8 +7,18 @@ public sealed record EditorPreferences(string FontFamily = "Cascadia Mono, Conso
                                     , MenuStyle MenuStyle = MenuStyle.Quiet)
 {
     public bool CompactTitleBar { get; init; } = true;
+    public bool HighlightCurrentLine { get; init; } = true;
+    public bool ShowNonPrintingCharacters { get; init; }
+    public bool ShowPreviewLineNumbers { get; init; }
+    public bool ShowPreviewNavigation { get; init; } = true;
+    public bool SpellCheck { get; init; } = true;
+    public string PersonalDictionary { get; init; } = string.Empty;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string[] PersonalWords => PersonalDictionary.Split('\n', StringSplitOptions.RemoveEmptyEntries);
     public void Validate()
     {
+        if (PersonalDictionary is null || PersonalDictionary.Length > 81000 || PersonalWords.Length > 1000 || PersonalWords.Any(word => word.Length is < 1 or > 80 || word.Any(character => !char.IsLetter(character) && character != '\'' && character != '’')))
+            throw new ArgumentException("Personal dictionary allows up to 1,000 words of 1–80 letters or apostrophes.");
         if (string.IsNullOrWhiteSpace(FontFamily) || FontFamily.Length > 200 || FontFamily.Any(char.IsControl))
             throw new ArgumentException("Choose a font name of 1–200 characters.");
         if (FontSize is < 8 or > 40) throw new ArgumentException("Font size must be 8–40.");

@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <EmbeddedResource Include="Assets/Spellcheck/en.*" />
+    <None Include="Assets/Spellcheck/*LICENSE.txt" Link="ThirdPartyNotices/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <PackageReference Include="WeCantSpell.Hunspell" Version="7.0.1" />
     <ProjectReference Include="..\Axiom.Core\Axiom.Core.csproj" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />

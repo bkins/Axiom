@@ -18,6 +18,13 @@ internal sealed class SettingsWindow : Window
         var font = new TextBox { Text = current.FontFamily, PlaceholderText = "Font family" };
         var size = new NumericUpDown { Minimum = 8, Maximum = 40, Value = current.FontSize, Increment = 1 };
         var wrap = new CheckBox { Content = "Wrap long editor lines", IsChecked = current.WordWrap };
+        var currentLine = new CheckBox { Content = "Subtle current-line highlight", IsChecked = current.HighlightCurrentLine };
+        var nonPrinting = new CheckBox { Content = "Show spaces, tabs and line endings", IsChecked = current.ShowNonPrintingCharacters };
+        var previewLines = new CheckBox { Content = "Show source line numbers beside Go to editor in Preview", IsChecked = current.ShowPreviewLineNumbers };
+        var previewNavigation = new CheckBox { Content = "Show Go to editor navigation in Preview", IsChecked = current.ShowPreviewNavigation };
+        var spelling = new CheckBox { Content = "Offline English (US) spell-check", IsChecked = current.SpellCheck };
+        var personalWords = new TextBox { Text = current.PersonalDictionary, AcceptsReturn = true, Height = 80, TextWrapping = TextWrapping.Wrap, PlaceholderText = "One personal dictionary word per line" };
+        AutomationProperties.SetName(personalWords, "Personal dictionary words, one per line");
         var chrome = new CheckBox { Content = "Compact title bar (Windows); turn off for standard system title bar", IsChecked = current.CompactTitleBar };
         var tabs = new NumericUpDown { Minimum = 1, Maximum = 8, Value = current.TabWidth, Increment = 1 };
         var theme = new ComboBox { ItemsSource = Enum.GetValues<AppearancePreference>(), SelectedItem = appearance };
@@ -33,7 +40,8 @@ internal sealed class SettingsWindow : Window
         {
             try
             {
-                var value = new EditorPreferences(font.Text ?? string.Empty, (int)(size.Value ?? 15), wrap.IsChecked == true, (int)(tabs.Value ?? 4), (MenuStyle)(menuStyle.SelectedItem ?? MenuStyle.Quiet)) { CompactTitleBar = chrome.IsChecked == true };
+                var value = current with { FontFamily = font.Text ?? string.Empty, FontSize = (int)(size.Value ?? 15), WordWrap = wrap.IsChecked == true, TabWidth = (int)(tabs.Value ?? 4), MenuStyle = (MenuStyle)(menuStyle.SelectedItem ?? MenuStyle.Quiet), CompactTitleBar = chrome.IsChecked == true, HighlightCurrentLine = currentLine.IsChecked == true, ShowNonPrintingCharacters = nonPrinting.IsChecked == true };
+                value = value with { ShowPreviewLineNumbers = previewLines.IsChecked == true, ShowPreviewNavigation = previewNavigation.IsChecked == true, SpellCheck = spelling.IsChecked == true, PersonalDictionary = string.Join('\n', (personalWords.Text ?? "").Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct(StringComparer.OrdinalIgnoreCase)) };
                 value.Validate();
                 Close((value, (AppearancePreference)(theme.SelectedItem ?? AppearancePreference.System)));
             }
@@ -42,7 +50,7 @@ internal sealed class SettingsWindow : Window
         var cancel = new Button { Content = "Cancel" };
         cancel.Click += (_, _) => Close();
         var reset = new Button { Content = "Reset editor defaults" };
-        reset.Click += (_, _) => { var defaults = new EditorPreferences(); font.Text = defaults.FontFamily; size.Value = defaults.FontSize; wrap.IsChecked = defaults.WordWrap; tabs.Value = defaults.TabWidth; };
+        reset.Click += (_, _) => { var defaults = new EditorPreferences(); font.Text = defaults.FontFamily; size.Value = defaults.FontSize; wrap.IsChecked = defaults.WordWrap; tabs.Value = defaults.TabWidth; currentLine.IsChecked = defaults.HighlightCurrentLine; nonPrinting.IsChecked = defaults.ShowNonPrintingCharacters; previewLines.IsChecked = defaults.ShowPreviewLineNumbers; previewNavigation.IsChecked = defaults.ShowPreviewNavigation; spelling.IsChecked = defaults.SpellCheck; };
         var helpButton = new Button { Content = "Help / F1" };
         helpButton.Click += (_, _) => help();
         KeyDown += (_, args) => { if (args.Key == Avalonia.Input.Key.F1) { help(); args.Handled = true; } };
@@ -55,7 +63,8 @@ internal sealed class SettingsWindow : Window
                 Children =
         {
             new TextBlock { Text = "Editor font family" }, font,
-            new TextBlock { Text = "Font size (8–40)" }, size, wrap,
+            new TextBlock { Text = "Font size (8–40)" }, size, wrap, currentLine, nonPrinting, previewNavigation, previewLines, spelling,
+            new TextBlock { Text = "Personal dictionary (up to 1,000 words; remove a line to remove a word)" }, personalWords,
             new TextBlock { Text = "Tab width (1–8 columns)" }, tabs,
             new TextBlock { Text = "Application appearance" }, theme,
             new TextBlock { Text = "Menu style" }, menuStyle, chrome, message,

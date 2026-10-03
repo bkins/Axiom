@@ -123,7 +123,11 @@ public partial class MainWindow : Window
                 windows.UserDataFolder = Path.Combine(_operationalPaths.Root, "PreviewCache", _buildIdentity.InformationalVersion);
         };
         Preview.AdapterCreated += (_, _) => { _previewReady = true; RenderPreview(); };
-        Preview.NavigationCompleted += async (_, args) => await RestorePreviewScrollAsync(args.IsSuccess);
+        Preview.NavigationCompleted += async (_, args) =>
+        {
+            await RestorePreviewScrollAsync(args.IsSuccess);
+            if (args.IsSuccess) await RenderMermaidAsync();
+        };
         Preview.NavigationStarted += (_, args) =>
         {
             if (args.Request is { Scheme: "axiom-source" } source)
@@ -163,6 +167,7 @@ public partial class MainWindow : Window
         Closing += MainWindow_Closing;
         AddHandler(KeyDownEvent, Window_OnKeyDown, RoutingStrategies.Tunnel);
         ApplyAppearanceVisuals();
+        InitializeAuthoring();
         ActivateTab(AddTab(_session), "New unsaved document");
         ApplyReadingMode(readingMode);
     }
@@ -735,6 +740,9 @@ public partial class MainWindow : Window
         MarkdownEditKind.TaskList => "task list",
         MarkdownEditKind.FencedCode => "fenced code block",
         MarkdownEditKind.InlineCode => "inline code",
+        MarkdownEditKind.HardBreak => "hard line break",
+        MarkdownEditKind.HorizontalRule => "horizontal rule",
+        MarkdownEditKind.Callout => "note callout",
         _ => kind.ToString().ToLowerInvariant()
     };
 
@@ -780,6 +788,7 @@ public partial class MainWindow : Window
     {
         if (_loading) return;
         _session.UpdateText(Editor.Text);
+        ScheduleSpelling();
         RefreshIncomingReferences();
         UpdateEmptyStates();
         SchedulePreview();
@@ -827,7 +836,7 @@ public partial class MainWindow : Window
         _previewLinkToken = Guid.NewGuid().ToString("N");
         ResetPreviewSynchronization(resetUserCounter: !preservePosition);
         _previewLinkStructure = GetCurrentStructure();
-        var html = _preview.RenderDocument(_previewLinkStructure, _session.Path, _appearance, _activeWorkspace?.RootPath, _previewLinkToken);
+        var html = _preview.RenderDocument(_previewLinkStructure, _session.Path, _appearance, _activeWorkspace?.RootPath, _previewLinkToken, _editorPreferences.ShowPreviewLineNumbers, _editorPreferences.ShowPreviewNavigation);
         if (preservePosition)
         {
             var anchorOffset = FindPreviewAnchorOffset(_previewLinkStructure.SourceText);
@@ -836,6 +845,7 @@ public partial class MainWindow : Window
                 _pendingPreviewScrollRatio = null;
                 await Preview.InvokeScript(BuildLivePreviewReplaceScript(html, _previewLinkToken, anchorOffset, scrollRatio ?? _activeTab.PreviewScrollRatio));
                 if (generation == _previewRenderGeneration) _editorScrollPending = pendingEditorScroll;
+                if (generation == _previewRenderGeneration) await RenderMermaidAsync();
                 return;
             }
             catch (Exception exception)
@@ -1280,6 +1290,12 @@ public partial class MainWindow : Window
             await ShowCommandPaletteAsync();
             return;
         }
+        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.V && IsEditorCommandTarget())
+        {
+            e.Handled = true;
+            await ExecuteCommandAsync("editor.paste");
+            return;
+        }
         if (await TryExecuteShortcutAsync(e)) return;
         if (e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Left or Key.Right)
         {
@@ -1295,6 +1311,12 @@ public partial class MainWindow : Window
         }
         if (TryHandleCommandMenuKey(e)) return;
         var editorIsCommandTarget = IsEditorCommandTarget();
+        if (editorIsCommandTarget && e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.Shift)
+        {
+            e.Handled = true;
+            await ExecuteCommandAsync("editor.format.hardbreak");
+            return;
+        }
         if (TryHandleMarkdownListKey(e.Key, e.KeyModifiers, editorIsCommandTarget))
         {
             e.Handled = true;

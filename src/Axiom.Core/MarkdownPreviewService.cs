@@ -32,14 +32,16 @@ public sealed partial class MarkdownPreviewService
                                , string? documentPath
                                , AppearancePreference appearance = AppearancePreference.System
                                , string? workspaceRoot = null
-                               , string? linkToken = null)
+                               , string? linkToken = null
+                               , bool showLineNumbers = false
+                               , bool showNavigation = true)
     {
         // Identity is source metadata: preserve it in Markdown/editor but not in preview.
         // Fenced examples are unaffected because the marker must be on the first line.
         var previewMarkdown = DocumentIdCodec.RemoveCanonicalMarkerForPreview(document.SourceText);
         var body = string.IsNullOrWhiteSpace(previewMarkdown)
             ? "<p class=\"empty-state\">Start typing Markdown to see a preview.</p>"
-            : MarkdownStructureService.RenderHtml(document, linkToken);
+            : MarkdownStructureService.RenderHtml(document, linkToken, showLineNumbers, showNavigation);
         body = EmbedWorkspaceImages(body, documentPath, workspaceRoot);
         var baseElement = BuildBaseElement(documentPath);
         return $$"""
@@ -81,6 +83,14 @@ public sealed partial class MarkdownPreviewService
             code { font-family: "Cascadia Mono", Consolas, monospace; font-size: .92em; padding: .12em .32em; background: var(--surface); border-radius: 4px; }
             pre { padding: 15px 17px; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
             pre code { padding: 0; background: transparent; border-radius: 0; }
+            .mermaid-diagram { margin: 1em 0; overflow: auto; }
+            .mermaid-diagram svg { max-width: 100%; height: auto; }
+            .mermaid-diagram summary { cursor: pointer; color: var(--muted); font-size: .85em; }
+            .mermaid-error { color: var(--text); border-left: 3px solid var(--border); padding-left: 10px; }
+            .markdown-alert { border-left: 4px solid #5986c9; border-radius: 5px; padding: 10px 16px; margin: 1em 0; background: var(--surface); }
+            .markdown-alert-title { font-weight: 600; margin: 0 0 .4em; text-transform: capitalize; }
+            .markdown-alert-warning, .markdown-alert-caution, .markdown-alert-danger { border-color: #d99039; }
+            .markdown-alert-tip, .markdown-alert-success { border-color: #499b78; }
             blockquote { border-left: 4px solid var(--quote); margin-left: 0; padding: .2em 0 .2em 1em; color: var(--muted); }
             blockquote > :last-child { margin-bottom: 0; }
             table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }

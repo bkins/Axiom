@@ -1,6 +1,39 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 48F08B1E82B6EA1D8EA9FC25F0D2192FA881C8DC50B4935B246ABAC1F8E6FB2C. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: BF67859E754B3335E9D842CC83E814AF258CC38CC1F7A7D17F19A6B343BFC8A3. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## Authoring assistance in 1.0.28
+
+Ordinary Enter retains normal Markdown behavior. Shift+Enter inserts a visible hard break using a backslash and the document's newline convention; inside fenced code it inserts a literal newline. One Undo reverses it. The editor context menu includes existing formatting plus table, horizontal rule, note callout, hard break, clipboard actions and symbol insertion. Right-click inside a selection retains it; keyboard invocation uses the current selection/caret. The identity line remains protected from these formatting operations.
+
+Settings offers a subtle current-line highlight (on by default), non-printing spaces/tabs/line-ending markers (off by default), offline English (US) spell-check, a personal dictionary, optional Go to editor navigation and corresponding source block-start line numbers. Ctrl+Shift+N toggles saved non-printing-character display. These markers never change document bytes. Go to editor replaces the former Source label and navigates to the corresponding dirty Markdown block; line numbers refer to actual source lines, including hidden identity metadata, and navigation annotations stay out of exports.
+
+Spelling underlines appear after typing pauses. Right-click a flagged word for suggestions, Ignore for this session or Add to personal dictionary. Settings lets you edit/remove personal words, one per line, up to 1,000 words. Code, link destinations, URLs, email addresses and identity metadata are excluded. Checking is local and uses a bundled English dictionary. To keep editing responsive, checking is bounded to documents up to one million characters and 1,000 displayed issues. Suggestions are optional; they never automatically alter text.
+
+Ctrl+V pastes ordinary clipboard text. When there is no text format, a supported bitmap is copied as a collision-safe PNG into an assets folder beside the saved workspace document, and a relative Markdown image reference is inserted at the caret/selection. Paste clipboard image in the context menu/command palette explicitly selects the bitmap even when the clipboard also has text. Save the document inside the workspace first. Assets are limited to 16 million pixels and 20 MiB. Failed imports do not insert broken references. Markdown stays unsaved; Undo removes the reference and retains the asset. Review unused assets manually before deleting them. Alt text remains normal editable Markdown.
+
+Insert symbol or emoji opens a searchable local collection of Unicode symbols and emoji. Search by name, choose an item and press Enter; Escape cancels. Multi-codepoint symbols remain intact and one Undo reverses insertion. Appearance and color depend on installed fonts and other readers; the picker does not promise interchangeable filled/outlined/color artwork.
+
+Portable callouts use quoted Markdown, for example:
+
+```markdown
+> [!note] A useful title
+> Body with **formatting**.
+```
+
+The initial titled set is note, info, tip, warning and danger. Preview styles these callouts; ordinary Markdown readers and exports retain readable quotation text. Unknown titled types remain ordinary quotations. GitHub-style standalone alert markers are also supported. Nested quotations remain source Markdown. Collapsible Obsidian suffixes are not implemented in this first version.
+
+Mermaid diagrams work offline in Preview using fenced mermaid code:
+
+````markdown
+```mermaid
+flowchart LR
+    Write --> Preview
+```
+````
+
+The bundled renderer is Mermaid 11.16.1. Valid diagrams show a graphic with expandable Diagram source; invalid or unsupported diagrams show an error and readable source. Rendering uses strict mode, disables document configuration, HTML labels and external resources, and limits rendering to eight diagrams, 20,000 characters per diagram, 300 edges and a ten-second asynchronous deadline. Light/Dark refresh retains source and navigation. All six exports (HTML, PDF, Word, EPUB, ODT and text) currently preserve readable Mermaid source and report an explicit warning; they do not export diagram graphics. This is the initial export contract. Source/recovery are never silently saved or rewritten by diagram rendering.
+
 
 ## Compact workbench in 1.0.27
 

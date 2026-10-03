@@ -18,6 +18,7 @@ public sealed class MarkdownStructureService
         var builder = new MarkdownPipelineBuilder()
         .UsePipeTables()
         .UseTaskLists()
+        .UseAlertBlocks((renderer, kind) => renderer.Write("<p class=\"markdown-alert-title\">").Write(System.Net.WebUtility.HtmlEncode(kind.ToString())).Write("</p>"))
         .UsePreciseSourceLocation()
         .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
         .DisableHtml();
@@ -120,12 +121,13 @@ public sealed class MarkdownStructureService
         return new DocumentStructure(markdown, syntax, headings, links, definitions, ordered);
     }
 
-    internal static string RenderHtml(DocumentStructure document, string? linkToken = null)
+    internal static string RenderHtml(DocumentStructure document, string? linkToken = null, bool showLineNumbers = false, bool showNavigation = true)
     {
-        if (linkToken is null) return Markdown.ToHtml(document.Syntax, Pipeline);
         using var writer = new StringWriter();
         var renderer = new HtmlRenderer(writer);
         Pipeline.Setup(renderer);
+        renderer.ObjectRenderers.Insert(0, new CalloutQuoteRenderer());
+        if (linkToken is null) { renderer.Render(document.Syntax); return writer.ToString(); }
         renderer.ObjectRenderers.Remove(renderer.ObjectRenderers.FindExact<LinkInlineRenderer>()!);
         renderer.ObjectRenderers.Insert(0, new PreviewLinkRenderer(document, linkToken));
         foreach (var block in document.Syntax)
@@ -135,8 +137,13 @@ public sealed class MarkdownStructureService
             renderer.Write("<div class=\"source-block\" data-source-start=\"").Write(start)
                 .Write("\" data-source-line=\"").Write((block.Line + 1).ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .Write("\" data-source-end=\"").Write(block.Span.End.ToString(System.Globalization.CultureInfo.InvariantCulture)).Write("\">");
-            renderer.Write("<a class=\"source-navigation\" aria-label=\"Show this block in the editor\" href=\"axiom-source://show/")
-                .Write(System.Net.WebUtility.HtmlEncode(linkToken)).Write("/").Write(start).Write("\">Source</a>");
+            if (showNavigation)
+            {
+                renderer.Write("<a class=\"source-navigation\" title=\"Go to this block in the Markdown editor\" aria-label=\"Go to this block in the Markdown editor\" href=\"axiom-source://show/")
+                    .Write(System.Net.WebUtility.HtmlEncode(linkToken)).Write("/").Write(start).Write("\">Go to editor");
+                if (showLineNumbers) renderer.Write(" · Line ").Write((block.Line + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                renderer.Write("</a>");
+            }
             renderer.Render(block);
             renderer.Write("</div>");
         }

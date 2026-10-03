@@ -15,7 +15,11 @@ public enum MarkdownEditKind
     UnorderedList,
     OrderedList,
     TaskList,
-    FencedCode
+    FencedCode,
+    HardBreak,
+    Table,
+    HorizontalRule,
+    Callout
 }
 
 public sealed record MarkdownEditResult(
@@ -45,6 +49,8 @@ public sealed partial class MarkdownEditService
             MarkdownEditKind.InlineCode => ApplyInline(text, selectionStart, selectionLength, "`", "code"),
             MarkdownEditKind.Link => ApplyLink(text, selectionStart, selectionLength),
             MarkdownEditKind.FencedCode => ApplyFence(text, selectionStart, selectionLength),
+            MarkdownEditKind.HardBreak => ApplyHardBreak(text, selectionStart, selectionLength),
+            MarkdownEditKind.Table or MarkdownEditKind.HorizontalRule or MarkdownEditKind.Callout => ApplyTemplate(text, selectionStart, selectionLength, kind),
             _ => ApplyBlock(text, selectionStart, selectionLength, kind)
         };
     }
