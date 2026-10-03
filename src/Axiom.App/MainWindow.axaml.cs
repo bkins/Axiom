@@ -126,10 +126,22 @@ public partial class MainWindow : Window
         Preview.NavigationCompleted += async (_, args) =>
         {
             await RestorePreviewScrollAsync(args.IsSuccess);
-            if (args.IsSuccess) await RenderMermaidAsync();
+            if (args.IsSuccess) { await InstallPreviewViewKeysAsync(); await RenderMermaidAsync(); }
         };
         Preview.NavigationStarted += (_, args) =>
         {
+            if (args.Request is { Scheme: "axiom-view" } view)
+            {
+                args.Cancel = true;
+                if (view.AbsolutePath.Trim('/') == _previewLinkToken)
+                    Dispatcher.UIThread.Post(async () =>
+                    {
+                        if (view.AbsolutePath.Trim('/') != _previewLinkToken) return;
+                        if (view.Host == "exit") ExitViewMode();
+                        else if (view.Host == "fullscreen") await ExecuteCommandAsync("view.mode.fullscreen");
+                    });
+                return;
+            }
             if (args.Request is { Scheme: "axiom-source" } source)
             {
                 args.Cancel = true;
@@ -845,7 +857,7 @@ public partial class MainWindow : Window
                 _pendingPreviewScrollRatio = null;
                 await Preview.InvokeScript(BuildLivePreviewReplaceScript(html, _previewLinkToken, anchorOffset, scrollRatio ?? _activeTab.PreviewScrollRatio));
                 if (generation == _previewRenderGeneration) _editorScrollPending = pendingEditorScroll;
-                if (generation == _previewRenderGeneration) await RenderMermaidAsync();
+                if (generation == _previewRenderGeneration) { await InstallPreviewViewKeysAsync(); await RenderMermaidAsync(); }
                 return;
             }
             catch (Exception exception)
@@ -1198,6 +1210,7 @@ public partial class MainWindow : Window
         UpdateDurableStatus();
         ScheduleDocumentStatistics();
         UpdateMetadataPanel();
+        ApplyToolbarVisibility();
     }
 
     private void UpdateDurableStatus()
@@ -1247,6 +1260,7 @@ public partial class MainWindow : Window
         PinButton.Opacity = pinned ? 1 : 0.7;
         PinButton.Tag = pinned ? "Unpin" : "Pin";
         ToolTip.SetTip(PinButton, pinned ? "Unpin current document" : "Pin current document");
+        ApplyToolbarVisibility();
     }
 
     private void ReportError(string eventName, Exception exception, string? path)
@@ -1279,6 +1293,10 @@ public partial class MainWindow : Window
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && _viewMode != WorkbenchViewMode.Standard)
+        {
+            e.Handled = true; ExitViewMode(); return;
+        }
         if (_sessionTransitionRunning || _navigationRunning || _metadataApplying)
         {
             await TryExecuteShortcutAsync(e, cancellationOnly: true);

@@ -24,6 +24,8 @@ public partial class MainWindow
         FileTree.ItemsSource = _explorerNodes;
         InitializeExplorerDrag();
         InitializeCompactWorkbench();
+        InitializeToolbarPersonalization();
+        InitializeViewModes();
         _workspaceTree.CollectionChanged += (_, _) => { ++_explorerGeneration; _explorerFilterTimer.Stop(); _explorerFilterTimer.Start(); };
         _explorerFilterTimer.Tick += (_, _) => { _explorerFilterTimer.Stop(); RefreshExplorer(); };
         Closed += (_, _) => { ++_explorerGeneration; _explorerFilterTimer.Stop(); };
@@ -51,6 +53,7 @@ public partial class MainWindow
     private void ClampWorkbenchWidths()
     {
         if (!_workbenchReady) return;
+        if (_viewMode is WorkbenchViewMode.Zen or WorkbenchViewMode.Presentation) return;
         var available = Math.Max(620, Bounds.Width - (HelpPanelHost.IsVisible ? HelpPanelHost.Width : 0));
         var left = Math.Clamp(WorkbenchLayout.ColumnDefinitions[0].Width.Value, 180, Math.Min(480, available * 0.32));
         WorkbenchLayout.ColumnDefinitions[0].Width = new GridLength(left);
@@ -119,7 +122,7 @@ public partial class MainWindow
 
     private async Task PersistWorkbenchAsync()
     {
-        if (!_workbenchReady || _recovery is not IWorkbenchLayoutStore store) return;
+        if (!_workbenchReady || _viewMode != WorkbenchViewMode.Standard || _recovery is not IWorkbenchLayoutStore store) return;
         await _layoutSaveGate.WaitAsync();
         try
         {

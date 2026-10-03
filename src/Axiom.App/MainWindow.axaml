@@ -18,6 +18,14 @@
   </Window.Styles>
   <DockPanel>
     <Border x:Name="HelpPanelHost" IsVisible="False" DockPanel.Dock="Right" Width="340" MinWidth="280" BorderThickness="1,0,0,0" BorderBrush="#8893A3" />
+    <Border x:Name="ViewModeExitBar" DockPanel.Dock="Top" IsVisible="False" Padding="8,3">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock x:Name="ViewModeText" VerticalAlignment="Center" />
+        <Button Content="Exit view — Esc" AutomationProperties.Name="Exit focused or full-screen view" Click="ExitViewMode_OnClick" />
+        <Button x:Name="PresentationPreviousButton" Content="Previous page" Click="PresentationPrevious_OnClick" />
+        <Button x:Name="PresentationNextButton" Content="Next page" Click="PresentationNext_OnClick" />
+      </StackPanel>
+    </Border>
     <Border x:Name="TopCommandBar" DockPanel.Dock="Top" Padding="6,3" Background="#1F2937" BorderBrush="#374151" BorderThickness="0,0,0,1">
       <Grid x:Name="TitleCommandGrid" ColumnDefinitions="Auto,*">
         <WrapPanel x:Name="CommandPanel" Orientation="Horizontal">

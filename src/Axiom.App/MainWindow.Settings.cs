@@ -65,6 +65,7 @@ public partial class MainWindow
         Editor.TextArea.TextView.CurrentLineBackground = new SolidColorBrush(Color.Parse("#187B9BD1"));
         Editor.TextArea.TextView.CurrentLineBorder = null;
         ScheduleSpelling();
+        ApplyToolbarLayout();
         if (!available) UpdateChrome("Requested editor font is unavailable; using Consolas/monospace fallback.");
     }
 

@@ -37,8 +37,7 @@ public partial class MainWindow
             {
                 if (_readingMode || tab != _activeTab) return;
                 Editor.UpdateLayout();
-                Editor.ScrollToHorizontalOffset(tab.HorizontalOffset);
-                Editor.ScrollToVerticalOffset(tab.VerticalOffset);
+                ((Avalonia.Controls.Primitives.ILogicalScrollable)Editor.TextArea.TextView).Offset = new Avalonia.Vector(tab.HorizontalOffset, tab.VerticalOffset);
                 Editor.TextArea.Focus();
             }, DispatcherPriority.Loaded);
         }
@@ -47,6 +46,7 @@ public partial class MainWindow
 
     internal async Task ToggleReadingModeAsync()
     {
+        ExitViewMode();
         if (!await _readingModeGate.WaitAsync(0)) return;
         ReadingModeButton.IsEnabled = false;
         ApplyReadingMode(!_readingMode);

@@ -1,6 +1,17 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 09F36F5F1F1DABDF420AB6CD265FEE8905600C30A369074294ACB5FBA00CCF33. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 8740A895059ADFCBBD308BF02F5291C23E2FED7E2E06E1A29FF7205AEDF43FE9. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## Toolbar and viewing modes in 1.0.30
+
+Choose Main menu > Tools > Customize Toolbar, or use the application.toolbar command. Check commands to show them, select a row and choose Move up/Move down to reorder, then Apply. Cancel leaves the saved configuration unchanged; Reset restores the default command choices/order when you Apply. Settings also offers Configure toolbar; that dialog changes the pending Settings choice until you Apply Settings. The main menu remains available even if you hide every optional toolbar action. Hidden actions remain accessible through the command palette, menu and configured shortcuts. Enrollment and Pin still depend on the current document/workspace.
+
+Tools > Viewing modes provides Full screen (F11 toggles), Zen / distraction-free, Presentation, Compact and Exit focused/full-screen view. Zen concentrates on the editable source; Presentation concentrates on Preview and supplies Previous page/Next page buttons. Both hide side panels, tabs and the top toolbar while keeping an obvious Exit view — Esc control and the footer with unsaved/protected status. Escape works from the editor and hosted Preview. Full screen changes the native window state and preserves the workbench. Exit restores the preceding window/layout and reading mode. Source, caret, Undo and recovery remain intact; returning from Presentation restores the editor position. Focused/full-screen modes are temporary and restart in the normal layout.
+
+Compact is a separate remembered spacing preference, also available in Settings. It reduces toolbar padding and tab text size while retaining command access. Exit view retains that preference; toggle Compact again or turn off Compact workbench spacing to restore normal density. Presets are the initial supported design: Zen and distraction-free share one mode, and Presentation navigation scrolls the current document. Moving arbitrary toolbar groups into different quadrants is deferred for design review.
+
+The final 1.0.30 candidate includes all preceding October 3 findings, including offline Mermaid Preview, English spell-check, current-line highlighting, Shift+Enter, workspace navigation and embedded local Git. Mermaid exports currently retain readable fenced source with an explicit warning; diagram graphics in exports remain a future extension. Ben's native visual/keyboard/DPI and release acceptance remain separate from automated verification.
+
 
 ## Embedded local Git in 1.0.29
 

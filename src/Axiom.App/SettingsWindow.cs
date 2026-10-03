@@ -26,6 +26,10 @@ internal sealed class SettingsWindow : Window
         var personalWords = new TextBox { Text = current.PersonalDictionary, AcceptsReturn = true, Height = 80, TextWrapping = TextWrapping.Wrap, PlaceholderText = "One personal dictionary word per line" };
         AutomationProperties.SetName(personalWords, "Personal dictionary words, one per line");
         var chrome = new CheckBox { Content = "Compact title bar (Windows); turn off for standard system title bar", IsChecked = current.CompactTitleBar };
+        var compactDensity = new CheckBox { Content = "Compact workbench spacing", IsChecked = current.CompactWorkbench };
+        var toolbarCommands = current.ToolbarCommands;
+        var toolbarButton = new Button { Content = "Customize toolbar visibility and order…" };
+        toolbarButton.Click += async (_, _) => { var choice = await new ToolbarCustomizationWindow(toolbarCommands).ShowDialog<string?>(this); if (choice is not null) toolbarCommands = choice; };
         var tabs = new NumericUpDown { Minimum = 1, Maximum = 8, Value = current.TabWidth, Increment = 1 };
         var theme = new ComboBox { ItemsSource = Enum.GetValues<AppearancePreference>(), SelectedItem = appearance };
         AutomationProperties.SetName(font, "Editor font family");
@@ -42,6 +46,7 @@ internal sealed class SettingsWindow : Window
             {
                 var value = current with { FontFamily = font.Text ?? string.Empty, FontSize = (int)(size.Value ?? 15), WordWrap = wrap.IsChecked == true, TabWidth = (int)(tabs.Value ?? 4), MenuStyle = (MenuStyle)(menuStyle.SelectedItem ?? MenuStyle.Quiet), CompactTitleBar = chrome.IsChecked == true, HighlightCurrentLine = currentLine.IsChecked == true, ShowNonPrintingCharacters = nonPrinting.IsChecked == true };
                 value = value with { ShowPreviewLineNumbers = previewLines.IsChecked == true, ShowPreviewNavigation = previewNavigation.IsChecked == true, SpellCheck = spelling.IsChecked == true, PersonalDictionary = string.Join('\n', (personalWords.Text ?? "").Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct(StringComparer.OrdinalIgnoreCase)) };
+                value = value with { ToolbarCommands = toolbarCommands, CompactWorkbench = compactDensity.IsChecked == true };
                 value.Validate();
                 Close((value, (AppearancePreference)(theme.SelectedItem ?? AppearancePreference.System)));
             }
@@ -67,7 +72,7 @@ internal sealed class SettingsWindow : Window
             new TextBlock { Text = "Personal dictionary (up to 1,000 words; remove a line to remove a word)" }, personalWords,
             new TextBlock { Text = "Tab width (1–8 columns)" }, tabs,
             new TextBlock { Text = "Application appearance" }, theme,
-            new TextBlock { Text = "Menu style" }, menuStyle, chrome, message,
+            new TextBlock { Text = "Menu style" }, menuStyle, chrome, compactDensity, toolbarButton, message,
             new WrapPanel { Children = { apply, cancel, reset, helpButton } }
         }
             }
