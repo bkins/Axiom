@@ -95,10 +95,10 @@ public partial class MainWindow
             _workspaceTree.Clear();
             foreach (var node in snapshot.Tree) { ApplyExpansion(node, expanded); _workspaceTree.Add(node); }
             ExplorerFilter.Text = "";
-            RefreshExplorer();
             _duplicates = snapshot.Duplicates;
             _workspacePins.Clear();
             foreach (var pin in opened.Pins) _workspacePins.Add(pin);
+            RefreshExplorer();
             UpdatePinButton();
             DuplicateWarning.Text = snapshot.Duplicates.Count == 0 && snapshot.Discovery.SkippedDirectories.Count == 0 ? "" :
                 $"{snapshot.Duplicates.Count} duplicate identity groups; {snapshot.Discovery.SkippedDirectories.Count} skipped directories.";

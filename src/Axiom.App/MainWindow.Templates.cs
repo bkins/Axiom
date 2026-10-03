@@ -44,7 +44,7 @@ public partial class MainWindow
             {
                 Title = "New document — choose an existing folder inside this workspace"
               , AllowMultiple = false
-              , SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(workspace.RootPath)
+              , SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(SelectedCreationFolder() ?? workspace.RootPath)
             });
             if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return new(CommandOutcome.Cancelled, "Destination folder cancelled.");
             var name = await TextEntryDialog.ShowAsync(this, "Document name", "Enter a Markdown filename. Existing files are never overwritten.", "Untitled.md");

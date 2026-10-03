@@ -22,7 +22,11 @@ public partial class MainWindow
 
     private CommandContext CaptureCommandContext() => new(_session.DraftKey, _activeWorkspace?.WorkspaceId, _session.Path,
         _sessionTransitionRunning || _navigationRunning || _metadataApplying, IsEditorCommandTarget(), Editor.CanUndo, Editor.CanRedo,
-        _mutationBlocked, true);
+        _mutationBlocked, true)
+    {
+        ExplorerRelativePath = (FileTree.SelectedItem as WorkspaceExplorerNode) is { IsGroup: false, IsPlaceholder: false } node ? node.RelativePath : null
+      , ExplorerIsFolder = FileTree.SelectedItem is WorkspaceExplorerNode { IsDocument: false, Heading: null, IsGroup: false, IsPlaceholder: false }
+    };
 
     private void InitializeCommands()
     {
@@ -63,11 +67,10 @@ public partial class MainWindow
         RegisterCommand("document.checkpoint", "Checkpoint saved document", null, true, (_, _) => CheckpointDocumentAsync(),
             context => new(context.DocumentPath is not null && !_session.IsDirty && _session.Conflict is null,
                 context.DocumentPath is null || _session.IsDirty || _session.Conflict is not null ? "Save the document and resolve conflicts first." : null));
-        RegisterCommand("document.new", "New unsaved document", "Ctrl+N", false, async (_, _) =>
+        RegisterCommand("document.new", "New unsaved document", "Ctrl+N", false, async (context, _) =>
         {
             if (!await ResolvePendingMetadataAsync()) return new(CommandOutcome.Cancelled, "New document cancelled.");
-            _initialPlaceholder = false;
-            await LoadSessionAsync(_documents.NewDocument(), "New unsaved document");
+            await NewDocumentInSelectedFolderAsync(context.ExplorerRelativePath is null ? null : ExplorerCommandNode(context));
             return new(CommandOutcome.Completed, "New document opened.");
         });
         RegisterCommand("document.save", "Save document", "Ctrl+S", true, async (_, _) =>

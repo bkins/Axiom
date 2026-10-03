@@ -22,6 +22,7 @@ public partial class MainWindow
     private void InitializeWorkbench()
     {
         FileTree.ItemsSource = _explorerNodes;
+        InitializeExplorerDrag();
         _workspaceTree.CollectionChanged += (_, _) => { ++_explorerGeneration; _explorerFilterTimer.Stop(); _explorerFilterTimer.Start(); };
         _explorerFilterTimer.Tick += (_, _) => { _explorerFilterTimer.Stop(); RefreshExplorer(); };
         Closed += (_, _) => { ++_explorerGeneration; _explorerFilterTimer.Stop(); };
@@ -155,19 +156,31 @@ public partial class MainWindow
         _explorerFilterTimer.Stop();
         ++_explorerGeneration;
         var filter = ExplorerFilter.Text?.Trim() ?? "";
+        var previous = FileTree.SelectedItem as WorkspaceExplorerNode;
         _explorerDocuments.Clear();
         _explorerNodes.Clear();
+        var pinned = new WorkspaceExplorerNode("Pinned", "") { IsGroup = true, IsExpanded = true };
+        foreach (var pin in _workspacePins)
+            if (filter.Length == 0 || pin.RelativePath.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                pinned.Children.Add(new WorkspaceExplorerNode(pin.RelativePath, pin.RelativePath, document: true) { IsPinned = true, IsPinAlias = true });
+        if (pinned.Children.Count > 0) _explorerNodes.Add(pinned);
         foreach (var source in _workspaceTree)
             if (BuildExplorerNode(source, filter) is { } node) _explorerNodes.Add(node);
-        var count = EnumerateExplorer(_explorerNodes).Count(node => node.IsDocument);
+        var count = _explorerDocuments.Count;
         ExplorerFilterStatus.Text = filter.Length == 0 ? "Expand a document for its headings." : $"{count} matching document{(count == 1 ? "" : "s")}; Escape clears filter.";
         RefreshExplorerOutline();
+        var restored = previous is null ? null : EnumerateExplorer(_explorerNodes).FirstOrDefault(node =>
+            node.Heading is null && node.RelativePath.Equals(previous.RelativePath, WorkspacePathBoundary.Comparison) &&
+            node.IsGroup == previous.IsGroup && node.IsPinAlias == previous.IsPinAlias);
+        if (restored is not null) FileTree.SelectedItem = restored;
+        else RevealActiveExplorerDocument();
     }
 
     private WorkspaceExplorerNode? BuildExplorerNode(WorkspaceTreeNode source, string filter)
     {
         if (source.IsDocument && filter.Length > 0 && !source.RelativePath.Contains(filter, StringComparison.OrdinalIgnoreCase)) return null;
         var node = new WorkspaceExplorerNode(source.Name, source.RelativePath, source.IsDocument);
+        node.IsPinned = source.IsDocument && _workspacePins.Any(pin => pin.RelativePath.Equals(source.RelativePath, WorkspacePathBoundary.Comparison));
         if (source.IsDocument)
         {
             _explorerDocuments[source.RelativePath] = node;

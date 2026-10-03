@@ -6,6 +6,7 @@ public partial class MainWindow
 {
     private void InitializeAdditionalCommands()
     {
+        InitializeExplorerCommands();
         RegisterCommand("document.cancelExport", "Cancel current document export", null, false, (_, _) =>
         {
             ExportCancelRequested?.Invoke();
@@ -26,7 +27,7 @@ public partial class MainWindow
         RegisterCommand("navigation.classificationResult", "Open selected classification result", null, false,
             (_, _) => OpenClassificationResultAsync(), _ => new(ClassificationResults.SelectedItem is ClassifiedDocument, "Select a classification result first."));
         RegisterCommand("navigation.pinnedDocument", "Open selected workspace pin", null, false, (_, _) => OpenSelectedPinAsync(),
-            _ => new(_activeWorkspace is not null && PinnedDocuments.SelectedItem is WorkspacePin, "Select a workspace pin first."));
+            _ => new(_activeWorkspace is not null && SelectedWorkspacePin is WorkspacePin, "Select a workspace pin first."));
         RegisterCommand("navigation.searchResult", "Open selected workspace search match", null, false,
             (_, _) => OpenSearchResultAsync((WorkspaceSearchResult)WorkspaceSearchResults.SelectedItem!),
             _ => new(WorkspaceSearchResults.SelectedItem is WorkspaceSearchResult, "Select a workspace search match first."));
@@ -70,7 +71,7 @@ public partial class MainWindow
         RegisterCommand("workspace.catalog", "Choose or forget remembered workspace", null, true, (_, _) => ShowWorkspaceCatalogAsync());
         RegisterCommand("document.recent", "Open recent document", null, false, (_, _) => ShowRecentDocumentsAsync());
         RegisterCommand("document.removeSelectedPin", "Remove selected workspace pin", null, true, (_, _) => RemoveSelectedPinAsync(),
-            _ => new(_activeWorkspace is not null && PinnedDocuments.SelectedItem is WorkspacePin, "Select a workspace pin first."));
+            _ => new(_activeWorkspace is not null && SelectedWorkspacePin is WorkspacePin, "Select a workspace pin first."));
         RegisterCommand("document.resolveConflict", "Resolve external file conflict", null, false, (_, _) => ResolveConflictAsync(),
             _ => new(_session.Conflict is not null, "No external file conflict to resolve."));
         RegisterCommand("document.enroll", "Make current buffer an Axiom document", null, false, (_, _) => Task.FromResult(EnrollCurrentBuffer()));
@@ -138,7 +139,11 @@ public partial class MainWindow
                 _ => new(extension != "pdf" || OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux(), "PDF export is unavailable on this platform."));
         foreach (var kind in new[] { DocumentMutationKind.CreateFolder, DocumentMutationKind.Rename, DocumentMutationKind.Move, DocumentMutationKind.Duplicate, DocumentMutationKind.Recycle })
             RegisterCommand("workspace.manage." + kind.ToString().ToLowerInvariant(), kind + " workspace document", null, true,
-                (_, cancellation) => ManageDocumentAsync(kind, cancellation), WorkspaceCommandAvailability);
+                (context, cancellation) => ManageDocumentAsync(kind, cancellation, ExplorerCommandNode(context), kind == DocumentMutationKind.Move ? _requestedMoveDestination : null),
+                context => new(_activeWorkspace is not null && context.WorkspaceId == _activeWorkspace.WorkspaceId && (kind == DocumentMutationKind.CreateFolder ||
+                    context.ExplorerIsFolder && kind is DocumentMutationKind.Move or DocumentMutationKind.Rename ||
+                    !context.ExplorerIsFolder && (context.ExplorerRelativePath is not null || context.DocumentPath is not null)),
+                    "Select a workspace document, or a folder for Rename/Move."));
         foreach (var kind in Enum.GetValues<MarkdownEditKind>())
             RegisterCommand("editor.format." + kind.ToString().ToLowerInvariant(), "Format " + GetMarkdownEditLabel(kind), null, false,
                 (_, _) => Task.FromResult(new CommandResult(ApplyMarkdownEdit(kind) ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Formatting reviewed.")));

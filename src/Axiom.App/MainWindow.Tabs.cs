@@ -59,7 +59,8 @@ public partial class MainWindow
         await _tabSelectionGate.WaitAsync();
         try
         {
-            if (!_tabs.Contains(tab) || tab == _activeTab) return;
+            if (!_tabs.Contains(tab)) return;
+            if (tab == _activeTab) { RevealActiveExplorerDocument(); return; }
             if (!await ResolvePendingMetadataAsync())
             {
                 _selectingTab = true;
@@ -132,6 +133,7 @@ public partial class MainWindow
         RecoveryText.Text = tab.RecoveryStatus;
         UpdateEmptyStates();
         RenderOutline();
+        RevealActiveExplorerDocument();
         RenderPreview();
         RefreshDocumentMonitors();
         UpdateChrome(status);

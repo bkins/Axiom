@@ -32,6 +32,7 @@ internal sealed class DocumentTab : INotifyPropertyChanged
     public bool IsMissing { get; set; }
     public DocumentStructure? Structure { get; set; }
     public bool HasPendingScrollRestore { get; set; }
+    public string? SuggestedSaveFolder { get; set; }
 
     public string Label
     {

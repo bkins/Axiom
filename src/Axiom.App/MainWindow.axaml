@@ -203,24 +203,10 @@
                           Click="BulkEnroll_OnClick" />
                   <Button Content="Workspace Help" Click="WorkspaceHelp_OnClick" />
                   </StackPanel></Expander>
-                  <Expander Header="Pinned documents" IsExpanded="False"><StackPanel>
-                  <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Pinned" />
-                    <Button Grid.Column="1" AutomationProperties.Name="Remove selected pin" ToolTip.Tip="Remove the selected workspace pin" Click="RemovePin_OnClick">Remove</Button>
-                  </Grid>
-                  <TextBlock x:Name="PinnedEmptyState" Margin="0,4" Opacity="0.7" Text="No pinned documents" />
-                  <ListBox x:Name="PinnedDocuments" MaxHeight="120" AutomationProperties.Name="Pinned documents" DoubleTapped="PinnedDocuments_OnDoubleTapped">
-                    <ListBox.ItemTemplate>
-                      <DataTemplate DataType="core:WorkspacePin">
-                        <TextBlock Text="{Binding RelativePath}" TextTrimming="CharacterEllipsis" />
-                      </DataTemplate>
-                    </ListBox.ItemTemplate>
-                  </ListBox>
-                  </StackPanel></Expander>
                   <Separator Margin="0,6,0,0" />
                 </StackPanel>
                 <TextBlock x:Name="WorkspaceEmptyState" Margin="4" Opacity="0.7" Text="Open a workspace to browse Markdown documents." TextWrapping="Wrap" />
-                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
+                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" ContextRequested="Explorer_OnContextRequested" PointerPressed="Explorer_OnPointerPressed" PointerMoved="Explorer_OnPointerMoved" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
                   <TreeView.DataTemplates>
                     <TreeDataTemplate DataType="app:WorkspaceExplorerNode" ItemsSource="{Binding Children}">
                       <Grid ColumnDefinitions="32,*" Margin="0,3"><TextBlock Text="{Binding Icon}" FontWeight="SemiBold" Opacity="0.75" /><TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Description}" /></Grid>
@@ -230,6 +216,7 @@
                     <Style Selector="TreeViewItem">
                       <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                     </Style>
+                    <Style Selector="TreeViewItem.move-target"><Setter Property="BorderBrush" Value="#4F8EDC" /><Setter Property="BorderThickness" Value="2" /></Style>
                   </TreeView.Styles>
                 </TreeView>
               </DockPanel>
@@ -248,7 +235,7 @@
           </ListBox.ItemsPanel>
           <ListBox.ItemTemplate>
             <DataTemplate DataType="app:DocumentTab">
-              <StackPanel Orientation="Horizontal" Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8" ContextRequested="Tab_OnContextRequested">
                 <TextBlock Text="▤" Opacity="0.65" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
                 <Button Content="×" AutomationProperties.Name="Close document tab" ToolTip.Tip="Close this document; unsaved changes offer Save, Discard, or Cancel" Click="CloseTab_OnClick" />

@@ -16,6 +16,11 @@ public partial class App : Application
             _activationWindow = (MainWindow)desktop.MainWindow;
             _activationWindow.Opened += (_, _) => DrainActivations();
             _activationWindow.Closed += (_, _) => _activationWindow = null;
+            if (WorkspaceNavigationProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await WorkspaceNavigationProbe.StartAsync(window);
+            }
             if (UsageReliabilityProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

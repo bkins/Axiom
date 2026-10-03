@@ -13,9 +13,12 @@ public sealed class WorkspaceExplorerNode : INotifyPropertyChanged
     public bool IsDocument { get; }
     public DocumentOutlineEntry? Heading { get; }
     public bool IsPlaceholder { get; }
+    public bool IsPinned { get; internal set; }
+    public bool IsGroup { get; internal set; }
+    internal bool IsPinAlias { get; set; }
     internal string? SourceFingerprint { get; set; }
     public ObservableCollection<WorkspaceExplorerNode> Children { get; } = [];
-    public string Icon => Heading is not null ? $"H{Heading.Level}" : IsPlaceholder ? "…" : IsDocument ? "▤" : "▸";
+    public string Icon => Heading is not null ? $"H{Heading.Level}" : IsPlaceholder ? "…" : IsPinned ? "★" : IsDocument ? "▤" : "▸";
     public string Description => Heading is not null ? $"Heading {Heading.Level}, line {Heading.LineNumber}" : IsPlaceholder ? Name : (IsDocument ? "Markdown document: " : "Folder: ") + RelativePath;
     public bool IsExpanded
     {

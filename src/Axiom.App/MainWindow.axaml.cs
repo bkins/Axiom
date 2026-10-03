@@ -113,7 +113,6 @@ public partial class MainWindow : Window
         InitializeWorkbench();
         WorkspaceSearchResults.ItemsSource = _workspaceSearchResults;
         DocumentOutline.ItemsSource = _outlineEntries;
-        PinnedDocuments.ItemsSource = _workspacePins;
         BuildIdentityText.Text = _buildIdentity.DisplayText;
         SetRequestedAppearance(_appearance);
         ActualThemeVariantChanged += (_, _) => ApplyAppearanceVisuals();
@@ -218,7 +217,7 @@ public partial class MainWindow : Window
 
     private async Task<CommandResult> RemoveSelectedPinAsync()
     {
-        if (_activeWorkspace is null || PinnedDocuments.SelectedItem is not WorkspacePin pin)
+        if (_activeWorkspace is null || SelectedWorkspacePin is not WorkspacePin pin)
             return new(CommandOutcome.Unavailable, "Select a workspace pin first.");
         await _workspaces.RemovePinAsync(_activeWorkspace, pin);
         await RefreshPinsAsync();
@@ -231,7 +230,7 @@ public partial class MainWindow : Window
 
     private async Task<CommandResult> OpenSelectedPinAsync()
     {
-        if (_activeWorkspace is null || PinnedDocuments.SelectedItem is not WorkspacePin pin) return new(CommandOutcome.Unavailable, "Select a workspace pin first.");
+        if (_activeWorkspace is null || SelectedWorkspacePin is not WorkspacePin pin) return new(CommandOutcome.Unavailable, "Select a workspace pin first.");
         var path = Path.Combine(_activeWorkspace.RootPath, pin.RelativePath);
         if (!await _files.ExistsAsync(path))
         {
@@ -249,6 +248,7 @@ public partial class MainWindow : Window
             foreach (var pin in await _workspaces.GetPinsAsync(_activeWorkspace)) _workspacePins.Add(pin);
         UpdateEmptyStates();
         UpdatePinButton();
+        RefreshExplorer();
     }
 
     private async void WorkspaceSearch_OnClick(object? sender, RoutedEventArgs e) =>
@@ -413,6 +413,8 @@ public partial class MainWindow : Window
                 {
                     Title = "Save Markdown document",
                     SuggestedFileName = session.Path is null ? "Untitled.md" : Path.GetFileName(session.Path),
+                    SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(
+                        session.Path is not null ? Path.GetDirectoryName(session.Path)! : tab.SuggestedSaveFolder ?? _folder ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)),
                     DefaultExtension = "md",
                     FileTypeChoices = [new FilePickerFileType("Markdown files") { Patterns = ["*.md", "*.markdown"] }]
                 });
@@ -1216,7 +1218,6 @@ public partial class MainWindow : Window
     private void UpdateEmptyStates()
     {
         EditorEmptyState.IsVisible = string.IsNullOrEmpty(Editor.Text);
-        PinnedEmptyState.IsVisible = _workspacePins.Count == 0;
         WorkspaceEmptyState.IsVisible = _workspaceTree.Count == 0;
         WorkspaceEmptyState.Text = _folder is null
             ? "Open a workspace to browse Markdown documents."
@@ -1384,7 +1385,7 @@ public partial class MainWindow : Window
     }
     internal bool EditorEmptyStateForTesting => EditorEmptyState.IsVisible;
     internal bool WorkspaceEmptyStateForTesting => WorkspaceEmptyState.IsVisible;
-    internal bool PinnedEmptyStateForTesting => PinnedEmptyState.IsVisible;
+    internal bool PinnedEmptyStateForTesting => _workspacePins.Count == 0;
 
     private static IEnumerable<WorkspaceTreeNode> Traverse(IEnumerable<WorkspaceTreeNode> nodes)
     {

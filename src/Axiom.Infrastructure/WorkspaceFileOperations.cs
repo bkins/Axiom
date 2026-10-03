@@ -3,7 +3,7 @@ using Axiom.Core;
 
 namespace Axiom.Infrastructure;
 
-public sealed class WorkspaceFileOperations(IDocumentMutationStore state
+public sealed partial class WorkspaceFileOperations(IDocumentMutationStore state
                                          , IRecycleBin? recycle = null
                                          , IAxiomLog? log = null)
 {
@@ -156,6 +156,11 @@ public sealed class WorkspaceFileOperations(IDocumentMutationStore state
         var results = new List<string>();
         foreach (var intent in await state.GetPendingMutationsAsync(cancellationToken))
         {
+            if (intent.Kind == DocumentMutationKind.MoveFolder)
+            {
+                results.Add(await ReconcileFolderMoveAsync(intent, cancellationToken));
+                continue;
+            }
             ValidateAncestors(intent.RootPath, intent.SourcePath ?? intent.DestinationPath!, requireParent: false);
             if (intent.DestinationPath is not null) ValidateAncestors(intent.RootPath, intent.DestinationPath, requireParent: false);
             var applied = intent.Kind == DocumentMutationKind.Recycle

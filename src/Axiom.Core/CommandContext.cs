@@ -8,4 +8,8 @@ public sealed record CommandContext(string DraftKey
                                   , bool CanUndo
                                   , bool CanRedo
                                   , bool MutationBlocked
-                                  , bool UserInitiated);
+                                  , bool UserInitiated)
+{
+    public string? ExplorerRelativePath { get; init; }
+    public bool ExplorerIsFolder { get; init; }
+}

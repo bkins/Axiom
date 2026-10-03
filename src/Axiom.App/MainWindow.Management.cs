@@ -104,7 +104,7 @@ public partial class MainWindow
         await ExecuteCommandAsync("workspace.manage." + kind.ToString().ToLowerInvariant());
     }
 
-    private async Task<CommandResult> ManageDocumentAsync(DocumentMutationKind kind, CancellationToken cancellationToken)
+    private async Task<CommandResult> ManageDocumentAsync(DocumentMutationKind kind, CancellationToken cancellationToken, WorkspaceExplorerNode? requested = null, string? moveDestination = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (_activeWorkspace is null || ManagementState is null || _mutationBlocked)
@@ -113,10 +113,13 @@ public partial class MainWindow
             return new(CommandOutcome.Unavailable, "Open a workspace and resolve pending operations first.");
         }
         var workspace = _activeWorkspace;
-        var selected = FileTree.SelectedItem as WorkspaceExplorerNode;
+        var selected = requested ?? FileTree.SelectedItem as WorkspaceExplorerNode;
+        if (selected is { IsDocument: false, Heading: null, IsGroup: false, IsPlaceholder: false } && kind is DocumentMutationKind.Move or DocumentMutationKind.Rename)
+            return await ManageFolderAsync(selected, kind, moveDestination, cancellationToken);
         var sourceRelative = selected is { IsDocument: true } ? selected.RelativePath :
             _session.Path is not null && IsWithinFolder(_session.Path, workspace.RootPath) ? Path.GetRelativePath(workspace.RootPath, _session.Path) : null;
         var isCreation = kind is DocumentMutationKind.Create or DocumentMutationKind.CreateFolder;
+        if (isCreation) sourceRelative = null;
         if (!isCreation && sourceRelative is null) { UpdateChrome("Select a workspace document first."); return new(CommandOutcome.Unavailable, "Select a workspace document first."); }
         if (_sessionTransitionRunning || _navigationRunning) return new(CommandOutcome.Unavailable, "Another document operation is running.");
         _sessionTransitionRunning = true;
@@ -126,6 +129,9 @@ public partial class MainWindow
             var destinationRelative = (string?)null;
             if (kind == DocumentMutationKind.Move)
             {
+                if (moveDestination is not null) destinationRelative = moveDestination;
+                else
+                {
                 var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
                 {
                     Title                  = "Move document — choose a folder inside this workspace"
@@ -135,6 +141,7 @@ public partial class MainWindow
                 });
                 if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return new(CommandOutcome.Cancelled, "Move cancelled.");
                 destinationRelative = WorkspaceMutationPolicy.MoveDestination(workspace.RootPath, sourceRelative!, folder);
+                }
             }
             else if (kind != DocumentMutationKind.Recycle)
             {

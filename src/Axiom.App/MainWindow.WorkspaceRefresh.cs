@@ -75,7 +75,8 @@ public partial class MainWindow
                 _workspaceTree.Add(node);
             }
             RefreshExplorer();
-            FileTree.SelectedItem = EnumerateExplorer(_explorerNodes).FirstOrDefault(node => node.RelativePath == selected);
+            if (FileTree.SelectedItem is null && selected is not null)
+                FileTree.SelectedItem = EnumerateExplorer(_explorerNodes).FirstOrDefault(node => !node.IsGroup && node.RelativePath == selected);
             _duplicates = duplicates;
             _workspaceSearchCancellation?.Cancel();
             ++_workspaceSearchGeneration;

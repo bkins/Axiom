@@ -67,6 +67,8 @@ public sealed partial class SqliteStateStore
         command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
         if (applied)
         {
+            if (intent.Kind is DocumentMutationKind.MoveFolder or DocumentMutationKind.Move or DocumentMutationKind.Rename)
+                await RebindFolderStateAsync(connection, transaction, intent, cancellationToken);
             if (intent.Kind is DocumentMutationKind.Move or DocumentMutationKind.Rename or DocumentMutationKind.Recycle)
             {
                 command.CommandText = "DELETE FROM DocumentMetadata WHERE FilePath=$source;";

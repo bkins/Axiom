@@ -13,6 +13,8 @@ public partial class MainWindow
 
     private async void FileTree_OnPointerReleased(object? sender, PointerReleasedEventArgs args)
     {
+        _explorerDragPress = null;
+        if (_suppressExplorerOpen) { _suppressExplorerOpen = false; return; }
         if (args.InitialPressMouseButton != MouseButton.Left || args.Source is not Control control || _folder is null) return;
         var item = control as TreeViewItem ?? control.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
         if (control is Avalonia.Controls.Primitives.ToggleButton || control.GetVisualAncestors().OfType<Avalonia.Controls.Primitives.ToggleButton>().Any()) return;
