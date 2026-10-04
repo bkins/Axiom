@@ -24,6 +24,8 @@ public partial class MainWindow
 
     private void InitializeExplorerDrag()
     {
+        FileTree.AddHandler(PointerPressedEvent, Explorer_OnPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+        FileTree.AddHandler(PointerMovedEvent, Explorer_OnPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
         DragDrop.SetAllowDrop(FileTree, true);
         FileTree.AddHandler(DragDrop.DragOverEvent, Explorer_DragOver, RoutingStrategies.Bubble);
         FileTree.AddHandler(DragDrop.DropEvent, Explorer_Drop, RoutingStrategies.Bubble);

@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Axiom.Core;
 using Axiom.Infrastructure;
 
@@ -49,7 +50,7 @@ public partial class MainWindow
         // Selecting/expanding the tree must retain the user's current input focus.
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            if (FileTree.SelectedItem == node && FileTree.ContainerFromItem(node) is TreeViewItem container)
+            if (FileTree.SelectedItem == node && FileTree.GetVisualDescendants().OfType<TreeViewItem>().FirstOrDefault(item => ReferenceEquals(item.DataContext, node)) is { } container)
                 container.BringIntoView();
         }, Avalonia.Threading.DispatcherPriority.Loaded);
     }

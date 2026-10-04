@@ -7,6 +7,32 @@ namespace Axiom.App.Tests;
 public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
+    public async Task RefreshRevealsActiveNestedFileInsteadOfPreviousFolderWithoutSavingDirtyBuffer()
+    {
+        var root = CreateTabWorkspace();
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "nested", "deep"));
+            Directory.CreateDirectory(Path.Combine(root, "other"));
+            await File.WriteAllTextAsync(Path.Combine(root, "other", "anchor.md"), "Anchor");
+            var path = Path.Combine(root, "nested", "deep", "note.md");
+            await File.WriteAllTextAsync(path, "Saved");
+            var window = CreateWindow(root);
+            await window.LoadFolderAsync(root);
+            await window.OpenDocumentAsync(path);
+            window.SetEditorTextForTesting("Unsaved");
+            var tree = window.FindControl<TreeView>("FileTree")!;
+            tree.SelectedItem = window.ExplorerNodesForTesting.Single(node => node.Name == "other");
+            window.FilterExplorerForTesting("");
+            Assert.Equal(Path.GetRelativePath(root, path), Assert.IsType<WorkspaceExplorerNode>(tree.SelectedItem).RelativePath);
+            Assert.Equal("Unsaved", window.EditorTextForTesting);
+            Assert.Equal("Saved", await File.ReadAllTextAsync(path));
+            await CloseWorkbenchTestAsync(window);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [AvaloniaFact]
     public async Task OpeningAndSwitchingTabsRevealsCanonicalFileWithoutExpandingOutlineOrClearingFilter()
     {
         var root = CreateTabWorkspace();

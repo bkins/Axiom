@@ -66,8 +66,10 @@ internal sealed class HelpPanel : UserControl
             walkthroughButton, _topics, search, status, results
         }
         };
-        var panel = new DockPanel { Children = { header, _view } };
-        DockPanel.SetDock(header, Dock.Top);
+        var browserRegion = new Border { Child = _view, ClipToBounds = true };
+        var panel = new Grid { RowDefinitions = new RowDefinitions("Auto,*"), Children = { header, browserRegion } };
+        Grid.SetRow(browserRegion, 1);
+        header.ZIndex = 1;
         Content = panel;
         _view.EnvironmentRequested += (_, args) => { if (args is WindowsWebView2EnvironmentRequestedEventArgs windows) windows.UserDataFolder = Path.Combine(cacheRoot, "PersistentHelpCache"); };
         _view.AdapterCreated += (_, _) => _view.NavigateToString(new MarkdownPreviewService().RenderDocument(_guide, null, _appearance));

@@ -17,7 +17,6 @@
     <Style Selector="Button.toolbar-icon:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
   </Window.Styles>
   <DockPanel>
-    <Border x:Name="HelpPanelHost" IsVisible="False" DockPanel.Dock="Right" Width="340" MinWidth="280" BorderThickness="1,0,0,0" BorderBrush="#8893A3" />
     <Border x:Name="ViewModeExitBar" DockPanel.Dock="Top" IsVisible="False" Padding="8,3">
       <StackPanel Orientation="Horizontal" Spacing="10">
         <TextBlock x:Name="ViewModeText" VerticalAlignment="Center" />
@@ -27,7 +26,7 @@
       </StackPanel>
     </Border>
     <Border x:Name="TopCommandBar" DockPanel.Dock="Top" Padding="6,3" Background="#1F2937" BorderBrush="#374151" BorderThickness="0,0,0,1">
-      <Grid x:Name="TitleCommandGrid" ColumnDefinitions="Auto,*">
+      <Grid x:Name="TitleCommandGrid" ColumnDefinitions="Auto,*,Auto">
         <WrapPanel x:Name="CommandPanel" Orientation="Horizontal">
           <WrapPanel.Styles>
             <Style Selector="Button">
@@ -168,8 +167,13 @@
           <Button Content="◎" AutomationProperties.Name="Show preview at editor caret" ToolTip.Tip="Navigate the preview to the caret's Markdown block" Click="ShowPreviewAtCaret_OnClick" />
         </WrapPanel>
         <Border x:Name="TitleDragRegion" Grid.Column="1" Background="Transparent" MinWidth="40" chrome:WindowDecorationProperties.ElementRole="TitleBar">
-          <TextBlock Text="Axiom" Margin="12,0" Opacity="0.65" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <TextBlock x:Name="CompactWindowTitle" Text="Axiom" Margin="12,0" Opacity="0.8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
         </Border>
+        <StackPanel x:Name="CompactCaptionButtons" Grid.Column="2" Orientation="Horizontal" IsVisible="False">
+          <Button Content="─" Width="46" Height="32" Padding="0" AutomationProperties.Name="Minimize Axiom" chrome:WindowDecorationProperties.ElementRole="MinimizeButton" Click="CaptionMinimize_OnClick" />
+          <Button Content="□" Width="46" Height="32" Padding="0" AutomationProperties.Name="Maximize or restore Axiom" chrome:WindowDecorationProperties.ElementRole="MaximizeButton" Click="CaptionMaximize_OnClick" />
+          <Button Content="×" Width="46" Height="32" Padding="0" AutomationProperties.Name="Close Axiom" chrome:WindowDecorationProperties.ElementRole="CloseButton" Click="CaptionClose_OnClick" />
+        </StackPanel>
       </Grid>
     </Border>
 
@@ -206,6 +210,7 @@
       </Grid>
     </Border>
 
+    <Border x:Name="HelpPanelHost" IsVisible="False" DockPanel.Dock="Right" Width="340" MinWidth="280" BorderThickness="1,0,0,0" BorderBrush="#8893A3" />
     <Grid x:Name="WorkbenchLayout" ColumnDefinitions="280,5,*,5,0,44">
       <Border x:Name="WorkspaceSidebar" BorderBrush="#374151" BorderThickness="0,0,1,0" Padding="8">
               <DockPanel>
@@ -232,7 +237,7 @@
                   <Separator Margin="0,6,0,0" />
                 </StackPanel>
                 <TextBlock x:Name="WorkspaceEmptyState" Margin="4" Opacity="0.7" Text="Open a workspace to browse Markdown documents." TextWrapping="Wrap" />
-                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" ContextRequested="Explorer_OnContextRequested" PointerPressed="Explorer_OnPointerPressed" PointerMoved="Explorer_OnPointerMoved" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
+                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" ContextRequested="Explorer_OnContextRequested" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
                   <TreeView.DataTemplates>
                     <TreeDataTemplate DataType="app:WorkspaceExplorerNode" ItemsSource="{Binding Children}">
                       <Grid ColumnDefinitions="32,*" Margin="0,3"><TextBlock Text="{Binding Icon}" FontWeight="SemiBold" Opacity="0.75" /><TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Description}" /></Grid>
@@ -251,10 +256,11 @@
       <GridSplitter x:Name="WorkspaceSplitter" Grid.Column="1" Width="5" ResizeDirection="Columns" PointerReleased="WorkbenchSplitter_OnPointerReleased" Background="#374151" />
       <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
         <ListBox x:Name="DocumentTabs" AutomationProperties.Name="Open document tabs" SelectionChanged="DocumentTabs_OnSelectionChanged"
-                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.AllowAutoHide="False">
           <ListBox.Styles>
             <Style Selector="ListBoxItem"><Setter Property="CornerRadius" Value="6,6,0,0" /><Setter Property="Margin" Value="2,2,2,0" /><Setter Property="Padding" Value="7,2" /><Setter Property="MinHeight" Value="30" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
             <Style Selector="ListBoxItem:selected"><Setter Property="BorderBrush" Value="#4F8EDC" /></Style>
+            <Style Selector="ListBoxItem:not(:selected)"><Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" /><Setter Property="BorderThickness" Value="1,1,1,2" /></Style>
           </ListBox.Styles>
           <ListBox.ItemsPanel>
             <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
@@ -274,7 +280,7 @@
             <Button Grid.Column="1" AutomationProperties.Name="Resolve external change" ToolTip.Tip="Compare and choose between local and disk text" Click="ResolveConflict_OnClick">Resolve…</Button>
           </Grid>
         </Border>
-        <Grid x:Name="EditorPreviewLayout" Grid.Row="2" ColumnDefinitions="*,5,*">
+        <Grid x:Name="EditorPreviewLayout" Grid.Row="2" ColumnDefinitions="*,5,*" ClipToBounds="True">
           <Grid x:Name="EditorPane">
             <avaloniaEdit:TextEditor x:Name="Editor" AutomationProperties.Name="Markdown editor"
                                      FontFamily="Cascadia Mono, Consolas" FontSize="15"
@@ -284,7 +290,7 @@
                        Text="Start typing Markdown, or open a document from the workspace." TextWrapping="Wrap" />
           </Grid>
           <GridSplitter x:Name="EditorPreviewSplitter" Grid.Column="1" Width="5" ResizeDirection="Columns" Background="#374151" />
-          <NativeWebView x:Name="Preview" Grid.Column="2" AutomationProperties.Name="Markdown preview" ToolTip.Tip="Rendered Markdown preview" />
+          <NativeWebView x:Name="Preview" Grid.Column="2" ClipToBounds="True" AutomationProperties.Name="Markdown preview" ToolTip.Tip="Rendered Markdown preview" />
         </Grid>
       </Grid>
       <GridSplitter x:Name="ToolWindowSplitter" Grid.Column="3" Width="5" ResizeDirection="Columns" PointerReleased="WorkbenchSplitter_OnPointerReleased" IsVisible="False" />

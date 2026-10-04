@@ -40,15 +40,13 @@ public partial class MainWindow
             await Clipboard.SetTextAsync(path);
             return new(CommandOutcome.Completed, "Workspace item path copied.");
         }, context => new(ExplorerCommandNode(context) is not null, "Select a saved workspace item first."));
-        RegisterCommand("workspace.showInExplorer", "Show workspace item in Explorer", null, false, (context, _) =>
+        RegisterCommand("workspace.showInExplorer", "Show workspace item in Explorer", null, false, async (context, _) =>
         {
             var path = ExplorerCommandPath(context);
             if (!OperatingSystem.IsWindows() || path is null || !File.Exists(path) && !Directory.Exists(path))
-                return Task.FromResult(new CommandResult(CommandOutcome.Unavailable, "Select an existing workspace item on Windows."));
-            var start = new ProcessStartInfo("explorer.exe") { UseShellExecute = true };
-            start.ArgumentList.Add("/select," + path);
-            Process.Start(start)?.Dispose();
-            return Task.FromResult(new CommandResult(CommandOutcome.Completed, "Workspace item shown in Explorer."));
+                return new CommandResult(CommandOutcome.Unavailable, "Select an existing workspace item on Windows.");
+            await WindowsExplorerReveal.ShowAsync(path);
+            return new CommandResult(CommandOutcome.Completed, "Workspace item shown in Explorer.");
         }, context => new(OperatingSystem.IsWindows() && ExplorerCommandNode(context) is not null, "Select a saved workspace item on Windows."));
         RegisterCommand("workspace.pinItem", "Pin or unpin selected workspace file", null, true, async (context, _) =>
         {

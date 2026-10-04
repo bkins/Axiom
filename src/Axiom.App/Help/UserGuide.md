@@ -1,6 +1,12 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 8740A895059ADFCBBD308BF02F5291C23E2FED7E2E06E1A29FF7205AEDF43FE9. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 10429A6A6A7F546E4F6DE515C4BD6E41DD8B7BB2C3B9B336819F8436C0F2ECF2. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## Windows interaction improvements in 1.0.31
+
+The compact title bar keeps the document title in its own region and provides Minimize, Maximize/Restore and Close buttons. Settings can switch back to the standard title bar. Inactive tabs have a distinct boundary and background; the horizontal scrollbar reserves its own row below the tabs.
+
+Help topics and search remain above the hosted Help content and accept mouse input. In the workspace tree, drag a file or folder onto its destination folder and review the move before continuing. Cancelling leaves the source and unsaved buffers unchanged; a move involving unsaved descendants still requires the normal save/discard decision. Refreshing the tree reveals the active document and its parent folders without clearing your filter. Show in Explorer selects the actual requested item, including names with spaces or commas.
 
 ## Toolbar and viewing modes in 1.0.30
 

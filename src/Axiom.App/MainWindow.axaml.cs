@@ -1204,6 +1204,7 @@ public partial class MainWindow : Window
         RefreshTabLabels();
         var name = _session.Path is null ? "Untitled" : Path.GetFileName(_session.Path);
         Title = $"{name}{(_session.IsDirty ? " *" : string.Empty)} — Axiom";
+        CompactWindowTitle.Text = Title;
         ShowInformation(status);
         EnrollButton.IsVisible = _session.DocumentId is null;
         UpdatePinButton();

@@ -108,9 +108,14 @@ public partial class MainWindow
     {
         ExtendClientAreaToDecorationsHint = compact && OperatingSystem.IsWindows();
         ExtendClientAreaTitleBarHeightHint = 36;
-        WindowDecorations = WindowDecorations.Full;
-        TitleCommandGrid.Margin = new Thickness(0, 0, ExtendClientAreaToDecorationsHint ? 150 : 0, 0);
+        WindowDecorations = ExtendClientAreaToDecorationsHint ? WindowDecorations.BorderOnly : WindowDecorations.Full;
+        CompactCaptionButtons.IsVisible = ExtendClientAreaToDecorationsHint;
+        TitleCommandGrid.Margin = new Thickness(0);
     }
+
+    private void CaptionMinimize_OnClick(object? sender, RoutedEventArgs args) => WindowState = WindowState.Minimized;
+    private void CaptionMaximize_OnClick(object? sender, RoutedEventArgs args) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    private void CaptionClose_OnClick(object? sender, RoutedEventArgs args) => Close();
 
     private void AddDisabledCommandHost(Button button, string id)
     {

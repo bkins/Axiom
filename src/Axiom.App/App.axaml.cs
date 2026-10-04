@@ -13,6 +13,11 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = AppComposition.CreateMainWindow();
+            if (WindowsInteractionProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await WindowsInteractionProbe.StartAsync(window);
+            }
             if (PersonalizationProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

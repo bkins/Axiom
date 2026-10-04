@@ -185,7 +185,7 @@ public partial class MainWindow
             node.Heading is null && node.RelativePath.Equals(previous.RelativePath, WorkspacePathBoundary.Comparison) &&
             node.IsGroup == previous.IsGroup && node.IsPinAlias == previous.IsPinAlias);
         if (restored is not null) FileTree.SelectedItem = restored;
-        else RevealActiveExplorerDocument();
+        RevealActiveExplorerDocument();
     }
 
     private WorkspaceExplorerNode? BuildExplorerNode(WorkspaceTreeNode source, string filter)
