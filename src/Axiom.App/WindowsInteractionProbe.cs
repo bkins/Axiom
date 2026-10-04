@@ -62,6 +62,7 @@ internal static partial class WindowsInteractionProbe
               , NativeFileAndFolderDragReviewedMove=true
               , ActiveNestedFileSelectedAfterRefresh=true
               , NativeExplorerFileSelectionWithSpacesAndComma=true
+              , NativeExplorerFolderAndWorkspaceSelection=true
               , SourceUndoRecoveryPreserved=true
               , HumanChecks="Physical interaction comfort, multiple DPI, screen readers, themes and final acceptance remain Ben's checks. Native probe uses Windows mouse and Unicode input, not direct control text assignment."
             },new JsonSerializerOptions { WriteIndented=true }));

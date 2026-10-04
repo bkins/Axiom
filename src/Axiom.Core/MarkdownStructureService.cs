@@ -18,7 +18,7 @@ public sealed class MarkdownStructureService
         var builder = new MarkdownPipelineBuilder()
         .UsePipeTables()
         .UseTaskLists()
-        .UseAlertBlocks((renderer, kind) => renderer.Write("<p class=\"markdown-alert-title\">").Write(System.Net.WebUtility.HtmlEncode(kind.ToString())).Write("</p>"))
+        .UseAlertBlocks((renderer, kind) => CalloutTitle.Write(renderer, kind.ToString(), kind.ToString()))
         .UsePreciseSourceLocation()
         .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
         .DisableHtml();
@@ -127,6 +127,7 @@ public sealed class MarkdownStructureService
         var renderer = new HtmlRenderer(writer);
         Pipeline.Setup(renderer);
         renderer.ObjectRenderers.Insert(0, new CalloutQuoteRenderer());
+        renderer.ObjectRenderers.Insert(0, new CSharpCodeRenderer());
         if (linkToken is null) { renderer.Render(document.Syntax); return writer.ToString(); }
         renderer.ObjectRenderers.Remove(renderer.ObjectRenderers.FindExact<LinkInlineRenderer>()!);
         renderer.ObjectRenderers.Insert(0, new PreviewLinkRenderer(document, linkToken));

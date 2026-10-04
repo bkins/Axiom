@@ -1,12 +1,24 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 10429A6A6A7F546E4F6DE515C4BD6E41DD8B7BB2C3B9B336819F8436C0F2ECF2. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 89D9602551D060037DDEEECF3A616B29F5D2C19B60FC41E1C70C249E7C2CBE83. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## Authoring improvements in 1.0.32
+
+Metadata has an information button immediately beside Tags, Type and Aliases. Each explains that field; information stays available when the current document is not eligible for editing. Classify filters and Workspace Search have the same label-level help, and relationship editing explains Target, Kind and Optional note. Apply and Cancel retain their existing meaning; reading information does not change metadata or Markdown.
+
+Tab on a list item nests it using the preceding parent's content column, including the extra space needed for ordered markers such as 10. A new ordered child starts at 1. Shift+Tab returns it to its parent level and sequence. Enter still continues the current marker; Shift+Enter inserts an explicit hard break. List-specific transformations skip fenced examples and the document identity line; ordinary code editing keeps its normal behavior. These changes are ordinary editor edits and undo in one step.
+
+Fences labelled csharp, c# or cs receive offline C# colouring in the editor and Preview: keywords, strings, comments and numbers. Colour follows Light/Dark/System appearance. This is lexical highlighting, without compilation, execution or diagnostics; other languages keep plain code. Individual code blocks above 1 MiB or beyond the token budget fall back to uncoloured source, preserving content. Export uses the existing readable code representation and does not promise syntax colours in every format.
+
+Right-click the editor for six groups: History (Undo/Redo), Clipboard, Inline formatting, Paragraphs and headings, Lists, and Insert. Spelling suggestions appear as an additional group when applicable. Commands retain the captured selection, availability reasons and normal Undo behavior.
+
+Known callouts (note, info, tip, important, warning, caution and danger) show a representative type icon and a title in Preview. The source marker is hidden from the rendered title/body, including quotes written without a space after >. A custom title is preserved; otherwise the type name is used. Body formatting, lists and nested quotes remain intact. Unknown types remain ordinary quoted text. Source Markdown retains its marker for portability; existing export representations are unchanged.
 
 ## Windows interaction improvements in 1.0.31
 
 The compact title bar keeps the document title in its own region and provides Minimize, Maximize/Restore and Close buttons. Settings can switch back to the standard title bar. Inactive tabs have a distinct boundary and background; the horizontal scrollbar reserves its own row below the tabs.
 
-Help topics and search remain above the hosted Help content and accept mouse input. In the workspace tree, drag a file or folder onto its destination folder and review the move before continuing. Cancelling leaves the source and unsaved buffers unchanged; a move involving unsaved descendants still requires the normal save/discard decision. Refreshing the tree reveals the active document and its parent folders without clearing your filter. Show in Explorer selects the actual requested item, including names with spaces or commas.
+Help topics and search remain above the hosted Help content and accept mouse input. In the workspace tree, drag a file or folder onto its destination folder and review the move before continuing. Cancelling leaves the source and unsaved buffers unchanged; a move involving unsaved descendants still requires the normal save/discard decision. Refreshing the tree reveals the active document and its parent folders without clearing your filter. Show in Explorer selects the actual requested item, including names with spaces or commas. The workspace context menu and command palette also provide Show workspace folder in Explorer to reveal the root folder itself.
 
 ## Toolbar and viewing modes in 1.0.30
 

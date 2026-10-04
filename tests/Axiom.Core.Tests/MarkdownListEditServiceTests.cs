@@ -1,10 +1,41 @@
 using Axiom.Core;
+using Markdig.Syntax;
 
 namespace Axiom.Core.Tests;
 
 public sealed class MarkdownListEditServiceTests
 {
     private readonly MarkdownListEditService _service = new();
+
+    [Theory]
+    [InlineData("1. Parent\n2. Child", "1. Parent\n   1. Child")]
+    [InlineData("10. Parent\n11. Child", "10. Parent\n    1. Child")]
+    [InlineData("- Parent\n- Child", "- Parent\n  - Child")]
+    [InlineData("- [x] Parent\n- [ ] Child", "- [x] Parent\n  - [ ] Child")]
+    public void TabUsesParentContentColumnAndStartsNewOrderedChildList(string source, string expected)
+    {
+        var result = _service.Apply(source, source.Length, 0, MarkdownListEditKind.Indent);
+        Assert.Equal(expected, result.Text);
+        Assert.Equal(expected.Length, result.SelectionStart);
+        var html = new MarkdownPreviewService().RenderDocument(result.Text, null);
+        Assert.Contains("Parent", html);
+        Assert.Contains("Child", html);
+        Assert.Contains(Markdig.Markdown.Parse(result.Text).Descendants<ListBlock>(), list => list.Parent is ListItemBlock);
+    }
+
+    [Theory]
+    [InlineData("1. Parent\n   1. Child", "1. Parent\n2. Child")]
+    [InlineData("10. Parent\n    1. Child", "10. Parent\n11. Child")]
+    [InlineData("- Parent\n  - Child", "- Parent\n- Child")]
+    public void ShiftTabReturnsToParentLevelAndOrderedSequence(string source, string expected)
+        => Assert.Equal(expected, _service.Apply(source, source.Length, 0, MarkdownListEditKind.Outdent).Text);
+
+    [Fact]
+    public void ListEditingNeverChangesFencedCodeExamples()
+    {
+        const string source = "```text\n- example\n```";
+        foreach (var kind in Enum.GetValues<MarkdownListEditKind>()) Assert.False(_service.Apply(source, 17, 0, kind).Changed);
+    }
 
     [Theory]
     [InlineData("- item", "- item\n- ")]

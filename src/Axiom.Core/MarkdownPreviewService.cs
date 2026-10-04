@@ -54,20 +54,24 @@ public sealed partial class MarkdownPreviewService
               color-scheme: light dark;
               --page: #111827; --text: #e5e7eb; --muted: #a8b3c4; --surface: #1f2937;
               --border: #4b5563; --accent: #93c5fd; --quote: #a78bfa; --heading-rule: #334155;
+              --alert-info: #93c5fd; --alert-tip: #86efac; --alert-warning: #fcd34d; --alert-danger: #fca5a5;
             }
             @media (prefers-color-scheme: light) {
               :root {
                 --page: #ffffff; --text: #1f2937; --muted: #526071; --surface: #f3f4f6;
                 --border: #cbd5e1; --accent: #1d4ed8; --quote: #6d28d9; --heading-rule: #e2e8f0;
+                --alert-info: #1d4ed8; --alert-tip: #166534; --alert-warning: #854d0e; --alert-danger: #b91c1c;
               }
             }
             html[data-theme="light"] {
               --page: #ffffff; --text: #1f2937; --muted: #526071; --surface: #f3f4f6;
               --border: #cbd5e1; --accent: #1d4ed8; --quote: #6d28d9; --heading-rule: #e2e8f0;
+              --alert-info: #1d4ed8; --alert-tip: #166534; --alert-warning: #854d0e; --alert-danger: #b91c1c;
             }
             html[data-theme="dark"] {
               --page: #111827; --text: #e5e7eb; --muted: #a8b3c4; --surface: #1f2937;
               --border: #4b5563; --accent: #93c5fd; --quote: #a78bfa; --heading-rule: #334155;
+              --alert-info: #93c5fd; --alert-tip: #86efac; --alert-warning: #fcd34d; --alert-danger: #fca5a5;
             }
             * { box-sizing: border-box; }
             html { background: var(--page); }
@@ -83,12 +87,29 @@ public sealed partial class MarkdownPreviewService
             code { font-family: "Cascadia Mono", Consolas, monospace; font-size: .92em; padding: .12em .32em; background: var(--surface); border-radius: 4px; }
             pre { padding: 15px 17px; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
             pre code { padding: 0; background: transparent; border-radius: 0; }
+            .csharp-keyword { color: #c4b5fd; } .csharp-string { color: #fca5a5; }
+            .csharp-comment { color: #86efac; } .csharp-number { color: #93c5fd; }
+            html[data-theme="light"] .csharp-keyword { color: #6d28d9; }
+            html[data-theme="light"] .csharp-string { color: #a32020; }
+            html[data-theme="light"] .csharp-comment { color: #166534; }
+            html[data-theme="light"] .csharp-number { color: #1d4ed8; }
+            @media (prefers-color-scheme: light) {
+              html[data-theme="system"] .csharp-keyword { color: #6d28d9; }
+              html[data-theme="system"] .csharp-string { color: #a32020; }
+              html[data-theme="system"] .csharp-comment { color: #166534; }
+              html[data-theme="system"] .csharp-number { color: #1d4ed8; }
+            }
             .mermaid-diagram { margin: 1em 0; overflow: auto; }
             .mermaid-diagram svg { max-width: 100%; height: auto; }
             .mermaid-diagram summary { cursor: pointer; color: var(--muted); font-size: .85em; }
             .mermaid-error { color: var(--text); border-left: 3px solid var(--border); padding-left: 10px; }
             .markdown-alert { border-left: 4px solid #5986c9; border-radius: 5px; padding: 10px 16px; margin: 1em 0; background: var(--surface); }
-            .markdown-alert-title { font-weight: 600; margin: 0 0 .4em; text-transform: capitalize; }
+            .markdown-alert-title { display: flex; align-items: center; gap: .5em; font-weight: 600; margin: 0 0 .4em; }
+            .callout-icon { flex: 0 0 1.2em; width: 1.2em; height: 1.2em; }
+            .markdown-alert-title { color: var(--alert-info); }
+            .markdown-alert-tip .markdown-alert-title { color: var(--alert-tip); }
+            .markdown-alert-warning .markdown-alert-title, .markdown-alert-caution .markdown-alert-title { color: var(--alert-warning); }
+            .markdown-alert-danger .markdown-alert-title { color: var(--alert-danger); }
             .markdown-alert-warning, .markdown-alert-caution, .markdown-alert-danger { border-color: #d99039; }
             .markdown-alert-tip, .markdown-alert-success { border-color: #499b78; }
             blockquote { border-left: 4px solid var(--quote); margin-left: 0; padding: .2em 0 .2em 1em; color: var(--muted); }

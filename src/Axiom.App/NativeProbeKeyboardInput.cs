@@ -6,6 +6,7 @@ namespace Axiom.App;
 internal struct NativeProbeKeyboardInput
 {
     [FieldOffset(0)] internal uint Type;
+    [FieldOffset(8)] internal ushort KeyCode;
     [FieldOffset(10)] internal ushort ScanCode;
     [FieldOffset(12)] internal uint Flags;
 }

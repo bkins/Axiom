@@ -324,21 +324,18 @@
                 <StackPanel Margin="4" Spacing="6">
                   <Button Content="Refresh saved identities" Click="ClassificationRefresh_OnClick" />
                   <TextBlock x:Name="MetadataRefreshStatus" TextWrapping="Wrap" AutomationProperties.Name="Saved identity refresh status" />
-                  <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock x:Name="MetadataStatus" TextWrapping="Wrap" />
-                    <Button Grid.Column="1" Content="ⓘ" VerticalAlignment="Top" AutomationProperties.Name="About tags type and aliases" ToolTip.Tip="How tags, type and aliases organize documents" Click="MetadataInfo_OnClick" />
-                  </Grid>
+                  <TextBlock x:Name="MetadataStatus" TextWrapping="Wrap" />
                   <TextBlock x:Name="MetadataGuidance" TextWrapping="Wrap" />
                   <Button x:Name="MetadataEnroll" Content="Make Axiom document" IsVisible="False" Click="Enroll_OnClick" />
                   <Button x:Name="MetadataSave" Content="Save document" IsVisible="False" Click="Save_OnClick" />
-                  <StackPanel x:Name="MetadataFields" Spacing="6" IsEnabled="False">
-                    <TextBlock Text="Tags (one per line)" />
+                  <StackPanel x:Name="MetadataFields" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Tags (one per line)" VerticalAlignment="Center" /><Button Content="ⓘ" Tag="Tags" Padding="4,0" MinHeight="22" AutomationProperties.Name="About Tags" ToolTip.Tip="About document tags" Click="MetadataInfo_OnClick" /></StackPanel>
                     <TextBox x:Name="MetadataTags" AcceptsReturn="True" MinHeight="50" MaxHeight="100" AutomationProperties.Name="Document tags" />
-                    <TextBlock Text="Type (optional)" />
+                    <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Type (optional)" VerticalAlignment="Center" /><Button Content="ⓘ" Tag="Type" Padding="4,0" MinHeight="22" AutomationProperties.Name="About Type" ToolTip.Tip="About document type" Click="MetadataInfo_OnClick" /></StackPanel>
                     <TextBox x:Name="MetadataType" AutomationProperties.Name="Document type" />
-                    <TextBlock Text="Aliases (one per line)" />
+                    <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Aliases (one per line)" VerticalAlignment="Center" /><Button Content="ⓘ" Tag="Aliases" Padding="4,0" MinHeight="22" AutomationProperties.Name="About Aliases" ToolTip.Tip="About document aliases" Click="MetadataInfo_OnClick" /></StackPanel>
                     <TextBox x:Name="MetadataAliases" AcceptsReturn="True" MinHeight="50" MaxHeight="100" AutomationProperties.Name="Document aliases" />
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel x:Name="MetadataActions" Orientation="Horizontal" Spacing="6">
                       <Button Content="Apply" Click="MetadataApply_OnClick" />
                       <Button Content="Cancel" Click="MetadataCancel_OnClick" />
                     </StackPanel>
@@ -352,8 +349,11 @@
             <TabItem x:Name="ClassificationTab" Header="Classify" AutomationProperties.Name="Classification and alias search">
               <DockPanel Margin="4">
                 <StackPanel DockPanel.Dock="Top" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Filter tags" VerticalAlignment="Center" /><Button Content="ⓘ" Tag="Filter tags" Padding="4,0" MinHeight="22" AutomationProperties.Name="About filter tags" Click="MetadataInfo_OnClick" /></StackPanel>
                   <TextBox x:Name="FilterTags" AcceptsReturn="True" PlaceholderText="All tags; one per line" AutomationProperties.Name="Filter by tags" />
+                  <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Filter type" VerticalAlignment="Center" /><Button Content="ⓘ" Tag="Filter type" Padding="4,0" MinHeight="22" AutomationProperties.Name="About filter type" Click="MetadataInfo_OnClick" /></StackPanel>
                   <TextBox x:Name="FilterType" PlaceholderText="Exact type (optional)" AutomationProperties.Name="Filter by type" />
+                  <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Filename or alias" VerticalAlignment="Center" /><Button Content="ⓘ" Tag="Filename or alias" Padding="4,0" MinHeight="22" AutomationProperties.Name="About filename or alias filter" Click="MetadataInfo_OnClick" /></StackPanel>
                   <TextBox x:Name="FilterText" PlaceholderText="Filename or alias" AutomationProperties.Name="Find filename or alias" />
                   <StackPanel Orientation="Horizontal" Spacing="6">
                     <Button Content="Filter" Click="ClassificationFilter_OnClick" />
@@ -370,6 +370,7 @@
             <TabItem Header="Search" AutomationProperties.Name="Workspace search" ToolTip.Tip="Search Markdown text in the active workspace">
               <DockPanel Margin="4">
                 <StackPanel DockPanel.Dock="Top" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Workspace search" VerticalAlignment="Center" /><Button Content="ⓘ" Tag="Workspace search" Padding="4,0" MinHeight="22" AutomationProperties.Name="About workspace search" Click="MetadataInfo_OnClick" /></StackPanel>
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBox x:Name="WorkspaceSearchBox" AutomationProperties.Name="Search workspace" PlaceholderText="Find text in workspace" />
                     <Button Grid.Column="1" Margin="6,0,0,0" AutomationProperties.Name="Run workspace search" ToolTip.Tip="Search the active workspace" Click="WorkspaceSearch_OnClick">Search</Button>

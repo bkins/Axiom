@@ -48,6 +48,13 @@ public partial class MainWindow
             await WindowsExplorerReveal.ShowAsync(path);
             return new CommandResult(CommandOutcome.Completed, "Workspace item shown in Explorer.");
         }, context => new(OperatingSystem.IsWindows() && ExplorerCommandNode(context) is not null, "Select a saved workspace item on Windows."));
+        RegisterCommand("workspace.showFolderInExplorer", "Show workspace folder in Explorer", null, false, async (context, _) =>
+        {
+            if (!OperatingSystem.IsWindows() || _folder is null || _activeWorkspace?.WorkspaceId != context.WorkspaceId)
+                return new(CommandOutcome.Unavailable, "Open a workspace on Windows first.");
+            await WindowsExplorerReveal.ShowAsync(_folder);
+            return new(CommandOutcome.Completed, "Workspace folder shown in Explorer.");
+        }, context => new(OperatingSystem.IsWindows() && context.WorkspaceId is not null, "Open a workspace on Windows first."));
         RegisterCommand("workspace.pinItem", "Pin or unpin selected workspace file", null, true, async (context, _) =>
         {
             var path = ExplorerCommandPath(context);
@@ -126,7 +133,7 @@ public partial class MainWindow
     private ContextMenu BuildWorkspaceContextMenu(CommandContext context, bool tab)
     {
         var ids = tab ? new[] { "document.close", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.pinItem", "workspace.copyFile", "workspace.copyPath", "workspace.showInExplorer" }
-            : new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.manage.recycle", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.copyPath", "workspace.showInExplorer" };
+            : new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.manage.recycle", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.copyPath", "workspace.showInExplorer", "workspace.showFolderInExplorer" };
         var menu = new ContextMenu();
         foreach (var id in ids)
         {

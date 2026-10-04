@@ -171,22 +171,12 @@ public partial class MainWindow
 
     private void MetadataInfo_OnClick(object? sender, RoutedEventArgs args)
     {
-        if (sender is not Control target) return;
-        var help = new Button { Content = "Read Metadata Help" };
-        var flyout = new Flyout
-        {
-            Content = new StackPanel
-            {
-                Width = 300
-              , Spacing = 8
-              , Children =
-                {
-                    new TextBlock { Text = "Tags group documents (for example Project or Decision). Type describes a document (for example Note). Aliases are alternate names used by Classify, not filenames. Enter one tag or alias per line, then Apply. Metadata does not change Markdown.", TextWrapping = TextWrapping.Wrap }
-                  , help
-                }
-            }
-        };
-        help.Click += async (_, _) => { flyout.Hide(); await ExecuteCommandAsync("help.metadata"); };
-        flyout.ShowAt(target);
+        if (sender is not Button target || target.Tag is not string field) return;
+        _fieldHelpFlyout?.Hide();
+        _fieldHelpFlyout = FieldHelp.Show(target, field);
     }
+
+    private Flyout? _fieldHelpFlyout;
+    internal Flyout? FieldHelpFlyoutForTesting => _fieldHelpFlyout;
+
 }

@@ -88,7 +88,16 @@ internal static partial class WindowsInteractionProbe
     {
         if(!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         var path=Path.Combine(workspace,"target","file with spaces, comma.md"); await File.WriteAllTextAsync(path,"Explorer bytes");
-        var result=await window.ExecuteExplorerCommandForTestingAsync("workspace.showInExplorer",Path.GetRelativePath(workspace,path));
+        foreach (var requested in new[] { path, Path.Combine(workspace, "target"), workspace })
+            await VerifyExplorerItemAsync(window, workspace, requested);
+    }
+
+    private static async Task VerifyExplorerItemAsync(MainWindow window, string workspace, string path)
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        var result = path == workspace
+            ? await window.ExecuteCommandAsync("workspace.showFolderInExplorer")
+            : await window.ExecuteExplorerCommandForTestingAsync("workspace.showInExplorer",Path.GetRelativePath(workspace,path), Directory.Exists(path));
         Require(result.Outcome==CommandOutcome.Completed,"Explorer shell call failed: "+result.Message+" "+result.Error);
         dynamic shell=Activator.CreateInstance(Type.GetTypeFromProgID("Shell.Application")!)!;
         for(var attempt=0;attempt<50;attempt++)

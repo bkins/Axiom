@@ -26,6 +26,14 @@ public sealed partial class MarkdownListEditService
         if (TouchesCanonicalIdentity(text, selectionStart, selectionLength))
             return Unchanged(text, selectionStart, selectionLength);
 
+        if (selectionLength == 0 && !ListItemRegex().IsMatch(text[FindLineStart(text, selectionStart)..FindLineEnd(text, selectionStart)]))
+            return Unchanged(text, selectionStart, selectionLength);
+
+        var end = selectionStart + Math.Max(1, selectionLength);
+        if (new MarkdownStructureService().Parse(text).Nodes.Any(node => node.Kind == DocumentStructureNodeKind.Code &&
+            selectionStart < node.Source.Offset + node.Source.Length && end > node.Source.Offset))
+            return Unchanged(text, selectionStart, selectionLength);
+
         return kind switch
         {
             MarkdownListEditKind.Continue => ContinueList(text, selectionStart, selectionLength),
@@ -93,11 +101,37 @@ public sealed partial class MarkdownListEditService
 
         if (!ContainsOnlyListContent(lines)) return Unchanged(text, start, length);
 
+        var first = ListItemRegex().Match(lines.First(line => !string.IsNullOrWhiteSpace(line)));
+        var baseIndent = first.Groups["indent"].Value.Length;
+        var preceding = LineSplitRegex().Split(text[..blockStart]).Reverse()
+            .TakeWhile(line => string.IsNullOrWhiteSpace(line) || ListItemRegex().IsMatch(line))
+            .Select(line => ListItemRegex().Match(line)).Where(match => match.Success).ToArray();
+        var parent = preceding.FirstOrDefault(match => outdent
+            ? match.Groups["indent"].Value.Length < baseIndent
+            : match.Groups["indent"].Value.Length == baseIndent);
+        var indentSize = parent is null ? IndentUnit.Length : outdent
+            ? baseIndent - parent.Groups["indent"].Value.Length
+            : parent.Groups["ordered"].Success ? parent.Groups["ordered"].Length :
+                parent.Groups["task"].Success ? parent.Groups["bullet"].Length + parent.Groups["bulletSpace"].Length : parent.Groups["unordered"].Length;
+        indentSize = Math.Max(1, indentSize);
+        long orderedNumber = 1;
+        if (outdent && parent?.Groups["ordered"].Success == true &&
+            long.TryParse(parent.Groups["number"].Value, out var number) && number < long.MaxValue)
+            orderedNumber = number + 1;
+
         var changed = false;
         for (var index = 0; index < lines.Length; index++)
         {
             var original = lines[index];
-            var updated = outdent ? RemoveIndentUnit(original) : IndentUnit + original;
+            var updated = outdent ? RemoveIndentUnit(original, indentSize) : new string(' ', indentSize) + original;
+            var item = ListItemRegex().Match(original);
+            if (parent is not null && item.Success && item.Groups["ordered"].Success && item.Groups["indent"].Value.Length == baseIndent)
+            {
+                var updatedItem = ListItemRegex().Match(updated);
+                var numberGroup = updatedItem.Groups["number"];
+                updated = updated[..numberGroup.Index] + orderedNumber.ToString(CultureInfo.InvariantCulture) + updated[(numberGroup.Index + numberGroup.Length)..];
+                if (orderedNumber < long.MaxValue) orderedNumber++;
+            }
             changed |= !updated.Equals(original, StringComparison.Ordinal);
             lines[index] = updated;
         }
@@ -108,10 +142,7 @@ public sealed partial class MarkdownListEditService
         if (length > 0)
             return Replace(text, blockStart, block.Length, replacement, blockStart, replacement.Length);
 
-        var removed = outdent ? block.Length - replacement.Length : 0;
-        var caret = outdent
-            ? Math.Max(blockStart, start - removed)
-            : start + IndentUnit.Length;
+        var caret = Math.Clamp(start + replacement.Length - block.Length, blockStart, blockStart + replacement.Length);
         return Replace(text, blockStart, block.Length, replacement, caret, 0);
     }
 
@@ -127,11 +158,11 @@ public sealed partial class MarkdownListEditService
         return hasListItem;
     }
 
-    private static string RemoveIndentUnit(string line)
+    private static string RemoveIndentUnit(string line, int size)
     {
         if (line.StartsWith('\t')) return line[1..];
         var spaces = 0;
-        while (spaces < IndentUnit.Length && spaces < line.Length && line[spaces] == ' ') spaces++;
+        while (spaces < size && spaces < line.Length && line[spaces] == ' ') spaces++;
         return line[spaces..];
     }
 

@@ -9,6 +9,7 @@ namespace Axiom.App;
 public partial class MainWindow
 {
     private readonly EnglishSpellingService _spelling = new();
+    private readonly CSharpSourceColorizer _csharpColorizer = new();
     private readonly EndOfLineElementGenerator _endOfLineMarkers = new();
     private readonly SpellingUnderlineRenderer _spellingRenderer = new();
     private readonly HashSet<string> _ignoredSpelling = new(StringComparer.OrdinalIgnoreCase);
@@ -40,6 +41,7 @@ public partial class MainWindow
             return new(CommandOutcome.Completed, "Inserted Unicode symbol.");
         });
         Editor.TextArea.TextView.BackgroundRenderers.Add(_spellingRenderer);
+        Editor.TextArea.TextView.LineTransformers.Add(_csharpColorizer);
         Editor.TextArea.TextView.ElementGenerators.Add(_endOfLineMarkers);
         Editor.ContextRequested += Editor_OnContextRequested;
         Closed += (_, _) => _spellingCancellation?.Cancel();
@@ -76,17 +78,10 @@ public partial class MainWindow
             var offset = Editor.Document.GetOffset(position.Line, position.Column);
             if (offset < Editor.SelectionStart || offset > Editor.SelectionStart + Editor.SelectionLength) Editor.Select(offset, 0);
         }
-        var menu = new ContextMenu();
         var context = CaptureCommandContext() with { EditorIsTarget = true };
-        foreach (var id in new[] { "editor.undo", "editor.redo", "editor.cut", "editor.copy", "editor.paste", "editor.insertSymbol", "editor.insertImage", "editor.pasteImage" }.Concat(Enum.GetValues<MarkdownEditKind>().Select(kind => "editor.format." + kind.ToString().ToLowerInvariant())))
-        {
-            var command = _commands.Commands.Single(command => command.Id == id);
-            var availability = _commands.GetAvailability(id, context);
-            var item = new MenuItem { Header = command.Title, IsEnabled = availability.Enabled };
-            if (!availability.Enabled) ToolTip.SetTip(item, availability.Reason);
-            item.Click += async (_, _) => await ExecuteCommandInContextAsync(id, context);
-            menu.Items.Add(item);
-        }
+        var menu = BuildEditorContextMenu(context);
+        _editorContextMenu?.Close();
+        _editorContextMenu = menu;
         var source = Editor.Text;
         var issue = _spellingRenderer.Issues.FirstOrDefault(item => Editor.CaretOffset >= item.Offset && Editor.CaretOffset <= item.Offset + item.Length);
         if (issue is not null)
@@ -126,4 +121,41 @@ public partial class MainWindow
         args.Handled = true;
     }
     internal IReadOnlyList<SpellingIssue> SpellingIssuesForTesting => _spellingRenderer.Issues;
+    internal IReadOnlyList<CSharpToken> CSharpTokensForTesting => _csharpColorizer.Tokens;
+
+    private ContextMenu BuildEditorContextMenu(CommandContext context)
+    {
+        var menu = new ContextMenu();
+        MenuItem Action(string id)
+        {
+            var command = _commands.Commands.Single(command => command.Id == id);
+            var availability = _commands.GetAvailability(id, context);
+            var item = new MenuItem
+            {
+                Header = command.Title
+              , IsEnabled = availability.Enabled
+              , Tag = id
+            };
+            if (!availability.Enabled) ToolTip.SetTip(item, availability.Reason);
+            item.Click += async (_, _) => await ExecuteCommandInContextAsync(id, context);
+            return item;
+        }
+        void Group(string title, params string[] ids)
+        {
+            var group = new MenuItem { Header = title };
+            foreach (var id in ids) group.Items.Add(Action(id));
+            menu.Items.Add(group);
+        }
+        Group("History", "editor.undo", "editor.redo");
+        Group("Clipboard", "editor.cut", "editor.copy", "editor.paste");
+        Group("Inline formatting", "editor.format.bold", "editor.format.italic", "editor.format.inlinecode", "editor.format.link");
+        Group("Paragraphs and headings", "editor.format.paragraph", "editor.format.heading1", "editor.format.heading2", "editor.format.heading3");
+        Group("Lists", "editor.format.unorderedlist", "editor.format.orderedlist", "editor.format.tasklist");
+        Group("Insert", "editor.format.fencedcode", "editor.format.table", "editor.format.horizontalrule", "editor.format.callout", "editor.format.hardbreak", "editor.insertSymbol", "editor.insertImage", "editor.pasteImage");
+        return menu;
+    }
+
+    internal ContextMenu EditorContextMenuForTesting() => BuildEditorContextMenu(CaptureCommandContext() with { EditorIsTarget = true });
+    private ContextMenu? _editorContextMenu;
+    internal ContextMenu? OpenEditorContextMenuForTesting => _editorContextMenu;
 }

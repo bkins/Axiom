@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Platform.Storage;
 using Axiom.Core;
 using Axiom.Infrastructure;
@@ -22,6 +23,9 @@ public partial class MainWindow
 
     private void InitializeClassification()
     {
+        var helpFields = new[] { "Tags", "Type", "Aliases", "Filter tags", "Filter type", "Filename or alias", "Workspace search" };
+        foreach (var button in this.GetLogicalDescendants().OfType<Button>())
+            if (button.Tag is string field && helpFields.Contains(field, StringComparer.Ordinal)) ToolTip.SetTip(button, FieldHelp.Text(field));
         if (_recovery is IClassificationStore store && _recovery is IDocumentMetadataStore identities)
             _classificationService = new(_files, identities, store);
         ClassificationResults.ItemsSource = _classificationResults;
@@ -112,7 +116,7 @@ public partial class MainWindow
             MetadataTags.Text = string.Join(Environment.NewLine, _panelValue?.Tags ?? []);
             MetadataType.Text = _panelValue?.Type ?? "";
             MetadataAliases.Text = string.Join(Environment.NewLine, _panelValue?.Aliases ?? []);
-            MetadataFields.IsEnabled = eligible && !_metadataApplying;
+            SetMetadataInputsEnabled(eligible && !_metadataApplying);
             MetadataEnroll.IsVisible = !eligible && _session.DocumentId is null;
             MetadataSave.IsVisible = !eligible && liveId is not null && liveId != saved?.DocumentId;
             MetadataGuidance.Text = eligible
@@ -153,7 +157,7 @@ public partial class MainWindow
         var id = _panelValue.DocumentId;
         _metadataApplying = true;
         SetSessionCommandsEnabled(false);
-        MetadataFields.IsEnabled = false;
+        SetMetadataInputsEnabled(false);
         try
         {
             if (DocumentIdentityPolicy.FindCanonical(tab.Session.Text) != id) throw new InvalidOperationException("The active identity changed. Save and refresh before applying.");
@@ -170,11 +174,16 @@ public partial class MainWindow
         {
             _metadataApplying = false;
             SetSessionCommandsEnabled(!_sessionTransitionRunning && !_navigationRunning);
-            if (!_panelPending) UpdateMetadataPanel(); else MetadataFields.IsEnabled = true;
+            if (!_panelPending) UpdateMetadataPanel(); else SetMetadataInputsEnabled(true);
         }
     }
 
     private async void MetadataApply_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("metadata.apply");
+
+    private void SetMetadataInputsEnabled(bool enabled)
+    {
+        MetadataTags.IsEnabled = MetadataType.IsEnabled = MetadataAliases.IsEnabled = MetadataActions.IsEnabled = enabled;
+    }
     private async void MetadataCancel_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("metadata.cancel");
     private async void ClassificationRefresh_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("metadata.refresh");
     private async void ClassificationFilter_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("metadata.filter");

@@ -36,7 +36,7 @@ public sealed partial class MainWindowTests
             Assert.Equal("Alternate; name", Assert.Single(metadata.Aliases));
             Assert.Equal(original, await File.ReadAllTextAsync(one));
             window.SetEditorTextForTesting(original.Replace(" -->", "\n -->", StringComparison.Ordinal));
-            Assert.False(window.FindControl<StackPanel>("MetadataFields")!.IsEnabled);
+            Assert.False(window.FindControl<TextBox>("MetadataTags")!.IsEnabled);
             Assert.False(await window.ApplyMetadataAsync());
             Assert.Equal(original, await File.ReadAllTextAsync(one));
             window.SetEditorTextForTesting(original);
@@ -44,14 +44,14 @@ public sealed partial class MainWindowTests
             window.MetadataChoiceForTesting = () => Task.FromResult("Discard");
             await window.OpenDocumentAsync(two);
             Assert.Equal(two, window.PathContextForTesting);
-            Assert.False(window.FindControl<StackPanel>("MetadataFields")!.IsEnabled);
+            Assert.False(window.FindControl<TextBox>("MetadataTags")!.IsEnabled);
             Assert.Null(Assert.Single(await store.GetClassificationsAsync()).Type);
             Assert.Contains("ordinary Markdown", window.FindControl<TextBlock>("MetadataGuidance")!.Text);
             Assert.True(window.FindControl<Button>("MetadataEnroll")!.IsVisible);
             window.FindControl<Button>("MetadataEnroll")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Assert.Equal("# Ordinary", await File.ReadAllTextAsync(two));
             Assert.True(window.FindControl<Button>("MetadataSave")!.IsVisible);
-            Assert.False(window.FindControl<StackPanel>("MetadataFields")!.IsEnabled);
+            Assert.False(window.FindControl<TextBox>("MetadataTags")!.IsEnabled);
             Assert.Contains("Save", window.FindControl<TextBlock>("MetadataGuidance")!.Text);
             window.UnsavedChoiceForTesting = _ => Task.FromResult("Discard");
             await window.ConfirmAllTabsForTestingAsync();

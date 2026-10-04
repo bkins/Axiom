@@ -10,6 +10,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--authoring-polish-probe" && args.Length == 2) AuthoringPolishProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--windows-interaction-probe" && args.Length == 2) WindowsInteractionProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--personalization-probe" && args.Length == 2) PersonalizationProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--authoring-assistance-probe" && args.Length == 2) AuthoringAssistanceProbe.Configure(args[1]);

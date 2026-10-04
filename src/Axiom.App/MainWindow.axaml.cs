@@ -580,6 +580,8 @@ public partial class MainWindow : Window
         _persistentHelp?.SetAppearance(_appearance);
         var dark = _appearance == AppearancePreference.Dark ||
             (_appearance == AppearancePreference.System && ActualThemeVariant == ThemeVariant.Dark);
+        _csharpColorizer.Dark = dark;
+        Editor.TextArea.TextView.Redraw();
         var page = MakeBrush(dark ? "#111827" : "#FFFFFF");
         var surface = MakeBrush(dark ? "#1F2937" : "#F3F4F6");
         var border = MakeBrush(dark ? "#374151" : "#CBD5E1");
@@ -1184,7 +1186,11 @@ public partial class MainWindow : Window
     private DocumentStructure GetCurrentStructure()
     {
         if (_structure is null || !string.Equals(_structure.SourceText, Editor.Text, StringComparison.Ordinal))
+        {
             _structure = _structureParser.Parse(Editor.Text, _structure);
+            _csharpColorizer.Update(_structure);
+            Editor.TextArea.TextView.Redraw();
+        }
         return _structure;
     }
 
