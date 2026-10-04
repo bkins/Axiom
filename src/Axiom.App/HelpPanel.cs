@@ -15,6 +15,8 @@ internal sealed class HelpPanel : UserControl
     private readonly ComboBox _topics;
     private readonly TextBox _search;
     private readonly string _markdown;
+    private readonly NativeHtmlContent _content;
+    private readonly TextBlock _contentStatus;
     private bool _ready;
     private bool _selectingMatch;
     private AppearancePreference _appearance;
@@ -33,7 +35,7 @@ internal sealed class HelpPanel : UserControl
         AutomationProperties.SetName(search, "Search offline Help headings and body");
         AutomationProperties.SetName(results, "Matching Help passages");
         AutomationProperties.SetName(_view, "Offline Help content");
-        var status = new TextBlock { Text = "Browse topics or search the offline guide.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        var status = _contentStatus = new TextBlock { Text = "Browse topics or search the offline guide.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         search.TextChanged += (_, _) =>
         {
             var matches = new HelpSearchService().Search(_markdown, search.Text ?? string.Empty);
@@ -72,9 +74,16 @@ internal sealed class HelpPanel : UserControl
         header.ZIndex = 1;
         Content = panel;
         _view.EnvironmentRequested += (_, args) => { if (args is WindowsWebView2EnvironmentRequestedEventArgs windows) windows.UserDataFolder = Path.Combine(cacheRoot, "PersistentHelpCache"); };
-        _view.AdapterCreated += (_, _) => _view.NavigateToString(new MarkdownPreviewService().RenderDocument(_guide, null, _appearance));
+        _content = new(Path.Combine(cacheRoot, "HelpHtml"));
+        DetachedFromVisualTree += (_, _) => _content.Dispose();
+        void LoadContent()
+        {
+            try { _content.Load(_view, new MarkdownPreviewService().RenderDocument(_guide, null, _appearance)); }
+            catch (Exception error) { status.Text = "Help content could not load: " + error.Message; }
+        }
+        _view.AdapterCreated += (_, _) => LoadContent();
         _view.NavigationCompleted += async (_, args) => { _ready = args.IsSuccess; await NavigateAsync(); };
-        _view.NavigationStarted += (_, args) => { if (args.Request is { } uri && uri.Scheme is not "about" and not "data") args.Cancel = true; };
+        _view.NavigationStarted += (_, args) => { if (args.Request is { } uri && uri.Scheme is not "about" and not "data" && !_content.Allows(uri)) args.Cancel = true; };
         _view.NewWindowRequested += (_, args) => args.Handled = true;
     }
 
@@ -92,7 +101,11 @@ internal sealed class HelpPanel : UserControl
     {
         if (_appearance == appearance) return;
         _appearance = appearance;
-        if (_ready) _view.NavigateToString(new MarkdownPreviewService().RenderDocument(_guide, null, _appearance));
+        if (_ready)
+        {
+            try { _content.Load(_view, new MarkdownPreviewService().RenderDocument(_guide, null, _appearance)); }
+            catch (Exception error) { _contentStatus.Text = "Help content could not load: " + error.Message; }
+        }
     }
 
     private async Task NavigateAsync(string? query = null, string? excerpt = null)

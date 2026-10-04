@@ -1,6 +1,12 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 89D9602551D060037DDEEECF3A616B29F5D2C19B60FC41E1C70C249E7C2CBE83. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: EE4963D05B3CBA69FAB6355091CA29FA5C71CED87E5F3386BC7D304BCC7E4916. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## Preview reliability in 1.0.33
+
+Large images and documents use a private temporary HTML file when Preview exceeds the native browser's string-loading budget. Your Markdown and image files remain unchanged. Only the exact generated file is allowed as an internal navigation target; external navigation restrictions still apply. Normal close removes this view's generated files. An unexpected exit can leave temporary HTML in the app's cache.
+
+Preview failures display a persistent status message while leaving the editor, Undo and recovery available. Reopening or switching the document retries Preview. After an unexpected exit, choose **Restore** if offered to recover protected unsaved text without overwriting its saved file. Open the portable **Axiom.App.exe** to use your existing app state; **Test-Axiom.cmd** uses separate test state.
 
 ## Authoring improvements in 1.0.32
 

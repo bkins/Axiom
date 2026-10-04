@@ -41,12 +41,17 @@ internal sealed class NativePdfExportRenderer(string cacheRoot) : IPdfExportRend
           , Title = "Axiom PDF export renderer"
         };
         var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var content = new NativeHtmlContent(Path.Combine(cacheRoot, "PdfHtml"));
         view.EnvironmentRequested += (_, args) =>
         {
             if (args is WindowsWebView2EnvironmentRequestedEventArgs windows)
                 windows.UserDataFolder = Path.Combine(cacheRoot, "PdfExportCache");
         };
-        view.AdapterCreated += (_, _) => view.NavigateToString(html);
+        view.AdapterCreated += (_, _) =>
+        {
+            try { content.Load(view, html); }
+            catch (Exception exception) { loaded.TrySetException(exception); }
+        };
         view.NavigationCompleted += (_, args) =>
         {
             if (args.IsSuccess) loaded.TrySetResult();
@@ -54,7 +59,7 @@ internal sealed class NativePdfExportRenderer(string cacheRoot) : IPdfExportRend
         };
         view.NavigationStarted += (_, args) =>
         {
-            if (args.Request is { } uri && uri.Scheme is not "about" and not "data") args.Cancel = true;
+            if (args.Request is { } uri && uri.Scheme is not "about" and not "data" && !content.Allows(uri)) args.Cancel = true;
         };
         view.NewWindowRequested += (_, args) => args.Handled = true;
         try

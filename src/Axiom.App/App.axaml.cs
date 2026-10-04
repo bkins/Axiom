@@ -13,6 +13,12 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = AppComposition.CreateMainWindow();
+            if (PreviewResilienceProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.RecoveryChoiceForTesting = _ => Task.FromResult("Restore");
+                window.Opened += async (_, _) => await PreviewResilienceProbe.StartAsync(window);
+            }
             if (AuthoringPolishProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

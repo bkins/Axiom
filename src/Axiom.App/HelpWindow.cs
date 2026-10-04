@@ -12,6 +12,7 @@ internal sealed class HelpWindow : Window
     private readonly NativeWebView _view = new() { Name = "OfflineHelpPreview" };
     private readonly ComboBox _topics;
     private bool _ready;
+    private readonly NativeHtmlContent _content;
 
     public HelpWindow(string? context, string cacheRoot, AppearancePreference appearance)
     {
@@ -27,11 +28,17 @@ internal sealed class HelpWindow : Window
         {
             if (args is WindowsWebView2EnvironmentRequestedEventArgs windows) windows.UserDataFolder = Path.Combine(cacheRoot, "OfflineHelpCache");
         };
-        _view.AdapterCreated += (_, _) => _view.NavigateToString(new MarkdownPreviewService().RenderDocument(guide, null, appearance));
+        _content = new(Path.Combine(cacheRoot, "HelpHtml"));
+        Closed += (_, _) => _content.Dispose();
+        _view.AdapterCreated += (_, _) =>
+        {
+            try { _content.Load(_view, new MarkdownPreviewService().RenderDocument(guide, null, appearance)); }
+            catch (Exception error) { Title = "Axiom Help — " + error.Message; }
+        };
         _view.NavigationCompleted += async (_, args) => { _ready = args.IsSuccess; await NavigateTopicAsync(); };
         _view.NavigationStarted += (_, args) =>
         {
-            if (args.Request is { } uri && uri.Scheme is not "about" and not "data") args.Cancel = true;
+            if (args.Request is { } uri && uri.Scheme is not "about" and not "data" && !_content.Allows(uri)) args.Cancel = true;
         };
         _view.NewWindowRequested += (_, args) => args.Handled = true;
         var close = new Button { Content = "Close" };

@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     private readonly IRecoveryStore _recovery;
     private readonly IAppearanceStore _appearanceStore;
     private readonly MarkdownPreviewService _preview;
+    private readonly NativeHtmlContent _nativePreviewHtml;
     private readonly ExternalFileMonitor _monitor;
     private readonly IAxiomLog _log;
     private readonly Func<Task> _markCleanExit;
@@ -88,6 +89,8 @@ public partial class MainWindow : Window
         _workspaceSearch = new WorkspaceSearchService(files);
         _recovery = recovery;
         _operationalPaths = (recovery as SqliteStateStore)?.Paths ?? new AppDataPaths();
+        _nativePreviewHtml = new(Path.Combine(_operationalPaths.Root, "HtmlPreview"));
+        Closed += (_, _) => _nativePreviewHtml.Dispose();
         _appearanceStore = appearanceStore;
         _appearance = Enum.IsDefined(appearance) ? appearance : AppearancePreference.System;
         _preview = preview;
@@ -154,7 +157,7 @@ public partial class MainWindow : Window
                 Dispatcher.UIThread.Post(async () => await HandlePreviewLinkAsync(link));
                 return;
             }
-            if (args.Request is { } uri && uri.Scheme is not "about" and not "data") args.Cancel = true;
+            if (args.Request is { } uri && uri.Scheme is not "about" and not "data" && !_nativePreviewHtml.Allows(uri)) args.Cancel = true;
         };
         Preview.NewWindowRequested += (_, args) => args.Handled = true;
         _previewTimer.Tick += (_, _) => RenderPreview(preservePosition: true);
@@ -825,9 +828,15 @@ public partial class MainWindow : Window
 
     private async void RenderPreview(bool preservePosition = false)
     {
+        try { await RenderPreviewAsync(preservePosition); }
+        catch (Exception exception) { ReportError("preview.render.failed", exception, _session.Path); }
+    }
+
+    private async Task RenderPreviewAsync(bool preservePosition)
+    {
         _previewTimer.Stop();
         var generation = ++_previewRenderGeneration;
-        if (!_previewReady) return;
+        if (!_previewReady || _closingApproved) return;
 
         double? scrollRatio = null;
         if (preservePosition)
@@ -868,8 +877,13 @@ public partial class MainWindow : Window
             }
         }
         _pendingPreviewScrollRatio = scrollRatio ?? _activeTab.PreviewScrollRatio;
-        Preview.NavigateToString(html);
+        if (generation != _previewRenderGeneration || _closingApproved) return;
+        if (PreviewNavigationForTesting is { } navigate) navigate(html);
+        else _nativePreviewHtml.Load(Preview, html);
     }
+
+    internal Action<string>? PreviewNavigationForTesting { get; set; }
+    internal void ReloadPreviewForTesting() => RenderPreview();
 
     private int? FindPreviewAnchorOffset(string source)
     {
