@@ -1,6 +1,10 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 48BEF9B3EF6DE2015C7E9963CB5E95CEEC464D5AE57D9FF9CEF9CCEDE46E7500. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 9048CF9DB50C4BB5DF959B43FC8EB6CBB00655BFCEA09BDBC98F04B9ADCF5AD7. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
+
+## Official Windows 1.1.0 release
+
+Ben accepted the cumulative 1.0.34 build on October 7, 2026 and promoted it to official 1.1.0. This preserves the same document workflows and schema-9 state. Shift+Enter inserts a hard break without a visible slash, Ctrl+S saves modified open tabs, and Workspace Files fills its intended panel height. Linux/macOS and signing remain on hold. Close the previous app normally, resolving unsaved/recovery choices, then open the official package's Axiom.App.exe; Test-Axiom.cmd continues to use isolated test state.
 
 ## Preview reliability in 1.0.33
 
