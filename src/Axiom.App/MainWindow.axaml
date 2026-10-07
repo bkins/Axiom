@@ -50,7 +50,7 @@
           <Button x:Name="BackButton" Content="←" AutomationProperties.Name="Navigate back" ToolTip.Tip="Return to the previous document location: Alt+Left" IsEnabled="False" Click="Back_OnClick" />
           <Button x:Name="ForwardButton" Content="→" AutomationProperties.Name="Navigate forward" ToolTip.Tip="Return to the next document location: Alt+Right" IsEnabled="False" Click="Forward_OnClick" />
           <Button Content="＋" AutomationProperties.Name="New document toolbar" ToolTip.Tip="New unsaved document — Ctrl+N" Click="New_OnClick" />
-          <Button Content="▣" AutomationProperties.Name="Save document toolbar" ToolTip.Tip="Save document — Ctrl+S" Click="Save_OnClick" />
+          <Button Content="▣" AutomationProperties.Name="Save document toolbar" ToolTip.Tip="Save current document; Ctrl+S saves all open tabs" Click="Save_OnClick" />
           <Button x:Name="ReadingModeButton" Classes="toolbar-icon" Content="◉" AutomationProperties.Name="Toggle reading mode" ToolTip.Tip="Reading mode — hide the editor: Ctrl+Shift+R" Click="ReadingMode_OnClick" />
           <Button Content="?" AutomationProperties.Name="Offline User Guide" ToolTip.Tip="Read the offline User Guide; F1 suggests a relevant topic" Click="Help_OnClick" />
           <Button Content="⚙" AutomationProperties.Name="Application settings" ToolTip.Tip="Configure editor font, wrapping, tab width and appearance" Click="Settings_OnClick" />
@@ -89,6 +89,7 @@
                   <MenuItem Header="Close Tab    Ctrl+W" AutomationProperties.Name="Close current document tab" Click="CloseActiveTab_OnClick" />
                   <MenuItem Header="Follow Markdown Link    Ctrl+Enter" AutomationProperties.Name="Follow Markdown link at editor caret" Click="FollowLink_OnClick" />
                   <MenuItem Header="Save" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
+                  <MenuItem Header="Save All    Ctrl+S" AutomationProperties.Name="Save all open documents" ToolTip.Tip="Save changes in all open document tabs" Click="SaveAll_OnClick" />
                   <MenuItem Header="Save As…" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />
                 </MenuItem>
                 <MenuItem Header="Export current buffer">
@@ -214,7 +215,7 @@
     <Grid x:Name="WorkbenchLayout" ColumnDefinitions="280,5,*,5,0,44">
       <Border x:Name="WorkspaceSidebar" BorderBrush="#374151" BorderThickness="0,0,1,0" Padding="8">
               <DockPanel>
-                <TextBlock x:Name="DuplicateWarning" DockPanel.Dock="Bottom" Margin="4,8,4,4" TextWrapping="Wrap" Foreground="#B45309" />
+                <TextBlock x:Name="DuplicateWarning" IsVisible="False" DockPanel.Dock="Bottom" Margin="4,8,4,4" TextWrapping="Wrap" Foreground="#B45309" />
                 <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="4">
                   <Grid ColumnDefinitions="*,Auto,Auto" Margin="4,0,0,3">
                     <TextBlock Text="Workspace Files" FontWeight="SemiBold" VerticalAlignment="Center" />

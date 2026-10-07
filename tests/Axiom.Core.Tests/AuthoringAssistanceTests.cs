@@ -20,14 +20,22 @@ public sealed class AuthoringAssistanceTests
         Assert.Contains("&gt; [!note] Literal code", html);
     }
     [Theory]
-    [InlineData("hello", 5, "hello\\\n")]
-    [InlineData("hello\r\nworld", 5, "hello\\\r\n\r\nworld")]
+    [InlineData("hello", 5, "hello  \n")]
+    [InlineData("hello\r\nworld", 5, "hello  \r\n\r\nworld")]
     [InlineData("```text\nhello\n```", 13, "```text\nhello\n\n```")]
     public void HardBreakPreservesNewlineConventionAndCode(string source, int caret, string expected)
     {
         var result = new MarkdownEditService().Apply(source, caret, 0, MarkdownEditKind.HardBreak);
         Assert.Equal(expected, result.Text);
         Assert.Equal(0, result.SelectionLength);
+    }
+
+    [Fact]
+    public void TrailingSpaceHardBreakRendersAsBreakInOrdinaryMarkdown()
+    {
+        var result = new MarkdownEditService().Apply("firstsecond", 5, 0, MarkdownEditKind.HardBreak);
+        Assert.Equal("first  \nsecond", result.Text);
+        Assert.Contains("<br", new MarkdownPreviewService().RenderDocument(result.Text, null));
     }
 
     [Fact]

@@ -16,12 +16,15 @@ public sealed record ShortcutConfiguration
                 throw new ArgumentException("Undo/redo retain their native editor bindings.");
             result[entry.Key] = string.IsNullOrWhiteSpace(entry.Value) ? null : Normalize(entry.Value);
         }
-        // 1.0.23 introduces this default. A pre-existing explicit binding wins without
+        // New defaults yield to pre-existing explicit bindings without
         // rewriting the saved configuration or discarding unrelated custom shortcuts.
-        if (!Overrides.ContainsKey("view.search") && result.TryGetValue("view.search", out var searchGesture)
-            && searchGesture is not null && Overrides.Keys.Any(id => id != "view.search"
-                && result.TryGetValue(id, out var gesture) && gesture == Normalize(searchGesture)))
-            result["view.search"] = null;
+        foreach (var commandId in new[] { "view.search", "document.saveAll" })
+        {
+            if (!Overrides.ContainsKey(commandId) && result.TryGetValue(commandId, out var defaultGesture)
+                && defaultGesture is not null && Overrides.Keys.Any(id => id != commandId
+                    && result.TryGetValue(id, out var gesture) && gesture == Normalize(defaultGesture)))
+                result[commandId] = null;
+        }
         var used = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in result.Where(entry => entry.Value is not null).ToArray())
         {

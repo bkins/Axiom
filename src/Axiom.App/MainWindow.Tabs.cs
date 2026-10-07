@@ -29,6 +29,30 @@ public partial class MainWindow
         tab.Session.Path is { } candidate &&
         Path.GetFullPath(candidate).Equals(Path.GetFullPath(path), WorkspacePathBoundary.Comparison));
 
+    private async Task<CommandResult> SaveAllDocumentsAsync()
+    {
+        if (!await ResolvePendingMetadataAsync())
+            return new(CommandOutcome.Cancelled, "Save All cancelled; working buffers retained.");
+        var saved = 0;
+        foreach (var tab in _tabs.ToArray())
+        {
+            if (!tab.Session.IsDirty) continue;
+            if (!await SaveDocumentAsync(false, tab))
+            {
+                var message = $"Save All stopped after saving {saved} documents; remaining unsaved buffers retained. Review {tab.Label}.";
+                UpdateChrome(message);
+                return new(CommandOutcome.Cancelled, message);
+            }
+            saved++;
+        }
+        var completed = saved == 0 ? "All open documents are already saved." : $"Saved all {saved} modified open documents.";
+        UpdateChrome(completed);
+        return new(CommandOutcome.Completed, completed);
+    }
+
+    private async void SaveAll_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        await ExecuteCommandAsync("document.saveAll");
+
     private DocumentStructure GetTabStructure(DocumentTab tab)
     {
         if (tab == _activeTab) return GetCurrentStructure();

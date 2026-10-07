@@ -8,7 +8,7 @@ public sealed partial class MarkdownEditService
     {
         var structure = new MarkdownStructureService().Parse(text);
         var inCode = structure.Syntax.Descendants<CodeBlock>().Any(block => start >= block.Span.Start && start <= block.Span.End);
-        var inserted = (inCode ? "" : "\\") + DetectNewline(text);
+        var inserted = (inCode ? "" : "  ") + DetectNewline(text);
         return Replace(text, start, length, inserted, start + inserted.Length, 0);
     }
 }

@@ -86,6 +86,7 @@ public partial class MainWindow
             if (duplicates.Count > 0) warnings.Add($"Identity warning: {duplicates.Count} copied document IDs must be made distinct when opened.");
             if (discovery.SkippedDirectories.Count > 0) warnings.Add($"Skipped {discovery.SkippedDirectories.Count} inaccessible or linked directories.");
             DuplicateWarning.Text = string.Join(Environment.NewLine, warnings);
+            DuplicateWarning.IsVisible = !string.IsNullOrWhiteSpace(DuplicateWarning.Text);
             UpdateEmptyStates();
             UpdateDurableStatus();
         }

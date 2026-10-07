@@ -103,6 +103,7 @@ public partial class MainWindow
             UpdatePinButton();
             DuplicateWarning.Text = snapshot.Duplicates.Count == 0 && snapshot.Discovery.SkippedDirectories.Count == 0 ? "" :
                 $"{snapshot.Duplicates.Count} duplicate identity groups; {snapshot.Discovery.SkippedDirectories.Count} skipped directories.";
+            DuplicateWarning.IsVisible = !string.IsNullOrWhiteSpace(DuplicateWarning.Text);
             ShowInformation($"Opened workspace {workspace.DisplayName} with {snapshot.Discovery.Files.Count} Markdown documents.");
             UpdateEmptyStates();
             UpdateDurableStatus();

@@ -60,4 +60,15 @@ public sealed class ShortcutConfigurationTests
         Assert.Throws<ArgumentException>(() => new ShortcutConfiguration { Overrides = new() { ["editor.undo"] = null } }.Resolve(commands));
         Assert.Throws<ArgumentException>(() => new ShortcutConfiguration { FormatVersion = 2 }.Resolve(commands));
     }
+
+    [Fact]
+    public void NewSaveAllDefaultPreservesExistingExplicitShortcuts()
+    {
+        var commands = new[] { Command("document.save", null!), Command("document.saveAll", "Ctrl+S") };
+        Assert.Equal("Ctrl+S", new ShortcutConfiguration().Resolve(commands)["document.saveAll"]);
+        var configuration = new ShortcutConfiguration { Overrides = new() { ["document.save"] = "Ctrl+S" } };
+        var resolved = configuration.Resolve(commands);
+        Assert.Equal("Ctrl+S", resolved["document.save"]);
+        Assert.Null(resolved["document.saveAll"]);
+    }
 }

@@ -43,7 +43,7 @@ internal static class AuthoringAssistanceProbe
             editor.Select(source.Length, 0);
             editor.TextArea.Focus();
             editor.TextArea.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter, KeyModifiers = KeyModifiers.Shift });
-            Require(window.EditorTextForTesting == source + "\\\n", "Shift+Enter did not insert an explicit hard break.");
+            Require(window.EditorTextForTesting == source + "  \n", "Shift+Enter did not insert an explicit hard break.");
             editor.Undo();
             Require(window.EditorTextForTesting == source, "Hard break did not undo in one step.");
             window.ApplyEditorPreferencesForTesting(new EditorPreferences { ShowNonPrintingCharacters = true, ShowPreviewLineNumbers = true });
@@ -68,6 +68,27 @@ internal static class AuthoringAssistanceProbe
             var workspace = Path.Combine(Root!, "workspace"); Directory.CreateDirectory(workspace);
             var path = Path.Combine(workspace, "document.md"); await File.WriteAllTextAsync(path, "# Saved\n");
             await window.SwitchWorkspaceAsync(workspace); await window.OpenDocumentAsync(path);
+            editor.Document.Insert(editor.Document.TextLength, "First edited tab");
+            var secondPath = Path.Combine(workspace, "second.md");
+            await File.WriteAllTextAsync(secondPath, "# Second\n");
+            await window.OpenDocumentAsync(secondPath);
+            editor.Document.Insert(editor.Document.TextLength, "Second edited tab");
+            editor.TextArea.Focus();
+            var saveAllKey = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.S, KeyModifiers = KeyModifiers.Control };
+            editor.TextArea.RaiseEvent(saveAllKey);
+            for (var attempt = 0; attempt < 100 && window.TabsForTesting.Any(tab => tab.Session.IsDirty); attempt++) await Task.Delay(50);
+            Require(saveAllKey.Handled && await File.ReadAllTextAsync(path) == "# Saved\nFirst edited tab"
+                && await File.ReadAllTextAsync(secondPath) == "# Second\nSecond edited tab", "Ctrl+S failed to save both open tabs.");
+            Require(window.EditorTextForTesting == "# Second\nSecond edited tab" && editor.CanUndo, "Save All changed the active buffer or Undo.");
+            await window.OpenDocumentAsync(path);
+            window.SetEditorTextForTesting("# Saved\n");
+            await window.ExecuteCommandAsync("document.save");
+            window.UpdateLayout();
+            var sidebar = window.FindControl<Border>("WorkspaceSidebar")!;
+            var tree = window.FindControl<TreeView>("FileTree")!;
+            Require(!window.FindControl<TextBlock>("DuplicateWarning")!.IsVisible
+                && Math.Abs(tree.Bounds.Bottom - (sidebar.Bounds.Height - sidebar.Padding.Top - sidebar.Padding.Bottom)) < 1,
+                "Workspace Files retains an empty warning gap.");
             window.ClipboardImageForTesting = () =>
             {
                 using var stream = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Axiom.App/Assets/Axiom.png"));
@@ -102,7 +123,7 @@ internal static class AuthoringAssistanceProbe
                 screenshot.Render(window);
                 screenshot.Save(Path.Combine(Root!, "authoring-dark-avalonia-surface.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             }
-            await File.WriteAllTextAsync(Path.Combine(Root!, "result.json"), JsonSerializer.Serialize(new { Version = window.BuildIdentityForTesting.DisplayText, MermaidValidAndInvalid = true, SourcePreserved = true, ShiftEnterAndUndo = true, CurrentLine = true, NonPrintingMarkers = true, OfflineProseSpellCheck = true, UnicodeSearchKeyboardMultiCodepointAndUndo = true, ClipboardFixtureAssetImportAndUndo = true, HumanClipboardFormatsPending = true, AllSixExportsSourceFallbackAndWarning = true, ThemeRefresh = true, Status = status }, new JsonSerializerOptions { WriteIndented = true }));
+            await File.WriteAllTextAsync(Path.Combine(Root!, "result.json"), JsonSerializer.Serialize(new { Version = window.BuildIdentityForTesting.DisplayText, SaveAllTabsAndActiveUndo = true, WorkspaceBottomGapRemoved = true, MermaidValidAndInvalid = true, SourcePreserved = true, ShiftEnterAndUndo = true, CurrentLine = true, NonPrintingMarkers = true, OfflineProseSpellCheck = true, UnicodeSearchKeyboardMultiCodepointAndUndo = true, ClipboardFixtureAssetImportAndUndo = true, HumanClipboardFormatsPending = true, AllSixExportsSourceFallbackAndWarning = true, ThemeRefresh = true, Status = status }, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception exception) { await File.WriteAllTextAsync(Path.Combine(Root!, "error.txt"), exception.ToString()); }
         finally { window.UnsavedChoiceForTesting = _ => Task.FromResult("Discard"); window.Close(); }

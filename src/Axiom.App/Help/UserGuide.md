@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: EE4963D05B3CBA69FAB6355091CA29FA5C71CED87E5F3386BC7D304BCC7E4916. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 48BEF9B3EF6DE2015C7E9963CB5E95CEEC464D5AE57D9FF9CEF9CCEDE46E7500. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -50,7 +50,7 @@ This initial workflow covers local changes, saved/staged diffs, deliberate stage
 
 ## Authoring assistance in 1.0.28
 
-Ordinary Enter retains normal Markdown behavior. Shift+Enter inserts a visible hard break using a backslash and the document's newline convention; inside fenced code it inserts a literal newline. One Undo reverses it. The editor context menu includes existing formatting plus table, horizontal rule, note callout, hard break, clipboard actions and symbol insertion. Right-click inside a selection retains it; keyboard invocation uses the current selection/caret. The identity line remains protected from these formatting operations.
+Ordinary Enter retains normal Markdown behavior. Shift+Enter inserts a standard Markdown hard break using two trailing spaces and the document's newline convention; inside fenced code it inserts a literal newline. One Undo reverses it. The editor context menu includes existing formatting plus table, horizontal rule, note callout, hard break, clipboard actions and symbol insertion. Right-click inside a selection retains it; keyboard invocation uses the current selection/caret. The identity line remains protected from these formatting operations.
 
 Settings offers a subtle current-line highlight (on by default), non-printing spaces/tabs/line-ending markers (off by default), offline English (US) spell-check, a personal dictionary, optional Go to editor navigation and corresponding source block-start line numbers. Ctrl+Shift+N toggles saved non-printing-character display. These markers never change document bytes. Go to editor replaces the former Source label and navigates to the corresponding dirty Markdown block; line numbers refer to actual source lines, including hidden identity metadata, and navigation annotations stay out of exports.
 
@@ -166,7 +166,7 @@ In accepted 1.0.4 and later, startup restores the active remembered workspace an
 1. Open **File…**, select **Open Workspace…**, and choose a document folder. Axiom adopts the folder as its active workspace and remembers workspace-owned state locally.
 2. Expand folders in the **Files** tab and double-click a `.md` or `.markdown` document, or choose **File… > New**. Folders appear before documents at each level.
 3. Edit source on the left and read the live preview on the right.
-4. Use **File… > Save** (`Ctrl+S`) or **File… > Save As…** (`Ctrl+Shift+S`) when the Markdown file should change. Undo and Redo are under **Edit…**.
+4. Use **File… > Save** for the current document, **File… > Save All** (`Ctrl+S`) for all modified open tabs, or **File… > Save As…** (`Ctrl+Shift+S`) for another destination. Save All prompts for modified untitled documents and stops on cancellation or save failure, preserving remaining dirty buffers and the selected tab. Existing explicit custom shortcut bindings retain precedence; use Keyboard Shortcuts to bind Save All if Ctrl+S was customized. Undo and Redo are under **Edit…**.
 
 While you edit the current document, Axiom keeps the preview near the same proportional reading position after live updates. Opening or reloading another document starts that document at its own preview position. Wide tables scroll inside the preview, and large images scale down to the available width.
 
