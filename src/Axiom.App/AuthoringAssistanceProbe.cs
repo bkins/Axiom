@@ -76,13 +76,14 @@ internal static class AuthoringAssistanceProbe
             editor.TextArea.Focus();
             var saveAllKey = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.S, KeyModifiers = KeyModifiers.Control };
             editor.TextArea.RaiseEvent(saveAllKey);
-            for (var attempt = 0; attempt < 100 && window.TabsForTesting.Any(tab => tab.Session.IsDirty); attempt++) await Task.Delay(50);
+            for (var attempt = 0; attempt < 100 && window.FindControl<TextBlock>("StatusText")!.Text != "Saved all 2 modified open documents."; attempt++) await Task.Delay(50);
+            Require(window.FindControl<TextBlock>("StatusText")!.Text == "Saved all 2 modified open documents.", "Save All did not finish its workflow.");
             Require(saveAllKey.Handled && await File.ReadAllTextAsync(path) == "# Saved\nFirst edited tab"
                 && await File.ReadAllTextAsync(secondPath) == "# Second\nSecond edited tab", "Ctrl+S failed to save both open tabs.");
             Require(window.EditorTextForTesting == "# Second\nSecond edited tab" && editor.CanUndo, "Save All changed the active buffer or Undo.");
             await window.OpenDocumentAsync(path);
             window.SetEditorTextForTesting("# Saved\n");
-            await window.ExecuteCommandAsync("document.save");
+            Require((await window.ExecuteCommandAsync("document.save")).Outcome == CommandOutcome.Completed, "Fixture reset save failed.");
             window.UpdateLayout();
             var sidebar = window.FindControl<Border>("WorkspaceSidebar")!;
             var tree = window.FindControl<TreeView>("FileTree")!;
