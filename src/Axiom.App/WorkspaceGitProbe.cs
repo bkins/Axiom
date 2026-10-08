@@ -77,7 +77,9 @@ internal static class WorkspaceGitProbe
             Click(browser, "Stage selected…");
             Click(await WaitForWindowAsync<ChoiceDialog>(), "Continue");
             await WaitAsync(() => Rows(browser).Any(file => file.RelativePath == "notes.md" && file.IndexStatus == "M"));
-            Require(Rows(browser).All(file => file.RelativePath != "unrelated.txt") && File.Exists(assetPath), "Git refresh exposed or changed the unrelated file.");
+            Require(browser.StagedFiles.SelectedItems!.Cast<GitChangedFile>().Any(file => file.RelativePath == "notes.md"), "Staging did not carry selection into Staged Changes.");
+            Require(browser.ChangedFiles.Items.Cast<GitChangedFile>().All(file => file.RelativePath != "notes.md"), "Fully staged notes remained in Changes.");
+            Require(Rows(browser).All(file => file.RelativePath != "unrelated.txt") && browser.UnsupportedFiles.Items.Cast<GitChangedFile>().Any(file => file.RelativePath == "unrelated.txt") && File.Exists(assetPath), "Git refresh exposed an unsupported selection or changed the unrelated file.");
             Select(browser, "notes.md");
             Click(browser, "Unstage selected…");
             Click(await WaitForWindowAsync<ChoiceDialog>(), "Continue");
@@ -124,6 +126,8 @@ internal static class WorkspaceGitProbe
               , CommitCancellationPreservedHead = true
               , SelectedOnlyBranchCommit = true
               , UnrelatedIndexAndWorkingBytesPreserved = true
+              , UnsupportedRowsNotSelectable = true
+              , StageCarriesCommitSelection = true
               , HumanChecks = "Physical keyboard/focus, screen reader, DPI/themes and human release acceptance remain pending."
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
@@ -159,8 +163,14 @@ internal static class WorkspaceGitProbe
     private static IEnumerable<Window> Windows() => ((IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows;
     private static Button FindButton(Control window, string label) => window.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, label));
     private static void Click(Control window, string label) => FindButton(window, label).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-    private static IReadOnlyList<GitChangedFile> Rows(Control window) => window.GetLogicalDescendants().OfType<ListBox>().Single().ItemsSource!.Cast<GitChangedFile>().ToArray();
-    private static void Select(Control window, string path) => window.GetLogicalDescendants().OfType<ListBox>().Single().SelectedItem = Rows(window).Single(file => file.RelativePath == path);
+    private static IReadOnlyList<GitChangedFile> Rows(WorkspaceGitView view) => view.ChangedFiles.Items.Cast<GitChangedFile>().Concat(view.StagedFiles.Items.Cast<GitChangedFile>()).ToArray();
+    private static void Select(WorkspaceGitView view, string path)
+    {
+        var staged = view.StagedFiles.Items.Cast<GitChangedFile>().SingleOrDefault(file => file.RelativePath == path);
+        var working = view.ChangedFiles.Items.Cast<GitChangedFile>().SingleOrDefault(file => file.RelativePath == path);
+        if (staged is not null) view.StagedFiles.SelectedItem = staged;
+        if (working is not null) view.ChangedFiles.SelectedItem = working;
+    }
     private static async Task<TWindow> WaitForWindowAsync<TWindow>() where TWindow : Window
     {
         await WaitAsync(() => Windows().OfType<TWindow>().Any());

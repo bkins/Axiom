@@ -96,7 +96,7 @@ public sealed partial class MainWindowTests
     }
 
     [AvaloniaFact]
-    public void GitPanelShowsOnlyMarkdownIncludingUnsupportedMarkdownForExplanation()
+    public void GitPanelSeparatesWorkingStagedAndUnsupportedRows()
     {
         var files = new[]
         {
@@ -105,10 +105,14 @@ public sealed partial class MainWindowTests
           , new GitChangedFile("renamed.md", "renamed.md", "R", " ", "old.md", false, "Review rename in external Git.")
           , new GitChangedFile("image.png", "image.png", "?", "?", null, false, "Not Markdown.")
           , new GitChangedFile("settings.json", "settings.json", "M", " ", null, false, "Not Markdown.")
+          , new GitChangedFile("partial.md", "partial.md", "M", "M", null, true, null)
         };
         var snapshot = new GitRepositorySnapshot("C:/workspace", "C:/workspace", "refs/heads/main", null, "index", "hash", files, true, null);
         var view = new WorkspaceGitView(new Window(), new GitWorkspaceService(), snapshot, _ => false, () => true, () => { });
-        Assert.Equal(new[] { "note.md", "other.MARKDOWN", "renamed.md" }, view.ChangedFiles.Items.Cast<GitChangedFile>().Select(file => file.RelativePath));
-        Assert.Equal(5, snapshot.Files.Count);
+        Assert.Equal(new[] { "other.MARKDOWN", "partial.md" }, view.ChangedFiles.Items.Cast<GitChangedFile>().Select(file => file.RelativePath));
+        Assert.Equal(new[] { "note.md", "partial.md" }, view.StagedFiles.Items.Cast<GitChangedFile>().Select(file => file.RelativePath));
+        Assert.Equal(new[] { "renamed.md", "image.png", "settings.json" }, view.UnsupportedFiles.Items.Cast<GitChangedFile>().Select(file => file.RelativePath));
+        Assert.IsNotType<ListBox>(view.UnsupportedFiles);
+        Assert.Equal(6, snapshot.Files.Count);
     }
 }

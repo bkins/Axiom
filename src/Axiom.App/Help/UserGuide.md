@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: C1273A295D3CF3D321DCFE81DD744EC1B01306C39A8DB0AB70CC33D6BB1E044A. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 942D6AB9EBDD966808EFD2837CD6AED377D2658F67112FFAAF82F3F9EDE566F0. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -45,7 +45,9 @@ The final 1.0.30 candidate includes all preceding October 3 findings, including 
 
 Workspace Git opens the Git Changes tool panel in the main workbench. Use its branch icon in the right rail or the workspace.git command. Repository details and limits expand on demand. Select changed saved Markdown files to review Saved diff (HEAD against disk) or Staged diff (HEAD against index). The read-only comparison remains beside the editor and shows added/removed/unchanged lines, both line numbers and newline markers. Refresh clears old diff output and loads current Git status.
 
-Stage/Unstage operates only on explicitly selected supported saved Markdown files, with review confirmation. Dirty or conflicted editor buffers cannot be staged or committed. You can continue editing while the panel is open; availability updates when a buffer changes. Enter a commit message in the panel, choose Commit selected staged or Ctrl+Enter, and review the final branch/files/message confirmation. Cancel preserves HEAD. A selected-only local commit retains unrelated staging and working files. No automatic Save occurs.
+Changes lists supported saved Markdown changes to stage. Staged Changes lists supported index entries to commit or unstage. Fully staged files move to Staged Changes and remain selected for committing; a file with further saved edits appears in both lists. Previously selected staged files stay selected after Refresh. Review the selected staged paths in the final confirmation. Unsupported entries appear in the non-selectable Requires external Git section with their reasons.
+
+Stage/Unstage operates only on explicitly selected supported saved Markdown files, with review confirmation. Selected staging is a single reviewed batch: cancellation or a failed review before publication leaves the index unchanged. Dirty or conflicted editor buffers cannot be staged or committed. You can continue editing while the panel is open; availability updates when a buffer changes. Enter a commit message in the panel, choose Commit selected staged or Ctrl+Enter, and review the final branch/files/message confirmation. Cancel preserves HEAD. A selected-only local commit retains unrelated staging and working files. No automatic Save occurs.
 
 Close or Escape collapses the panel and returns editor focus; Escape during a Git operation cancels that operation. Completed operations remain completed, so refresh before retrying a cancelled sequence. Switching/forgetting the workspace clears the stale panel and cancels its pending operation; reopened Git inspects the current workspace. Panel choice/width use the existing workbench layout settings. If a restored Git panel has no current snapshot, choose Open workspace Git.
 

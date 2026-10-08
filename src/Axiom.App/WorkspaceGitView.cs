@@ -11,6 +11,8 @@ internal sealed class WorkspaceGitView : UserControl
     internal Action RefreshAvailability { get; private set; } = () => { };
     internal Action CancelOperation { get; private set; } = () => { };
     internal ListBox ChangedFiles { get; }
+    internal ListBox StagedFiles { get; }
+    internal ItemsControl UnsupportedFiles { get; }
     internal TextBox DiffText { get; }
     internal TextBox CommitMessage { get; }
     internal bool IsBusy { get; private set; }
@@ -19,8 +21,10 @@ internal sealed class WorkspaceGitView : UserControl
         var current = initial;
         var busy = false;
         CancellationTokenSource? operation = null;
-        var list = new ListBox { ItemsSource = MarkdownFiles(current), SelectionMode = SelectionMode.Multiple };
+        var list = new ListBox { ItemsSource = WorkingFiles(current), SelectionMode = SelectionMode.Multiple };
         ChangedFiles = list;
+        StagedFiles = new ListBox { ItemsSource = IndexFiles(current), SelectionMode = SelectionMode.Multiple, MinHeight = 60, MaxHeight = 160 };
+        UnsupportedFiles = new ItemsControl { ItemsSource = ExternalFiles(current) };
         list.MinHeight = 100;
         list.MaxHeight = 200;
         list.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<GitChangedFile>((file, _) => new TextBlock
@@ -28,7 +32,11 @@ internal sealed class WorkspaceGitView : UserControl
             Text = file is null ? "" : $"Index {file.IndexStatus} / Saved {file.WorkingStatus}  {file.RelativePath}\n{file.Reason ?? (dirty(file.RelativePath) ? "Unsaved/conflicted buffer — save or resolve it before Git changes." : "") }"
           , TextWrapping = Avalonia.Media.TextWrapping.Wrap
         });
+        StagedFiles.ItemTemplate = list.ItemTemplate;
+        UnsupportedFiles.ItemTemplate = list.ItemTemplate;
         Avalonia.Automation.AutomationProperties.SetName(list, "Changed repository files; select documents explicitly for Git operations");
+        Avalonia.Automation.AutomationProperties.SetName(StagedFiles, "Staged Changes; select staged documents to commit or unstage");
+        Avalonia.Automation.AutomationProperties.SetName(UnsupportedFiles, "Requires external Git; informational files and reasons");
         var header = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var status = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var refresh = new Button { Content = "Refresh" };
@@ -44,32 +52,44 @@ internal sealed class WorkspaceGitView : UserControl
         CommitMessage = new TextBox { AcceptsReturn = true, MinHeight = 50, MaxHeight = 90, PlaceholderText = "Commit message for selected staged documents" };
         Avalonia.Automation.AutomationProperties.SetName(CommitMessage, "Local Git commit message");
         GitChangedFile[] Selected() => list.SelectedItems?.OfType<GitChangedFile>().ToArray() ?? [];
+        GitChangedFile[] SelectedStaged() => StagedFiles.SelectedItems?.OfType<GitChangedFile>().ToArray() ?? [];
         void Update()
         {
             IsBusy = busy;
             header.Text = $"Branch: {current.BranchReference}\nHEAD: {current.Head ?? "unborn"}";
             ToolTip.SetTip(header, "Repository: " + current.RepositoryRoot + "\n" + current.Reason);
             var selected = Selected();
+            var selectedStaged = SelectedStaged();
             var manageable = !busy && contextValid() && current.CanMutate && selected.Length > 0 && selected.All(file => file.CanManage && !dirty(file.RelativePath));
             stage.IsEnabled = manageable;
-            unstage.IsEnabled = manageable && selected.All(file => file.IndexStatus is not " " and not "?");
+            unstage.IsEnabled = !busy && contextValid() && current.CanMutate && selectedStaged.Length > 0 && selectedStaged.All(file => file.CanManage && !dirty(file.RelativePath));
             commit.IsEnabled = unstage.IsEnabled && !string.IsNullOrWhiteSpace(CommitMessage.Text);
-            workingDiff.IsEnabled = stagedDiff.IsEnabled = !busy && contextValid() && selected.Length == 1 && selected[0].CanManage;
+            workingDiff.IsEnabled = !busy && contextValid() && selected.Length == 1 && selected[0].CanManage;
+            stagedDiff.IsEnabled = !busy && contextValid() && selectedStaged.Length == 1 && selectedStaged[0].CanManage;
             refresh.IsEnabled = !busy && contextValid();
-            close.IsEnabled = list.IsEnabled = CommitMessage.IsEnabled = !busy;
+            close.IsEnabled = list.IsEnabled = StagedFiles.IsEnabled = CommitMessage.IsEnabled = !busy;
             cancel.IsEnabled = busy;
             var reason = busy ? "A Git operation is running; cancel it or wait." : !contextValid() ? "The workspace changed or a document operation is running." : !current.CanMutate ? current.Reason ?? "Repository requires external Git." : selected.Length == 0 ? "Select saved Markdown files first." : selected.Any(file => dirty(file.RelativePath)) ? "A selected buffer is unsaved or conflicted; save or resolve it first." : "The selected files are unsupported for this Git operation.";
             foreach (var button in new[] { stage, unstage, workingDiff, stagedDiff, commit })
             {
-                var message = button == commit && unstage.IsEnabled && string.IsNullOrWhiteSpace(CommitMessage.Text) ? "Enter a commit message first." : reason;
+                var relevant = button == commit || button == unstage || button == stagedDiff ? selectedStaged : selected;
+                var message = button == commit && unstage.IsEnabled && string.IsNullOrWhiteSpace(CommitMessage.Text) ? "Enter a commit message first."
+                    : !busy && contextValid() && current.CanMutate && relevant.Length == 0 ? "Select documents in " + (button == commit || button == unstage || button == stagedDiff ? "Staged Changes." : "Changes.")
+                    : relevant.Any(file => dirty(file.RelativePath)) ? "A selected buffer is unsaved or conflicted; save or resolve it first." : reason;
                 ToolTip.SetTip(button, button.IsEnabled ? null : message);
                 Avalonia.Automation.AutomationProperties.SetHelpText(button, button.IsEnabled ? null : message);
             }
         }
-        async Task Refresh(CancellationToken cancellationToken)
+        async Task Refresh(CancellationToken cancellationToken, IReadOnlyList<string>? newlyStaged = null)
         {
+            var workingSelection = Selected().Select(file => file.RelativePath).ToHashSet(StringComparer.Ordinal);
+            var stagedSelection = SelectedStaged().Select(file => file.RelativePath).Concat(newlyStaged ?? []).ToHashSet(StringComparer.Ordinal);
             current = await service.InspectAsync(initial.WorkspaceRoot, cancellationToken) ?? throw new IOException("The workspace no longer has a Git repository.");
-            list.ItemsSource = MarkdownFiles(current);
+            list.ItemsSource = WorkingFiles(current);
+            StagedFiles.ItemsSource = IndexFiles(current);
+            UnsupportedFiles.ItemsSource = ExternalFiles(current);
+            foreach (var file in list.Items.Cast<GitChangedFile>().Where(file => workingSelection.Contains(file.RelativePath))) list.SelectedItems!.Add(file);
+            foreach (var file in StagedFiles.Items.Cast<GitChangedFile>().Where(file => stagedSelection.Contains(file.RelativePath))) StagedFiles.SelectedItems!.Add(file);
             DiffText.Text = string.Empty;
             Update();
         }
@@ -91,7 +111,8 @@ internal sealed class WorkspaceGitView : UserControl
             }
         }
         list.SelectionChanged += (_, _) => Update();
-        refresh.Click += async (_, _) => await Run(Refresh);
+        StagedFiles.SelectionChanged += (_, _) => Update();
+        refresh.Click += async (_, _) => await Run(token => Refresh(token));
         cancel.Click += (_, _) => operation?.Cancel();
         close.Click += (_, _) => closePanel();
         RefreshAvailability = Update;
@@ -106,7 +127,7 @@ internal sealed class WorkspaceGitView : UserControl
         };
         async Task Diff(bool staged)
         {
-            var selected = Selected().Single();
+            var selected = (staged ? SelectedStaged() : Selected()).Single();
             await Run(async cancellationToken =>
             {
                 var diff = await service.ReadDiffAsync(current, selected.RelativePath, cancellationToken);
@@ -120,30 +141,33 @@ internal sealed class WorkspaceGitView : UserControl
         stagedDiff.Click += async (_, _) => await Diff(true);
         async Task ChangeStaging(bool add)
         {
-            var selected = Selected();
+            var selected = add ? Selected() : SelectedStaged();
             if (await ChoiceDialog.ShowAsync(owner, add ? "Stage selected saved documents" : "Unstage selected documents",
                 string.Join("\n", selected.Select(file => file.RelativePath)) + "\nOnly these index entries change. Saved files and editor buffers remain unchanged. Git filters/hooks are not run; filtered/LFS files require external Git.", "Continue", "Cancel") != "Continue") return;
             await Run(async cancellationToken =>
             {
-                var results = new List<string>();
-                foreach (var file in selected)
+                void ValidateContext()
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!contextValid() || dirty(file.RelativePath)) throw new IOException("The workspace changed, or a selected editor buffer has unsaved changes or a conflict.");
-                    var reviewed = await service.InspectAsync(initial.WorkspaceRoot, cancellationToken) ?? throw new IOException("Repository unavailable.");
-                    if (add) await service.StageAsync(reviewed, file.RelativePath, await service.ReviewWorkingHashAsync(reviewed, file.RelativePath, cancellationToken), cancellationToken);
-                    else await service.UnstageAsync(reviewed, file.RelativePath, cancellationToken);
-                    results.Add((add ? "Staged: " : "Unstaged: ") + file.RelativePath);
-                    status.Text = string.Join("\n", results);
+                    if (!contextValid() || selected.Any(file => dirty(file.RelativePath))) throw new IOException("The workspace changed, or a selected editor buffer has unsaved changes or a conflict.");
                 }
-                await Refresh(cancellationToken);
+                ValidateContext();
+                var paths = selected.Select(file => file.RelativePath).ToArray();
+                if (add)
+                {
+                    var hashes = new Dictionary<string, string?>();
+                    foreach (var file in selected) hashes[file.RelativePath] = await service.ReviewWorkingHashAsync(current, file.RelativePath, cancellationToken);
+                    await service.StageSelectedAsync(current, hashes, cancellationToken, ValidateContext);
+                }
+                else await service.UnstageSelectedAsync(current, paths, cancellationToken, ValidateContext);
+                status.Text = string.Join("\n", paths.Select(path => (add ? "Staged: " : "Unstaged: ") + path));
+                await Refresh(cancellationToken, add ? paths : null);
             });
         }
         stage.Click += async (_, _) => await ChangeStaging(true);
         unstage.Click += async (_, _) => await ChangeStaging(false);
         commit.Click += async (_, _) =>
         {
-            var selected = Selected();
+            var selected = SelectedStaged();
             var message = CommitMessage.Text?.Trim();
             if (string.IsNullOrWhiteSpace(message)) { status.Text = "Enter a commit message first."; return; }
             await Run(async cancellationToken =>
@@ -161,15 +185,20 @@ internal sealed class WorkspaceGitView : UserControl
         var buttons = new WrapPanel { Orientation = Orientation.Horizontal, Children = { refresh, workingDiff, stagedDiff, stage, unstage, commit, cancel, close } };
         foreach (var button in buttons.Children) button.Margin = new Thickness(0, 0, 8, 6);
         var details = new Expander { Header = "Repository details and limits", Content = new TextBlock { Text = current.RepositoryRoot + "\n" + current.Reason + "\n" + notice.Text, TextWrapping = Avalonia.Media.TextWrapping.Wrap } };
-        var grid = new Grid { Margin = new Thickness(8), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto,Auto"), RowSpacing = 8, Children = { header, details, list, DiffText, CommitMessage, new ScrollViewer { Content = status, MaxHeight = 70 }, buttons } };
+        var external = new Expander { Header = "Requires external Git", Content = UnsupportedFiles };
+        var explanation = new TextBlock { Text = "Select saved changes to stage. Newly staged files are selected below for committing. A file with staged content and further saved edits appears in both lists; only selected staged content is committed.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        var grid = new Grid { Margin = new Thickness(8), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"), RowSpacing = 8, Children = { header, details, explanation, new TextBlock { Text = "Changes", FontWeight = Avalonia.Media.FontWeight.Bold }, list, new TextBlock { Text = "Staged Changes", FontWeight = Avalonia.Media.FontWeight.Bold }, StagedFiles, external, DiffText, CommitMessage, new ScrollViewer { Content = status, MaxHeight = 70 }, buttons } };
         for (var index = 0; index < grid.Children.Count; index++) Grid.SetRow(grid.Children[index], index);
         Content = new ScrollViewer { Content = grid };
         Update();
     }
 
-    private static IReadOnlyList<GitChangedFile> MarkdownFiles(GitRepositorySnapshot snapshot)
-    {
-        return snapshot.Files.Where(file => file.RelativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
-                                         || file.RelativePath.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase)).ToArray();
-    }
+    private static IReadOnlyList<GitChangedFile> WorkingFiles(GitRepositorySnapshot snapshot) =>
+        snapshot.Files.Where(file => file.CanManage && file.WorkingStatus != " ").ToArray();
+
+    private static IReadOnlyList<GitChangedFile> IndexFiles(GitRepositorySnapshot snapshot) =>
+        snapshot.Files.Where(file => file.CanManage && file.IndexStatus is not " " and not "?").ToArray();
+
+    private static IReadOnlyList<GitChangedFile> ExternalFiles(GitRepositorySnapshot snapshot) =>
+        snapshot.Files.Where(file => !file.CanManage).ToArray();
 }

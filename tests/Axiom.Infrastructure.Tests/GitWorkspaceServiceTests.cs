@@ -5,6 +5,71 @@ namespace Axiom.Infrastructure.Tests;
 public sealed class GitWorkspaceServiceTests
 {
     [Fact]
+    public async Task BatchStagesAndUnstagesAtomicallyWithoutChangingOtherIndexOrWorkingEntries()
+    {
+        using var fixture = new GitHistoryTestWorkspace();
+        foreach (var name in new[] { "a.md", "b.md", "other.md" }) await File.WriteAllTextAsync(Path.Combine(fixture.Root, name), "baseline");
+        fixture.Run("add", "."); fixture.Run("commit", "-qm", "Baseline");
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "other.md"), "unrelated staged");
+        fixture.Run("add", "other.md");
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "a.md"), "saved changed");
+        File.Delete(Path.Combine(fixture.Root, "b.md"));
+        var service = new GitWorkspaceService();
+        var snapshot = (await service.InspectAsync(fixture.Root))!;
+        var hashes = new Dictionary<string, string?> { ["a.md"] = await service.ReviewWorkingHashAsync(snapshot, "a.md"), ["b.md"] = null };
+        var index = await File.ReadAllBytesAsync(snapshot.IndexPath);
+        await Assert.ThrowsAsync<IOException>(() => service.StageSelectedAsync(snapshot, hashes, validateBeforePublish: () => throw new IOException("Dirty editor changed")));
+        Assert.Equal(index, await File.ReadAllBytesAsync(snapshot.IndexPath));
+        Assert.False(File.Exists(snapshot.IndexPath + ".lock"));
+        await service.StageSelectedAsync(snapshot, hashes);
+        Assert.Equal("saved changed", fixture.Run("show", ":a.md"));
+        Assert.Equal("unrelated staged", fixture.Run("show", ":other.md"));
+        Assert.DoesNotContain("b.md", fixture.Run("ls-files"));
+        snapshot = (await service.InspectAsync(fixture.Root))!;
+        await service.UnstageSelectedAsync(snapshot, ["a.md", "b.md"]);
+        Assert.Equal("baseline", fixture.Run("show", ":a.md"));
+        Assert.Equal("baseline", fixture.Run("show", ":b.md"));
+        Assert.Equal("unrelated staged", fixture.Run("show", ":other.md"));
+        Assert.Equal("saved changed", await File.ReadAllTextAsync(Path.Combine(fixture.Root, "a.md")));
+        Assert.False(File.Exists(Path.Combine(fixture.Root, "b.md")));
+    }
+
+    [Fact]
+    public async Task BatchRejectsStaleFilesCancellationAndIndexLocksWithoutPartialStaging()
+    {
+        using var fixture = new GitHistoryTestWorkspace();
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "a.md"), "first");
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "b.md"), "second");
+        var service = new GitWorkspaceService();
+        var snapshot = (await service.InspectAsync(fixture.Root))!;
+        var hashes = new Dictionary<string, string?> { ["a.md"] = await service.ReviewWorkingHashAsync(snapshot, "a.md"), ["b.md"] = "stale" };
+        await Assert.ThrowsAsync<IOException>(() => service.StageSelectedAsync(snapshot, hashes));
+        Assert.Empty(fixture.Run("ls-files"));
+        Assert.False(File.Exists(snapshot.IndexPath + ".lock"));
+        hashes["b.md"] = await service.ReviewWorkingHashAsync(snapshot, "b.md");
+        using var cancellation = new CancellationTokenSource();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.StageSelectedAsync(snapshot, hashes, cancellation.Token, () => cancellation.Cancel()));
+        Assert.Empty(fixture.Run("ls-files"));
+        await File.WriteAllTextAsync(snapshot.IndexPath + ".lock", "external owner");
+        await Assert.ThrowsAsync<IOException>(() => service.StageSelectedAsync(snapshot, hashes));
+        Assert.Equal("external owner", await File.ReadAllTextAsync(snapshot.IndexPath + ".lock"));
+    }
+
+    [Fact]
+    public async Task InspectionMarksFilteredMarkdownUnsupportedBeforeSelection()
+    {
+        using var fixture = new GitHistoryTestWorkspace();
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "a.md"), "ordinary");
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "b.markdown"), "filtered");
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, ".gitattributes"), "*.markdown filter=unsafe\n");
+        var snapshot = (await new GitWorkspaceService().InspectAsync(fixture.Root))!;
+        Assert.True(snapshot.Files.Single(file => file.RelativePath == "a.md").CanManage);
+        var filtered = snapshot.Files.Single(file => file.RelativePath == "b.markdown");
+        Assert.False(filtered.CanManage);
+        Assert.Contains("filters require external Git", filtered.Reason);
+    }
+
+    [Fact]
     public async Task NestedWorkspaceShowsOutsideChangesButCannotStageThem()
     {
         using var fixture = new GitHistoryTestWorkspace();
