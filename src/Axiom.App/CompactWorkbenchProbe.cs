@@ -96,6 +96,7 @@ internal static class CompactWorkbenchProbe
             await window.SelectTabForTestingAsync(firstTab);
             Require(window.EditorTextForTesting == "# Unsaved protected content\n" && firstTab.Session.IsDirty, "Native tab navigation changed the draft.");
             Directory.CreateDirectory(Path.Combine(workspace, "empty-parent", "empty-leaf"));
+            filter.Text = "";
             await window.ExecuteCommandAsync("workspace.refresh");
             var emptyParent = window.ExplorerNodesForTesting.Single(node => node.Name == "empty-parent");
             Require(emptyParent.Children.Single().Name == "empty-leaf", "Native workspace refresh lost an empty folder or its ancestor.");
