@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using Avalonia.Threading;
 using Axiom.Core;
 
 namespace Axiom.App;
@@ -18,6 +19,9 @@ public partial class MainWindow
     private TreeViewItem? _explorerDropTarget;
     private bool _explorerDragRunning;
     private bool _suppressExplorerOpen;
+    private readonly DispatcherTimer _explorerScrollTimer = new() { Interval = TimeSpan.FromMilliseconds(50) };
+    private ScrollViewer? _explorerScrollViewer;
+    private int _explorerScrollDirection;
 
     private static TreeViewItem? ExplorerItem(object? source) => source is Control control
         ? control as TreeViewItem ?? control.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault() : null;
@@ -29,7 +33,15 @@ public partial class MainWindow
         DragDrop.SetAllowDrop(FileTree, true);
         FileTree.AddHandler(DragDrop.DragOverEvent, Explorer_DragOver, RoutingStrategies.Bubble);
         FileTree.AddHandler(DragDrop.DropEvent, Explorer_Drop, RoutingStrategies.Bubble);
-        FileTree.AddHandler(DragDrop.DragLeaveEvent, (_, _) => ClearExplorerDropTarget());
+        FileTree.AddHandler(DragDrop.DragLeaveEvent, (_, _) => { StopExplorerDragScroll(); ClearExplorerDropTarget(); });
+        _explorerScrollTimer.Tick += (_, _) =>
+        {
+            if (_explorerDragToken is null || _folder != _explorerDragRoot || _mutationBlocked || _sessionTransitionRunning || _navigationRunning || _explorerScrollViewer is null)
+            { StopExplorerDragScroll(); return; }
+            var maximum = Math.Max(0, _explorerScrollViewer.Extent.Height - _explorerScrollViewer.Viewport.Height);
+            _explorerScrollViewer.Offset = new Vector(_explorerScrollViewer.Offset.X, Math.Clamp(_explorerScrollViewer.Offset.Y + _explorerScrollDirection * 16, 0, maximum));
+        };
+        Closed += (_, _) => StopExplorerDragScroll();
     }
 
     private void Explorer_OnPointerPressed(object? sender, PointerPressedEventArgs args)
@@ -60,7 +72,7 @@ public partial class MainWindow
         transfer.Add(item);
         try { await DragDrop.DoDragDropAsync(press, transfer, DragDropEffects.Move); }
         catch (Exception exception) { ReportError("workspace.drag.failed", exception, _folder); }
-        finally { _explorerDragRunning = false; _explorerDragToken = null; _explorerDragPress = null; _explorerDragNode = null; ClearExplorerDropTarget(); }
+        finally { StopExplorerDragScroll(); _explorerDragRunning = false; _explorerDragToken = null; _explorerDragPress = null; _explorerDragNode = null; ClearExplorerDropTarget(); }
     }
 
     private WorkspaceExplorerNode? ExplorerDropFolder(DragEventArgs args)
@@ -76,6 +88,14 @@ public partial class MainWindow
         if (!args.DataTransfer.Contains(ExplorerMoveFormat)) return;
         args.Handled = true;
         ClearExplorerDropTarget();
+        _explorerScrollViewer = FileTree.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+        if (_explorerScrollViewer is { } scroll && _explorerDragToken is not null && _folder == _explorerDragRoot)
+        {
+            var position = args.GetPosition(scroll);
+            _explorerScrollDirection = position.X < 0 || position.X > scroll.Bounds.Width ? 0 : position.Y < 32 ? -1 : position.Y > scroll.Bounds.Height - 32 ? 1 : 0;
+            if (_explorerScrollDirection == 0) StopExplorerDragScroll();
+            else _explorerScrollTimer.Start();
+        }
         var folder = ExplorerDropFolder(args);
         var valid = folder is not null && !_mutationBlocked && !_sessionTransitionRunning && !_navigationRunning && _explorerDragNode is { } node &&
             !WorkspacePathBoundary.Contains(Path.Combine(_folder!, node.RelativePath), Path.Combine(_folder!, folder.RelativePath), includeRoot: true);
@@ -92,6 +112,7 @@ public partial class MainWindow
         args.Handled = true;
         var folder = ExplorerDropFolder(args);
         var node = _explorerDragNode;
+        StopExplorerDragScroll();
         ClearExplorerDropTarget();
         if (folder is null || node is null || _folder is null || _mutationBlocked || _sessionTransitionRunning || _navigationRunning) return;
         LastExplorerMove = PerformExplorerDropAsync(folder, node);
@@ -110,6 +131,25 @@ public partial class MainWindow
 
     private string? _requestedMoveDestination;
     internal Task LastExplorerMove { get; private set; } = Task.CompletedTask;
+    internal bool ExplorerEdgeScrollRunningForTesting => _explorerScrollTimer.IsEnabled;
+
+    internal async Task<double> RouteExplorerEdgeScrollForTestingAsync()
+    {
+        _explorerDragToken = Guid.NewGuid().ToString("N");
+        _explorerDragRoot = _folder;
+        using var transfer = new DataTransfer();
+        var item = new DataTransferItem();
+        item.Set(ExplorerMoveFormat, _explorerDragToken);
+        transfer.Add(item);
+        var scroll = FileTree.GetVisualDescendants().OfType<ScrollViewer>().First();
+        var point = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height - 2), FileTree)!.Value;
+        FileTree.RaiseEvent(new DragEventArgs(DragDrop.DragOverEvent, transfer, FileTree, point, KeyModifiers.None));
+        await Task.Delay(220);
+        var offset = scroll.Offset.Y;
+        FileTree.RaiseEvent(new DragEventArgs(DragDrop.DragLeaveEvent, transfer, FileTree, point, KeyModifiers.None));
+        _explorerDragToken = null;
+        return offset;
+    }
 
     internal async Task RouteExplorerDropForTestingAsync(string source, string targetFolder, bool folder)
     {
@@ -133,5 +173,12 @@ public partial class MainWindow
     {
         _explorerDropTarget?.Classes.Remove("move-target");
         _explorerDropTarget = null;
+    }
+
+    private void StopExplorerDragScroll()
+    {
+        _explorerScrollTimer.Stop();
+        _explorerScrollDirection = 0;
+        _explorerScrollViewer = null;
     }
 }

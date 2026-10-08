@@ -1350,6 +1350,11 @@ public partial class MainWindow : Window
         }
         if (TryHandleCommandMenuKey(e)) return;
         var editorIsCommandTarget = IsEditorCommandTarget();
+        if (editorIsCommandTarget && e.KeyModifiers == KeyModifiers.None && e.Key is Key.Delete or Key.Back && TryDeleteOrderedItems())
+        {
+            e.Handled = true;
+            return;
+        }
         if (editorIsCommandTarget && e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.Shift)
         {
             e.Handled = true;

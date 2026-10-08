@@ -15,10 +15,13 @@ public static class WorkspaceFolderDiscovery
                 foreach (var child in Directory.EnumerateDirectories(current))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (Path.GetFileName(child).Equals(".git", StringComparison.OrdinalIgnoreCase)) continue;
                     try
                     {
                         if (File.GetAttributes(child).HasFlag(FileAttributes.ReparsePoint)) continue;
-                        result.Add(child);
+                        // Explicit folder nodes represent genuinely empty directories; Markdown
+                        // discovery supplies populated branches separately. Ancestors are built by the tree.
+                        if (!Directory.EnumerateFileSystemEntries(child).Any()) result.Add(child);
                         pending.Push(child);
                     }
                     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { }

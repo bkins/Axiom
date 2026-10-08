@@ -42,7 +42,7 @@ public sealed class WorkspaceServiceTests
     }
 
     [Fact]
-    public void TreeBuilderRetainsOnlyFolderBranchesWithMarkdownDescendants()
+    public void TreeBuilderRetainsExplicitEmptyFoldersAndTheirAncestors()
     {
         var root = Path.Combine(Path.GetTempPath(), "AxiomWorkspaceTests", Guid.NewGuid().ToString("N"));
         var markdown = Path.Combine(root, "kept", "nested", "note.md");
@@ -50,18 +50,18 @@ public sealed class WorkspaceServiceTests
         {
             Path.Combine(root, "kept"),
             Path.Combine(root, "kept", "nested"),
-            Path.Combine(root, "kept", "non-markdown-only"),
-            Path.Combine(root, "hidden"),
-            Path.Combine(root, "hidden", "also-hidden")
+            Path.Combine(root, "empty-parent", "empty-child")
         };
 
         var tree = WorkspaceTreeBuilder.Build(root, [markdown], folders);
 
-        var kept = Assert.Single(tree);
+        var kept = Assert.Single(tree, node => node.Name == "kept");
         Assert.Equal("kept", kept.Name);
         var nested = Assert.Single(kept.Children);
         Assert.Equal("nested", nested.Name);
         Assert.Equal("note.md", Assert.Single(nested.Children).Name);
+        var empty = Assert.Single(tree, node => node.Name == "empty-parent");
+        Assert.Empty(Assert.Single(empty.Children).Children);
     }
 
     [Fact]

@@ -20,7 +20,7 @@ if ($process.ExitCode -ne 0) { throw "Probe exit code: $($process.ExitCode)" }
 $resultPath = Join-Path $output 'result.json'
 if (-not (Test-Path -LiteralPath $resultPath)) { throw 'Native probe did not produce result.json.' }
 $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
-foreach ($name in @('ExtendedWindowsTitleBar','MaximizeRestoreDirtyBufferPreserved','HamburgerGroupsAndF10','FilterFocusEscapeQueryAndIndicator','MetadataRefreshCountsWithoutSave','MinimumWidthToolbarSingleRow','StandardTitleBarFallback')) {
+foreach ($name in @('ExtendedWindowsTitleBar','MaximizeRestoreDirtyBufferPreserved','HamburgerGroupsAndF10','FilterFocusEscapeQueryAndIndicator','MetadataRefreshCountsWithoutSave','MinimumWidthToolbarSingleRow','StandardTitleBarFallback','NativeTabClickAndCycleCaretSelectionRetained','EmptyFoldersSurviveRefresh')) {
     if ($result.$name -ne $true) { throw "Native check failed: $name" }
 }
 $result | ConvertTo-Json -Depth 5

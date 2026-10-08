@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 942D6AB9EBDD966808EFD2837CD6AED377D2658F67112FFAAF82F3F9EDE566F0. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 97B79415353C91740EFD452B17778695A0C85E06DCD14A9E97D5A6C02692A933. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -487,3 +487,13 @@ The first post-1.1.0 development slice corrects the default save gestures: Ctrl+
 Pinned rows show the filename; hover for the workspace-relative path, including when two pinned documents share a filename. Git's changed-document list shows only supported Markdown (.md and .markdown); use external Git for other files. Repository-wide safety checks still apply. Spelling underlines clear and refresh when changing tabs so one document's offsets cannot appear on another.
 
 This is a development candidate for review. Empty-folder visibility, drag edge scrolling, caption polish, source-list renumbering and caret-loss investigation are separately tracked. The next-release ideas remain planned; these fixes do not imply release acceptance.
+
+## Reliability corrections in 1.1.2
+
+Workspace Files keeps genuinely empty folders and their ancestors visible after refresh or reopening. Populated branches containing only other file types stay hidden; Git administration folders are excluded. Creating a folder does not create placeholder Markdown files.
+
+When dragging a workspace item near the top or bottom of Workspace Files, the list scrolls while you hold at the edge. Moving away, leaving, dropping or cancelling stops scrolling. Drops still use the normal move confirmation and dirty-document checks.
+
+Selecting complete ordered-list item lines and pressing Delete or Backspace removes them and renumbers following siblings in that list. The original starting number, nested numbering, line endings and unrelated lists remain. One Undo restores the deletion and renumbering. Partial-text deletion and edits inside fenced code use ordinary editor behavior; opening or previewing a document never renumbers its source.
+
+Compact caption buttons use centered glyphs, theme-aware hover and visible keyboard focus. The close button has a red hover treatment. Standard Windows title-bar fallback remains available in Settings.

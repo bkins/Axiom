@@ -6,6 +6,7 @@ using Avalonia.Controls.Chrome;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.VisualTree;
 using AvaloniaEdit;
 using Axiom.Core;
 
@@ -73,6 +74,31 @@ internal static class CompactWorkbenchProbe
             Require(await window.RefreshClassificationAsync(), "Metadata refresh failed.");
             Require(window.FindControl<TextBlock>("MetadataRefreshStatus")!.Text!.Contains("saved files"), "Metadata result counts were absent.");
             Require(window.EditorTextForTesting == "# Unsaved protected content\n" && await File.ReadAllTextAsync(path) == "# Saved\n\nContent\n", "Workbench actions changed dirty or saved Markdown.");
+            var firstTab = window.TabsForTesting.Single();
+            editor.Select(2, 7);
+            editor.CaretOffset = 9;
+            var secondPath = Path.Combine(workspace, "second.md");
+            await File.WriteAllTextAsync(secondPath, "# Second\n\nSaved second\n");
+            await window.OpenDocumentAsync(secondPath);
+            var secondTab = window.TabsForTesting.Last();
+            editor.Select(3, 4);
+            editor.CaretOffset = 7;
+            var tabs = window.FindControl<ListBox>("DocumentTabs")!;
+            window.Activate();
+            window.UpdateLayout();
+            await Task.Delay(150);
+            var firstContainer = tabs.GetVisualDescendants().OfType<ListBoxItem>().Single(item => ReferenceEquals(item.DataContext, firstTab));
+            await NativeProbeInput.ClickAsync(firstContainer.GetVisualDescendants().OfType<TextBlock>().First());
+            await Task.Delay(200);
+            Require(ReferenceEquals(editor.Document, firstTab.Document) && editor.CaretOffset == 9 && editor.SelectionStart == 2 && editor.SelectionLength == 7, "Native tab click lost the first caret or selection.");
+            await window.ExecuteCommandAsync("navigation.nextTab");
+            Require(ReferenceEquals(editor.Document, secondTab.Document) && editor.CaretOffset == 7 && editor.SelectionStart == 3 && editor.SelectionLength == 4, "Tab cycling lost the second caret or selection.");
+            await window.SelectTabForTestingAsync(firstTab);
+            Require(window.EditorTextForTesting == "# Unsaved protected content\n" && firstTab.Session.IsDirty, "Native tab navigation changed the draft.");
+            Directory.CreateDirectory(Path.Combine(workspace, "empty-parent", "empty-leaf"));
+            await window.ExecuteCommandAsync("workspace.refresh");
+            var emptyParent = window.ExplorerNodesForTesting.Single(node => node.Name == "empty-parent");
+            Require(emptyParent.Children.Single().Name == "empty-leaf", "Native workspace refresh lost an empty folder or its ancestor.");
             foreach (var preference in new[] { AppearancePreference.Light, AppearancePreference.Dark })
             {
                 await window.ApplyAppearanceForTestingAsync(preference);
@@ -102,6 +128,8 @@ internal static class CompactWorkbenchProbe
               , MetadataRefreshCountsWithoutSave = true
               , MinimumWidthToolbarSingleRow = true
               , StandardTitleBarFallback = true
+              , NativeTabClickAndCycleCaretSelectionRetained = true
+              , EmptyFoldersSurviveRefresh = true
               , HumanChecks = "Physical dragging/system menu/caption buttons/snap, keyboard/screen reader, multiple DPI and visual acceptance remain pending. Surface images omit hosted NativeWebView content and are layout evidence only."
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
