@@ -76,7 +76,8 @@ internal static class AuthoringAssistanceProbe
             editor.TextArea.Focus();
             var saveCurrentKey = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.S, KeyModifiers = KeyModifiers.Control };
             editor.TextArea.RaiseEvent(saveCurrentKey);
-            for (var attempt = 0; attempt < 100 && window.TabsForTesting.Last().Session.IsDirty; attempt++) await Task.Delay(50);
+            for (var attempt = 0; attempt < 100 && (window.TabsForTesting.Last().Session.IsDirty || !editor.IsEnabled); attempt++) await Task.Delay(50);
+            Require(editor.IsEnabled, "Active Save did not finish restoring editor availability.");
             Require(saveCurrentKey.Handled && await File.ReadAllTextAsync(path) == "# Saved\n"
                 && await File.ReadAllTextAsync(secondPath) == "# Second\nSecond edited tab"
                 && window.TabsForTesting.First().Session.IsDirty, "Ctrl+S did not isolate the active document.");
