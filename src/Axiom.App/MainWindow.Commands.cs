@@ -79,10 +79,10 @@ public partial class MainWindow
             await NewDocumentInSelectedFolderAsync(context.ExplorerRelativePath is null ? null : ExplorerCommandNode(context));
             return new(CommandOutcome.Completed, "New document opened.");
         });
-        RegisterCommand("document.saveAll", "Save all open documents", "Ctrl+S", true, (_, _) => SaveAllDocumentsAsync());
-        RegisterCommand("document.save", "Save document", null, true, async (_, _) =>
+        RegisterCommand("document.saveAll", "Save all open documents", "Ctrl+Shift+S", true, (_, _) => SaveAllDocumentsAsync());
+        RegisterCommand("document.save", "Save document", "Ctrl+S", true, async (_, _) =>
             new(await SaveDocumentAsync(false) ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Save workflow finished."));
-        RegisterCommand("document.saveAs", "Save document as", "Ctrl+Shift+S", true, async (_, _) =>
+        RegisterCommand("document.saveAs", "Save document as", null, true, async (_, _) =>
             new(await SaveDocumentAsync(true) ? CommandOutcome.Completed : CommandOutcome.Cancelled, "Save As workflow finished."));
         RegisterCommand("editor.undo", "Undo", "Ctrl+Z", false, (_, _) =>
         {

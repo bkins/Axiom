@@ -44,6 +44,8 @@ internal static class WorkspaceGitProbe
             await File.WriteAllTextAsync(sourcePath, "# Selected saved notes\n\nCafé\n");
             await File.WriteAllTextAsync(otherPath, "Unrelated staged edit");
             Git(workspace, "add", "other.md");
+            var assetPath = Path.Combine(workspace, "unrelated.txt");
+            await File.WriteAllTextAsync(assetPath, "Non-Markdown remains for external Git.");
             await window.SwitchWorkspaceAsync(workspace);
             await window.OpenDocumentAsync(sourcePath);
             var saved = window.EditorTextForTesting;
@@ -52,6 +54,8 @@ internal static class WorkspaceGitProbe
             var dirtyCommand = window.ExecuteCommandAsync("workspace.git");
             await dirtyCommand;
             var browser = window.GitViewForTesting ?? throw new IOException("Git changes panel is missing.");
+            Require(Rows(browser).All(file => file.RelativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
+                                          || file.RelativePath.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase)), "Git selection included a non-Markdown file.");
             Require(Windows().Count() == 1, "Git changes did not open as an embedded panel.");
             Select(browser, "notes.md");
             Require(!FindButton(browser, "Stage selected…").IsEnabled, "Git allowed staging a dirty editor buffer.");
@@ -73,6 +77,7 @@ internal static class WorkspaceGitProbe
             Click(browser, "Stage selected…");
             Click(await WaitForWindowAsync<ChoiceDialog>(), "Continue");
             await WaitAsync(() => Rows(browser).Any(file => file.RelativePath == "notes.md" && file.IndexStatus == "M"));
+            Require(Rows(browser).All(file => file.RelativePath != "unrelated.txt") && File.Exists(assetPath), "Git refresh exposed or changed the unrelated file.");
             Select(browser, "notes.md");
             Click(browser, "Unstage selected…");
             Click(await WaitForWindowAsync<ChoiceDialog>(), "Continue");

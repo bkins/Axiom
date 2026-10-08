@@ -134,6 +134,7 @@ public partial class MainWindow
         _session = tab.Session;
         _structure = tab.Structure;
         Editor.Document = tab.Document;
+        ScheduleSpelling();
         Editor.Select(Math.Min(tab.SelectionStart, tab.Document.TextLength),
             Math.Min(tab.SelectionLength, Math.Max(0, tab.Document.TextLength - tab.SelectionStart)));
         Editor.CaretOffset = Math.Min(tab.CaretOffset, tab.Document.TextLength);

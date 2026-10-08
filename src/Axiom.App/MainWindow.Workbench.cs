@@ -172,7 +172,7 @@ public partial class MainWindow
         var pinned = new WorkspaceExplorerNode("Pinned", "") { IsGroup = true, IsExpanded = true };
         foreach (var pin in _workspacePins)
             if (filter.Length == 0 || pin.RelativePath.Contains(filter, StringComparison.OrdinalIgnoreCase))
-                pinned.Children.Add(new WorkspaceExplorerNode(pin.RelativePath, pin.RelativePath, document: true) { IsPinned = true, IsPinAlias = true });
+                pinned.Children.Add(new WorkspaceExplorerNode(Path.GetFileName(pin.RelativePath), pin.RelativePath, document: true) { IsPinned = true, IsPinAlias = true });
         if (pinned.Children.Count > 0) _explorerNodes.Add(pinned);
         foreach (var source in _workspaceTree)
             if (BuildExplorerNode(source, filter) is { } node) _explorerNodes.Add(node);

@@ -9,7 +9,7 @@ namespace Axiom.App.Tests;
 public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
-    public async Task ControlSSavesInactiveDirtyTabsAndRetainsActiveDocumentAndUndo()
+    public async Task ControlShiftSSavesInactiveDirtyTabsAndRetainsActiveDocumentAndUndo()
     {
         var root = CreateTabWorkspace();
         try
@@ -26,7 +26,7 @@ public sealed partial class MainWindowTests
             await window.OpenDocumentAsync(paths[2]);
             await window.SelectTabForTestingAsync(active);
             window.ConfigureShortcutsForTesting(new());
-            Assert.True(await window.ExecuteShortcutForTestingAsync(new KeyEventArgs { Key = Key.S, KeyModifiers = KeyModifiers.Control }));
+            Assert.True(await window.ExecuteShortcutForTestingAsync(new KeyEventArgs { Key = Key.S, KeyModifiers = KeyModifiers.Control | KeyModifiers.Shift }));
             Assert.Equal("saved first dirty", await File.ReadAllTextAsync(paths[0]));
             Assert.Equal("saved second dirty", await File.ReadAllTextAsync(paths[1]));
             Assert.Equal("saved", await File.ReadAllTextAsync(paths[2]));

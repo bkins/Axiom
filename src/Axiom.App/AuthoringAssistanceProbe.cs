@@ -74,14 +74,32 @@ internal static class AuthoringAssistanceProbe
             await window.OpenDocumentAsync(secondPath);
             editor.Document.Insert(editor.Document.TextLength, "Second edited tab");
             editor.TextArea.Focus();
-            var saveAllKey = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.S, KeyModifiers = KeyModifiers.Control };
+            var saveCurrentKey = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.S, KeyModifiers = KeyModifiers.Control };
+            editor.TextArea.RaiseEvent(saveCurrentKey);
+            for (var attempt = 0; attempt < 100 && window.TabsForTesting.Last().Session.IsDirty; attempt++) await Task.Delay(50);
+            Require(saveCurrentKey.Handled && await File.ReadAllTextAsync(path) == "# Saved\n"
+                && await File.ReadAllTextAsync(secondPath) == "# Second\nSecond edited tab"
+                && window.TabsForTesting.First().Session.IsDirty, "Ctrl+S did not isolate the active document.");
+            editor.Document.Insert(editor.Document.TextLength, " again");
+            var saveAllKey = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.S, KeyModifiers = KeyModifiers.Control | KeyModifiers.Shift };
             editor.TextArea.RaiseEvent(saveAllKey);
             for (var attempt = 0; attempt < 100 && window.FindControl<TextBlock>("StatusText")!.Text != "Saved all 2 modified open documents."; attempt++) await Task.Delay(50);
             Require(window.FindControl<TextBlock>("StatusText")!.Text == "Saved all 2 modified open documents.", "Save All did not finish its workflow.");
             Require(saveAllKey.Handled && await File.ReadAllTextAsync(path) == "# Saved\nFirst edited tab"
-                && await File.ReadAllTextAsync(secondPath) == "# Second\nSecond edited tab", "Ctrl+S failed to save both open tabs.");
-            Require(window.EditorTextForTesting == "# Second\nSecond edited tab" && editor.CanUndo, "Save All changed the active buffer or Undo.");
+                && await File.ReadAllTextAsync(secondPath) == "# Second\nSecond edited tab again", "Ctrl+Shift+S failed to save both open tabs.");
+            Require(window.EditorTextForTesting == "# Second\nSecond edited tab again" && editor.CanUndo, "Save All changed the active buffer or Undo.");
             await window.OpenDocumentAsync(path);
+            window.SetEditorTextForTesting("This is speling.");
+            await Task.Delay(1200);
+            Require(window.SpellingIssuesForTesting.Count == 1 && window.SpellingIssuesForTesting[0].Word == "speling", "First tab spelling fixture failed.");
+            await window.OpenDocumentAsync(secondPath);
+            Require(window.SpellingIssuesForTesting.Count == 0, "Old spelling offsets remained on the second tab.");
+            await Task.Delay(700);
+            Require(window.SpellingIssuesForTesting.Count == 0, "Spelling from another tab arrived asynchronously.");
+            await window.OpenDocumentAsync(path);
+            Require(window.SpellingIssuesForTesting.Count == 0, "Return to a tab retained stale spelling positions.");
+            await Task.Delay(1200);
+            Require(window.SpellingIssuesForTesting.Count == 1 && window.SpellingIssuesForTesting[0].Word == "speling", "Returning to the first tab did not recompute spelling.");
             window.SetEditorTextForTesting("# Saved\n");
             Require((await window.ExecuteCommandAsync("document.save")).Outcome == CommandOutcome.Completed, "Fixture reset save failed.");
             window.UpdateLayout();

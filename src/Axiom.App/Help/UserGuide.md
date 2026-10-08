@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 9048CF9DB50C4BB5DF959B43FC8EB6CBB00655BFCEA09BDBC98F04B9ADCF5AD7. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: C1273A295D3CF3D321DCFE81DD744EC1B01306C39A8DB0AB70CC33D6BB1E044A. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -170,7 +170,7 @@ In accepted 1.0.4 and later, startup restores the active remembered workspace an
 1. Open **File…**, select **Open Workspace…**, and choose a document folder. Axiom adopts the folder as its active workspace and remembers workspace-owned state locally.
 2. Expand folders in the **Files** tab and double-click a `.md` or `.markdown` document, or choose **File… > New**. Folders appear before documents at each level.
 3. Edit source on the left and read the live preview on the right.
-4. Use **File… > Save** for the current document, **File… > Save All** (`Ctrl+S`) for all modified open tabs, or **File… > Save As…** (`Ctrl+Shift+S`) for another destination. Save All prompts for modified untitled documents and stops on cancellation or save failure, preserving remaining dirty buffers and the selected tab. Existing explicit custom shortcut bindings retain precedence; use Keyboard Shortcuts to bind Save All if Ctrl+S was customized. Undo and Redo are under **Edit…**.
+4. Use **File… > Save** (`Ctrl+S`) for the current document, **File… > Save All** (`Ctrl+Shift+S`) for all modified open tabs, or **File… > Save As…** (no default shortcut) for another destination. Save All prompts for modified untitled documents and stops on cancellation or save failure, preserving remaining dirty buffers and the selected tab. Existing explicit custom shortcut bindings retain precedence; use Keyboard Shortcuts to review or reset any previously customized save bindings. Undo and Redo are under **Edit…**.
 
 While you edit the current document, Axiom keeps the preview near the same proportional reading position after live updates. Opening or reloading another document starts that document at its own preview position. Wide tables scroll inside the preview, and large images scale down to the available width.
 
@@ -477,3 +477,11 @@ New candidates use state schema 9. Startup retains a verified backup before migr
 Windows keeps its existing case-insensitive path identity. macOS/Linux conservatively retain exact path spelling so distinct case-sensitive filenames are not merged. Use the workspace folder picker and the filesystem's actual spelling. The state records its path policy and refuses to reinterpret state created under an incompatible policy. Use separate state roots when moving between Windows and macOS/Linux; adopt the original Markdown collection explicitly rather than copying active application state between policies.
 
 On macOS/Linux, opening an existing file also checks its device/inode through `/usr/bin/stat`, reusing an already open tab for the same physical file. Save refuses to overwrite a physical file owned by another tab; choose another destination or close the other tab deliberately. These checks preserve unsaved buffers and do not change document IDs. If the system utility is missing or cannot identify the file, the operation reports the failure. Case-insensitive Unix volumes, native utility execution, launch and platform parity still require native verification. Cross-published previews are not accepted supported-platform releases.
+
+## 1.1.1 findings fixes — development candidate
+
+The first post-1.1.0 development slice corrects the default save gestures: Ctrl+S saves the active document, Ctrl+Shift+S saves all modified open documents, and Save As remains in the menu without a default shortcut. Explicit user shortcut overrides remain user settings. Save All retains cancellation, conflict checks and remaining dirty buffers.
+
+Pinned rows show the filename; hover for the workspace-relative path, including when two pinned documents share a filename. Git's changed-document list shows only supported Markdown (.md and .markdown); use external Git for other files. Repository-wide safety checks still apply. Spelling underlines clear and refresh when changing tabs so one document's offsets cannot appear on another.
+
+This is a development candidate for review. Empty-folder visibility, drag edge scrolling, caption polish, source-list renumbering and caret-loss investigation are separately tracked. The next-release ideas remain planned; these fixes do not imply release acceptance.

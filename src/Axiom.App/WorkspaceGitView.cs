@@ -19,7 +19,7 @@ internal sealed class WorkspaceGitView : UserControl
         var current = initial;
         var busy = false;
         CancellationTokenSource? operation = null;
-        var list = new ListBox { ItemsSource = current.Files, SelectionMode = SelectionMode.Multiple };
+        var list = new ListBox { ItemsSource = MarkdownFiles(current), SelectionMode = SelectionMode.Multiple };
         ChangedFiles = list;
         list.MinHeight = 100;
         list.MaxHeight = 200;
@@ -69,7 +69,7 @@ internal sealed class WorkspaceGitView : UserControl
         async Task Refresh(CancellationToken cancellationToken)
         {
             current = await service.InspectAsync(initial.WorkspaceRoot, cancellationToken) ?? throw new IOException("The workspace no longer has a Git repository.");
-            list.ItemsSource = current.Files;
+            list.ItemsSource = MarkdownFiles(current);
             DiffText.Text = string.Empty;
             Update();
         }
@@ -165,5 +165,11 @@ internal sealed class WorkspaceGitView : UserControl
         for (var index = 0; index < grid.Children.Count; index++) Grid.SetRow(grid.Children[index], index);
         Content = new ScrollViewer { Content = grid };
         Update();
+    }
+
+    private static IReadOnlyList<GitChangedFile> MarkdownFiles(GitRepositorySnapshot snapshot)
+    {
+        return snapshot.Files.Where(file => file.RelativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
+                                         || file.RelativePath.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase)).ToArray();
     }
 }

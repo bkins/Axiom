@@ -58,12 +58,13 @@ public partial class MainWindow
         Editor.TextArea.TextView.InvalidateLayer(AvaloniaEdit.Rendering.KnownLayer.Selection);
         if (!_editorPreferences.SpellCheck) return;
         var source = Editor.Text;
+        var document = Editor.Document;
         var ignored = _editorPreferences.PersonalWords.Concat(_ignoredSpelling).ToArray();
         try
         {
             await Task.Delay(450, token);
             var issues = await Task.Run(() => _spelling.FindIssues(source, ignored, token), token);
-            if (cancellation.IsCancellationRequested || source != Editor.Text) return;
+            if (cancellation.IsCancellationRequested || document != Editor.Document || source != Editor.Text) return;
             _spellingRenderer.Issues = issues;
             Editor.TextArea.TextView.InvalidateLayer(AvaloniaEdit.Rendering.KnownLayer.Selection);
         }
