@@ -59,7 +59,8 @@ internal static class TemplateAssetProbe
             });
             if (!await reviewed) throw new IOException("Create preview was not confirmed.");
             await window.CreateReviewedDocumentAsync(workspace, "created.md", expanded);
-            if (window.EditorTextForTesting != expanded || await File.ReadAllTextAsync(templatePath) != template)
+            var createdId = DocumentIdCodec.Find(window.EditorTextForTesting);
+            if (createdId is null || window.EditorTextForTesting != DocumentIdCodec.Enroll(expanded, createdId.Value) || await File.ReadAllTextAsync(templatePath) != template)
                 throw new IOException("Template source or creation text changed.");
             using var transfer = new DataTransfer();
             foreach (var path in new[] { originalPath, Path.Combine(workspaceRoot, "created.md"), originalPath })

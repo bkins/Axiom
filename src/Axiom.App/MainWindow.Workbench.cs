@@ -23,6 +23,7 @@ public partial class MainWindow
     {
         FileTree.ItemsSource = _explorerNodes;
         InitializeExplorerDrag();
+        InitializeTabDrag();
         InitializeCompactWorkbench();
         InitializeToolbarPersonalization();
         InitializeViewModes();

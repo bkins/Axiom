@@ -33,6 +33,14 @@ internal sealed class DocumentTab : INotifyPropertyChanged
     public DocumentStructure? Structure { get; set; }
     public bool HasPendingScrollRestore { get; set; }
     public string? SuggestedSaveFolder { get; set; }
+    public string IdentityIndicator => Session.DocumentId is null ? "▤" : "◇";
+    public string Description => $"{Label}\n{(Session.DocumentId is null ? "Ordinary Markdown" : "Axiom document: " + Session.DocumentId)}\n{Session.Path ?? "Unsaved document"}\n{RecoveryStatus}";
+
+    public void RefreshIndicators()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Description)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IdentityIndicator)));
+    }
 
     public string Label
     {

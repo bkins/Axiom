@@ -183,7 +183,7 @@
     </Border>
 
     <Border x:Name="BottomStatusBar" DockPanel.Dock="Bottom" Padding="8,5" Background="#111827" BorderBrush="#374151" BorderThickness="0,1,0,0">
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto">
         <Border x:Name="ExportProgressPanel" Grid.ColumnSpan="4" IsVisible="False" Padding="0,3">
           <StackPanel Orientation="Horizontal" Spacing="10">
             <ProgressBar IsIndeterminate="True" Width="100" />
@@ -198,19 +198,20 @@
             <Button x:Name="WorkspaceLoadingCancel" Content="Cancel loading" Click="WorkspaceLoadingCancel_OnClick" />
           </StackPanel>
         </Border>
-        <Grid Grid.Row="2" Grid.ColumnSpan="4" ColumnDefinitions="*,Auto,Auto">
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,0,12,0">
           <TextBlock x:Name="StatusText" AutomationProperties.Name="Latest operation status" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
           <Button x:Name="StatusDetailsButton" Grid.Column="1" Content="Details…" IsVisible="False" AutomationProperties.Name="Read persistent operation failure" Click="StatusDetails_OnClick" />
           <Button x:Name="DismissStatusButton" Grid.Column="2" Content="Dismiss" IsVisible="False" AutomationProperties.Name="Dismiss operation message" Click="DismissStatus_OnClick" />
         </Grid>
-        <TextBlock x:Name="PathText" Grid.Row="3" Grid.ColumnSpan="4" Text="No workspace selected" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Current document path" />
-        <TextBlock x:Name="WorkspaceContextText" Grid.Row="4" Margin="0,3,16,0" Text="No workspace" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Active workspace" />
-        <TextBlock x:Name="DocumentStateText" Grid.Row="4" Grid.Column="1" Margin="0,3,16,0" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Document state" />
-        <TextBlock x:Name="RecoveryText" Grid.Row="4" Grid.Column="2" Margin="0,3,16,0" Text="Recovery ready" AutomationProperties.Name="Recovery state" />
-        <TextBlock x:Name="BuildIdentityText" Grid.Row="4" Grid.Column="3" Margin="0,3,0,0" AutomationProperties.Name="Application version" />
-        <WrapPanel Grid.Row="5" Grid.ColumnSpan="4" Orientation="Horizontal">
+        <TextBlock x:Name="PathText" IsVisible="False" Text="No workspace selected" AutomationProperties.Name="Current document path" />
+        <TextBlock x:Name="WorkspaceContextText" IsVisible="False" Text="No workspace" AutomationProperties.Name="Active workspace" />
+        <TextBlock x:Name="DocumentStateText" IsVisible="False" AutomationProperties.Name="Document state" />
+        <TextBlock x:Name="RecoveryText" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="Recovery ready" AutomationProperties.Name="Recovery state" />
+        <TextBlock x:Name="BuildIdentityText" Grid.Row="3" Grid.Column="3" Margin="8,3,0,0" AutomationProperties.Name="Application version" />
+        <WrapPanel Grid.Row="3" Grid.ColumnSpan="3" Orientation="Horizontal">
           <TextBlock x:Name="DocumentStatisticsText" Margin="0,3,16,0" AutomationProperties.Name="Source words and caret position" />
-          <TextBlock x:Name="DocumentFormatText" Margin="0,3,0,0" AutomationProperties.Name="Observed document encoding and newline style" />
+          <TextBlock x:Name="DocumentFormatText" IsVisible="False" AutomationProperties.Name="Observed document encoding and newline style" />
+          <Button Content="Document details…" Padding="3,0" MinHeight="22" AutomationProperties.Name="Document path identity encoding and recovery details" Click="DocumentDetails_OnClick" />
         </WrapPanel>
       </Grid>
     </Border>
@@ -222,7 +223,7 @@
                 <TextBlock x:Name="DuplicateWarning" IsVisible="False" DockPanel.Dock="Bottom" Margin="4,8,4,4" TextWrapping="Wrap" Foreground="#B45309" />
                 <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="4">
                   <Grid ColumnDefinitions="*,Auto,Auto" Margin="4,0,0,3">
-                    <TextBlock Text="Workspace Files" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="WorkspaceFilesHeader" Text="Workspace Files" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                     <Button x:Name="ExplorerFilterButton" Grid.Column="1" AutomationProperties.Name="Show or hide file filter" ToolTip.Tip="Filter workspace filenames — Ctrl+Shift+L" Click="ExplorerFilterToggle_OnClick" />
                     <Button x:Name="WorkspaceActionsButton" Grid.Column="2" AutomationProperties.Name="Workspace actions" ToolTip.Tip="Open, refresh, create and organize workspace items" />
                   </Grid>
@@ -265,6 +266,7 @@
           <ListBox.Styles>
             <Style Selector="ListBoxItem"><Setter Property="CornerRadius" Value="6,6,0,0" /><Setter Property="Margin" Value="2,2,2,0" /><Setter Property="Padding" Value="7,2" /><Setter Property="MinHeight" Value="30" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
             <Style Selector="ListBoxItem:selected"><Setter Property="BorderBrush" Value="#4F8EDC" /></Style>
+            <Style Selector="ListBoxItem.tab-drop"><Setter Property="BorderBrush" Value="#4F8EDC" /><Setter Property="BorderThickness" Value="2" /></Style>
             <Style Selector="ListBoxItem:not(:selected)"><Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" /><Setter Property="BorderThickness" Value="1,1,1,2" /></Style>
           </ListBox.Styles>
           <ListBox.ItemsPanel>
@@ -272,9 +274,10 @@
           </ListBox.ItemsPanel>
           <ListBox.ItemTemplate>
             <DataTemplate DataType="app:DocumentTab">
-              <StackPanel Orientation="Horizontal" Spacing="8" ContextRequested="Tab_OnContextRequested">
+              <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{Binding Description}" AutomationProperties.HelpText="{Binding Description}" ContextRequested="Tab_OnContextRequested">
+                <TextBlock Text="{Binding IdentityIndicator}" AutomationProperties.Name="{Binding Description}" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
-                <Button Content="×" MinWidth="28" MinHeight="28" Padding="4" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Close document tab" ToolTip.Tip="Close this document; unsaved changes offer Save, Discard, or Cancel" Click="CloseTab_OnClick" />
+                <Button Content="×" MinWidth="28" MinHeight="28" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="#B91C1C" Foreground="White" BorderThickness="0" AutomationProperties.Name="Close document tab" ToolTip.Tip="Close this document; unsaved changes offer Save, Discard, or Cancel" Click="CloseTab_OnClick" />
               </StackPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>

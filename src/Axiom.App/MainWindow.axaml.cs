@@ -1237,6 +1237,8 @@ public partial class MainWindow : Window
     private void UpdateDurableStatus()
     {
         WorkspaceContextText.Text = _activeWorkspace is null ? "No workspace" : $"Workspace: {_activeWorkspace.DisplayName}";
+        WorkspaceFilesHeader.Text = _activeWorkspace?.DisplayName ?? "Workspace Files";
+        ToolTip.SetTip(WorkspaceFilesHeader, _activeWorkspace?.RootPath ?? "Open a workspace to browse Markdown documents.");
         PathText.Text = _session.Path ?? _folder ?? "Unsaved document";
         var identity = _session.DocumentId is null ? "Ordinary Markdown" : "Axiom document";
         var saveState = _session.Conflict is not null ? "Conflict" : _activeTab.IsMissing ? "Missing — buffer retained" : _session.IsDirty ? "Unsaved" : _session.IsNew ? "New" : "Saved";
@@ -1350,6 +1352,13 @@ public partial class MainWindow : Window
         }
         if (TryHandleCommandMenuKey(e)) return;
         var editorIsCommandTarget = IsEditorCommandTarget();
+        if (editorIsCommandTarget && ProtectedRectangleSelection() &&
+            (e.Key is Key.Delete or Key.Back || e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key is Key.X or Key.V))
+        {
+            e.Handled = true;
+            UpdateChrome("Rectangular editing cannot change the document identity line. Select body text instead.");
+            return;
+        }
         if (editorIsCommandTarget && e.KeyModifiers == KeyModifiers.None && e.Key is Key.Delete or Key.Back && TryDeleteOrderedItems())
         {
             e.Handled = true;

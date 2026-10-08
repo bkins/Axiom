@@ -84,7 +84,9 @@ public sealed partial class MainWindowTests
             var draft = window.TabsForTesting.Last();
             Assert.Null(draft.Session.Path);
             Assert.Equal(folder, draft.SuggestedSaveFolder);
-            Assert.Empty(draft.Document.Text);
+            Assert.NotNull(draft.Session.DocumentId);
+            Assert.True(draft.Session.IsDirty);
+            Assert.Empty(Axiom.Core.DocumentIdCodec.RemoveCanonicalMarkerForPreview(draft.Document.Text).Trim());
             Assert.False(File.Exists(Path.Combine(folder, "Untitled.md")));
             Assert.Equal("# Source\n", await File.ReadAllTextAsync(path));
             await CloseWorkbenchTestAsync(window);

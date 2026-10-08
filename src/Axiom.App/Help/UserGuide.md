@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 97B79415353C91740EFD452B17778695A0C85E06DCD14A9E97D5A6C02692A933. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 2534567E666086945B47EB7EF5D390B01494DBF96EDE2A1F13D3FD4B58608C5B. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom v1 User Guide
 
@@ -497,3 +497,17 @@ When dragging a workspace item near the top or bottom of Workspace Files, the li
 Selecting complete ordered-list item lines and pressing Delete or Backspace removes them and renumbers following siblings in that list. The original starting number, nested numbering, line endings and unrelated lists remain. One Undo restores the deletion and renumbering. Partial-text deletion and edits inside fenced code use ordinary editor behavior; opening or previewing a document never renumbers its source.
 
 Compact caption buttons use centered glyphs, theme-aware hover and visible keyboard focus. The close button has a red hover treatment. Standard Windows title-bar fallback remains available in Settings.
+
+## Daily authoring in the 1.2.0 development candidate
+
+Drag a document tab onto another tab to change their order. Move tab left/right in the tab context menu or command palette provides the same action without dragging. Axiom remembers saved-file tab order in workspace state; it does not save dirty Markdown when reordering. Caret, selection, Undo history and protected recovery remain attached to the original tab. Untitled drafts continue to use recovery rather than saved-file session locations.
+
+Hold Shift+Alt and use the arrow keys to select a rectangular region of source text. Typing replaces the selected columns across rows; Undo restores the edit as one action. Rectangles touching the canonical document identity line reject typing, deletion, cut and paste. Keep that marker intact.
+
+New and reviewed blank/template creation assign one Axiom identity to the new document. Templates do not donate their identity. The identity remains in source Markdown and survives recovery and Save; Preview hides the marker. Opening existing ordinary Markdown continues to leave enrollment under your control. Tabs show a diamond for Axiom documents and a document glyph for ordinary Markdown; their tooltip includes the identity/path/recovery details. A failed recovery remains visibly labeled. Tab close controls are centered red buttons; closing a dirty tab retains the normal save/discard/cancel choice.
+
+The normal footer has two lines: operation/recovery information, then words/lines/caret and build version. Document details opens workspace, path, identity, format and recovery information without crowding the footer. Workspace Files is headed by the workspace name; its tooltip shows the root directory. Persistent operation failures remain visible until resolved or explicitly dismissed.
+
+On Windows, Git's Open terminal here opens Windows PowerShell in the currently inspected repository root. It rechecks the root first. External commands are your responsibility; refresh Git in Axiom after making changes. This is an external terminal, and does not upload source or save unsaved buffers.
+
+These changes are implementation candidates awaiting human review. The broader discovery layout and persistent top/side command placement still await the approved strategy's prototype and representative-task review.

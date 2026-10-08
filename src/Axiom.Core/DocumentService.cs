@@ -10,6 +10,14 @@ public sealed class DocumentService(
 
     public DocumentSession NewDocument() => DocumentSession.New();
 
+    public DocumentSession NewAxiomDocument()
+    {
+        var session = DocumentSession.New();
+        Enroll(session);
+        session.UpdateText(session.Text + Environment.NewLine + Environment.NewLine);
+        return session;
+    }
+
     public async Task<DocumentSession> OpenAsync(string path, CancellationToken cancellationToken = default)
     {
         var file = await files.ReadAsync(path, cancellationToken);

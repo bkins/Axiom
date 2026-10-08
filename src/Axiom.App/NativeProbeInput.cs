@@ -63,11 +63,12 @@ internal static class NativeProbeInput
         }).ToArray();
         if (SendInput((uint)inputs.Length,inputs,Marshal.SizeOf<NativeProbeKeyboardInput>()) != inputs.Length) throw new IOException("Native text input was rejected.");
     }
-    internal static void Key(ushort key, bool shift = false)
+    internal static void Key(ushort key, bool shift = false, bool alt = false)
     {
         GetWindowThreadProcessId(GetForegroundWindow(),out var process);
         if (process != Environment.ProcessId) throw new IOException("Native probe refuses to type into another process.");
         var inputs = new List<NativeProbeKeyboardInput>();
+        if (alt) inputs.Add(new() { Type = 1, KeyCode = 0x12 });
         if (shift) inputs.Add(new()
         {
             Type = 1
@@ -84,6 +85,7 @@ internal static class NativeProbeInput
           , KeyCode = key
           , Flags = 2
         });
+        if (alt) inputs.Add(new() { Type = 1, KeyCode = 0x12, Flags = 2 });
         if (shift) inputs.Add(new()
         {
             Type = 1

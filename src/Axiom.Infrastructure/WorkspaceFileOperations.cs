@@ -20,7 +20,8 @@ public sealed partial class WorkspaceFileOperations(IDocumentMutationStore state
                                          , CancellationToken cancellationToken = default
                                          , string? creationText = null
                                          , byte[]? importContent = null
-                                         , Guid? recoveryOperationId = null)
+                                         , Guid? recoveryOperationId = null
+                                         , Guid? createdDocumentId = null)
     {
         await _gate.WaitAsync(cancellationToken);
         try
@@ -64,6 +65,14 @@ public sealed partial class WorkspaceFileOperations(IDocumentMutationStore state
             else if (importContent is not null) throw new ArgumentException("Import content requires an import operation.");
             if (kind == DocumentMutationKind.Create && DocumentIdCodec.Find(creationText ?? "") is not null)
                 throw new ArgumentException("New documents cannot inherit a template's identity. Enrollment is a separate action.");
+            if (createdDocumentId is not null)
+            {
+                if (kind != DocumentMutationKind.Create || createdDocumentId == Guid.Empty)
+                    throw new ArgumentException("A new identity is only valid for new document creation.");
+                identity = createdDocumentId;
+                var body = string.IsNullOrEmpty(creationText) ? Environment.NewLine : creationText;
+                output = System.Text.Encoding.UTF8.GetBytes(DocumentIdCodec.Enroll(body, identity.Value));
+            }
             if (kind == DocumentMutationKind.Duplicate && identity is not null)
             {
                 var scan = await new BulkEnrollmentService(this).PreviewAsync(workspace, cancellationToken: cancellationToken);

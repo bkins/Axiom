@@ -5,6 +5,27 @@ namespace Axiom.Core.Tests;
 public sealed class DocumentServiceTests
 {
     [Fact]
+    public async Task ExplicitNewIdentityHasAnEditableBodyAndSurvivesRecoverySaveAndReopen()
+    {
+        var files = new MemoryFiles("C:\\docs\\new.md", "");
+        var recovery = new MemoryRecovery();
+        var service = new DocumentService(files, recovery, new MemoryMetadata());
+        var session = service.NewAxiomDocument();
+        var identity = Assert.IsType<Guid>(session.DocumentId);
+        Assert.EndsWith(Environment.NewLine + Environment.NewLine, session.Text);
+        session.UpdateText(session.Text + "# Body");
+        await service.ProtectAsync(session);
+        var restored = DocumentSession.Recover(Assert.Single(recovery.Drafts));
+        Assert.Equal(identity, restored.DocumentId);
+        await service.SaveAsAsync(restored, "C:\\docs\\new.md");
+        Assert.Empty(recovery.Drafts);
+        var reopened = await service.OpenAsync("C:\\docs\\new.md");
+        Assert.Equal(identity, reopened.DocumentId);
+        Assert.Equal(restored.Text, reopened.Text);
+        Assert.False(reopened.IsDirty);
+    }
+
+    [Fact]
     public async Task OpeningAnExistingFileDoesNotChangeOrEnrollIt()
     {
         var files = new MemoryFiles("C:\\docs\\plain.md", "# Plain");

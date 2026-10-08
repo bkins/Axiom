@@ -16,6 +16,11 @@ public partial class MainWindow
 
     private void InitializeReadingFeedback()
     {
+        RegisterCommand("document.details", "Show document details", null, false, async (_, _) =>
+        {
+            await ChoiceDialog.ShowAsync(this, "Document details", $"{WorkspaceContextText.Text}\n{PathText.Text}\n{DocumentStateText.Text}\n{(_session.DocumentId is { } id ? "Document ID: " + id + "\n" : "")}{DocumentFormatText.Text}\n{RecoveryText.Text}\n{BuildIdentityText.Text}", "Close");
+            return new(CommandOutcome.Completed, "Document details reviewed.");
+        });
         _messageTimer.Tick += (_, _) =>
         {
             _messageTimer.Stop();
@@ -25,6 +30,8 @@ public partial class MainWindow
         Editor.TextArea.Caret.PositionChanged += (_, _) => RefreshCaretStatistics();
         Closed += (_, _) => { _messageTimer.Stop(); _statisticsTimer.Stop(); };
     }
+
+    private async void DocumentDetails_OnClick(object? sender, RoutedEventArgs args) => await ExecuteCommandAsync("document.details");
 
     private void ShowInformation(string message)
     {

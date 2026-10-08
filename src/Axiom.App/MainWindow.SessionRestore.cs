@@ -8,10 +8,12 @@ public partial class MainWindow
     private IWorkspaceSessionStore? SessionStore => SessionStoreForTesting ?? ManagementState;
     private readonly TaskCompletionSource _startupCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private async Task<bool> PersistCleanSessionAsync()
+    private Task<bool> PersistCleanSessionAsync() => PersistSessionLocationsAsync(requireClean: true);
+
+    private async Task<bool> PersistSessionLocationsAsync(bool requireClean)
     {
         if (_activeWorkspace is not { } workspace || SessionStore is not { } store) return true;
-        if (_tabs.Any(tab => tab.Session.IsDirty))
+        if (requireClean && _tabs.Any(tab => tab.Session.IsDirty))
         {
             UpdateChrome("Resolve all dirty tabs before remembering the clean session.");
             return false;

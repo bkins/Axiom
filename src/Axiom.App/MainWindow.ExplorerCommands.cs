@@ -132,7 +132,7 @@ public partial class MainWindow
 
     private ContextMenu BuildWorkspaceContextMenu(CommandContext context, bool tab)
     {
-        var ids = tab ? new[] { "document.close", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.pinItem", "workspace.copyFile", "workspace.copyPath", "workspace.showInExplorer" }
+        var ids = tab ? new[] { "document.close", "document.tabLeft", "document.tabRight", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.pinItem", "workspace.copyFile", "workspace.copyPath", "workspace.showInExplorer" }
             : new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.manage.recycle", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.copyPath", "workspace.showInExplorer", "workspace.showFolderInExplorer" };
         var menu = new ContextMenu();
         foreach (var id in ids)

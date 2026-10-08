@@ -225,7 +225,9 @@ public partial class MainWindow
                     Path.GetFileName(otherPath).Equals(name, StringComparison.OrdinalIgnoreCase)) > 1)
                 name = _folder is not null && IsWithinFolder(path, _folder) ? Path.GetRelativePath(_folder, path) : path;
             tab.Label = name + (tab.Session.IsDirty ? " *" : "") +
-                (tab.Session.Conflict is not null ? " [Conflict]" : tab.IsMissing ? " [Missing]" : "");
+                (tab.Session.Conflict is not null ? " [Conflict]" : tab.IsMissing ? " [Missing]" : "") +
+                (tab.RecoveryStatus.Contains("failed", StringComparison.OrdinalIgnoreCase) ? " [Recovery failed]" : "");
+            tab.RefreshIndicators();
         }
     }
 

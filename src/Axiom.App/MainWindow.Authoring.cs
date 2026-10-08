@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
+using AvaloniaEdit.Editing;
 using Axiom.Core;
 using Axiom.Infrastructure;
 
@@ -17,6 +18,12 @@ public partial class MainWindow
 
     private void InitializeAuthoring()
     {
+        Editor.TextArea.TextEntering += (_, args) =>
+        {
+            if (!ProtectedRectangleSelection()) return;
+            args.Handled = true;
+            UpdateChrome("Rectangular editing cannot change the document identity line. Select body text instead.");
+        };
         RegisterCommand("editor.copy", "Copy selection", null, false, (_, _) => { Editor.Copy(); return Task.FromResult(new CommandResult(CommandOutcome.Completed, "Copied selection.")); }, _ => new(Editor.CanCopy, "Select editor text first."));
         RegisterCommand("editor.cut", "Cut selection", null, false, (_, _) => { Editor.Cut(); return Task.FromResult(new CommandResult(CommandOutcome.Completed, "Cut selection.")); }, _ => new(Editor.CanCut && !SelectionTouchesIdentityLine(Editor.Text, Editor.SelectionStart, Editor.SelectionLength), "Select text outside the identity line."));
         RegisterCommand("editor.paste", "Paste text or image", null, false, (_, cancellation) => PasteEditorClipboardAsync(cancellation), _ => new(!SelectionTouchesIdentityLine(Editor.Text, Editor.SelectionStart, Editor.SelectionLength), "Choose a position outside the identity line."));
@@ -46,6 +53,9 @@ public partial class MainWindow
         Editor.ContextRequested += Editor_OnContextRequested;
         Closed += (_, _) => _spellingCancellation?.Cancel();
     }
+
+    private bool ProtectedRectangleSelection() => Editor.TextArea.Selection is RectangleSelection &&
+        Editor.TextArea.Selection.Segments.Any(segment => SelectionTouchesIdentityLine(Editor.Text, segment.StartOffset, segment.Length));
 
     private async void ScheduleSpelling()
     {

@@ -42,6 +42,11 @@ public partial class App : Application
                 var window = (MainWindow)desktop.MainWindow;
                 window.Opened += async (_, _) => await CompactWorkbenchProbe.StartAsync(window);
             }
+            if (DailyAuthoringProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await DailyAuthoringProbe.StartAsync(window);
+            }
             if (WorkspaceNavigationProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

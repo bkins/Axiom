@@ -30,8 +30,9 @@ public partial class MainWindow
     {
         var folder = SelectedCreationFolder(requested);
         _initialPlaceholder = false;
-        await LoadSessionAsync(_documents.NewDocument(), folder is null ? "New unsaved document" : $"New unsaved document — Save defaults to {folder}");
+        await LoadSessionAsync(_documents.NewAxiomDocument(), folder is null ? "New unsaved Axiom document" : $"New unsaved Axiom document — Save defaults to {folder}");
         _activeTab.SuggestedSaveFolder = folder;
+        Editor.CaretOffset = Editor.Document.TextLength;
         Editor.TextArea.Focus();
     }
 

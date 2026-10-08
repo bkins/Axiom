@@ -40,6 +40,8 @@ internal sealed class WorkspaceGitView : UserControl
         var header = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var status = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var refresh = new Button { Content = "Refresh" };
+        var terminal = new Button { Content = "Open terminal here", IsVisible = OperatingSystem.IsWindows() };
+        ToolTip.SetTip(terminal, "Open a terminal at the displayed Git repository root. Refresh after external Git operations.");
         var workingDiff = new Button { Content = "Saved diff" };
         var stagedDiff = new Button { Content = "Staged diff" };
         var stage = new Button { Content = "Stage selected…" };
@@ -67,6 +69,7 @@ internal sealed class WorkspaceGitView : UserControl
             workingDiff.IsEnabled = !busy && contextValid() && selected.Length == 1 && selected[0].CanManage;
             stagedDiff.IsEnabled = !busy && contextValid() && selectedStaged.Length == 1 && selectedStaged[0].CanManage;
             refresh.IsEnabled = !busy && contextValid();
+            terminal.IsEnabled = !busy && contextValid();
             close.IsEnabled = list.IsEnabled = StagedFiles.IsEnabled = CommitMessage.IsEnabled = !busy;
             cancel.IsEnabled = busy;
             var reason = busy ? "A Git operation is running; cancel it or wait." : !contextValid() ? "The workspace changed or a document operation is running." : !current.CanMutate ? current.Reason ?? "Repository requires external Git." : selected.Length == 0 ? "Select saved Markdown files first." : selected.Any(file => dirty(file.RelativePath)) ? "A selected buffer is unsaved or conflicted; save or resolve it first." : "The selected files are unsupported for this Git operation.";
@@ -113,6 +116,14 @@ internal sealed class WorkspaceGitView : UserControl
         list.SelectionChanged += (_, _) => Update();
         StagedFiles.SelectionChanged += (_, _) => Update();
         refresh.Click += async (_, _) => await Run(token => Refresh(token));
+        terminal.Click += async (_, _) => await Run(async token =>
+        {
+            var inspected = await service.InspectAsync(initial.WorkspaceRoot, token) ?? throw new IOException("The Git repository is unavailable.");
+            if (!contextValid() || !WorkspacePathBoundary.Comparer.Equals(inspected.RepositoryRoot, initial.RepositoryRoot))
+                throw new IOException("The repository changed; reopen Git before opening a terminal.");
+            RepositoryTerminal.Open(inspected.RepositoryRoot);
+            status.Text = "Terminal opened at " + inspected.RepositoryRoot + ". Refresh after external Git changes.";
+        });
         cancel.Click += (_, _) => operation?.Cancel();
         close.Click += (_, _) => closePanel();
         RefreshAvailability = Update;
@@ -182,7 +193,7 @@ internal sealed class WorkspaceGitView : UserControl
             });
         };
         var notice = new TextBlock { Text = "Index / Saved status codes: M modified, A added, D deleted, R renamed, ? untracked, U conflict. Renames, submodules, sparse checkout, filtered/LFS files and pending Git operations require external Git. Axiom document-history checkpoints are separate refs; these commits update the reviewed branch.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
-        var buttons = new WrapPanel { Orientation = Orientation.Horizontal, Children = { refresh, workingDiff, stagedDiff, stage, unstage, commit, cancel, close } };
+        var buttons = new WrapPanel { Orientation = Orientation.Horizontal, Children = { refresh, terminal, workingDiff, stagedDiff, stage, unstage, commit, cancel, close } };
         foreach (var button in buttons.Children) button.Margin = new Thickness(0, 0, 8, 6);
         var details = new Expander { Header = "Repository details and limits", Content = new TextBlock { Text = current.RepositoryRoot + "\n" + current.Reason + "\n" + notice.Text, TextWrapping = Avalonia.Media.TextWrapping.Wrap } };
         var external = new Expander { Header = "Requires external Git", Content = UnsupportedFiles };

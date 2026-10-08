@@ -35,7 +35,9 @@ public sealed partial class MainWindowTests
             Assert.Equal("content", window.EditorSelectedTextForTesting);
             Assert.True(window.EditorCanUndoForTesting);
             Assert.Equal("# Saved\n\ncontent", await File.ReadAllTextAsync(path));
-            Assert.Equal(expanded, await File.ReadAllTextAsync(Path.Combine(root, "new.md")));
+            var createdText = await File.ReadAllTextAsync(Path.Combine(root, "new.md"));
+            Assert.NotNull(DocumentIdCodec.Find(createdText));
+            Assert.Equal(expanded, DocumentIdCodec.RemoveCanonicalMarkerForPreview(createdText).TrimStart('\r', '\n'));
             Assert.Contains(await state.GetRecoverableDraftsAsync(), draft => draft.Text == dirtyText);
             window.UnsavedChoiceForTesting = _ => Task.FromResult("Discard");
             window.Close();

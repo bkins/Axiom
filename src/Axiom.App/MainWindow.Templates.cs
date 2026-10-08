@@ -54,9 +54,11 @@ public partial class MainWindow
             var destination = WorkspaceMutationPolicy.Resolve(workspace.RootPath, relative);
             WorkspaceFileOperations.ValidateAncestors(workspace.RootPath, destination);
             var text = DocumentTemplateService.Expand(template, Path.GetFileNameWithoutExtension(name), DateOnly.FromDateTime(DateTime.Today));
-            var preview = new DocumentCreationPreviewWindow(destination, text);
+            if (text.Length == 0) text = Environment.NewLine;
+            var documentId = Guid.NewGuid();
+            var preview = new DocumentCreationPreviewWindow(destination, DocumentIdCodec.Enroll(text, documentId));
             if (!await preview.ShowDialog<bool>(this)) return new(CommandOutcome.Cancelled, "Document preview cancelled.");
-            await CreateReviewedDocumentAsync(workspace, relative, text, cancellationToken);
+            await CreateReviewedDocumentAsync(workspace, relative, text, cancellationToken, documentId);
             UpdateChrome($"Created {relative} from the reviewed text.");
             return new(CommandOutcome.Completed, "Created " + relative);
         }
@@ -75,11 +77,11 @@ public partial class MainWindow
         finally { _sessionTransitionRunning = false; SetSessionCommandsEnabled(true); }
     }
 
-    internal async Task CreateReviewedDocumentAsync(WorkspaceRecord workspace, string relative, string text, CancellationToken cancellationToken = default)
+    internal async Task CreateReviewedDocumentAsync(WorkspaceRecord workspace, string relative, string text, CancellationToken cancellationToken = default, Guid? documentId = null)
     {
         if (ManagementState is null || _mutationBlocked) throw new IOException("Resolve pending file operations before creating a document.");
         var path = await new WorkspaceFileOperations(ManagementState, log: _log).ExecuteAsync(
-            workspace, DocumentMutationKind.Create, null, relative, cancellationToken: cancellationToken, creationText: text);
+            workspace, DocumentMutationKind.Create, null, relative, cancellationToken: cancellationToken, creationText: text, createdDocumentId: documentId ?? Guid.NewGuid());
         await LoadFolderAsync(workspace.RootPath);
         if (path is not null) await OpenDocumentAsync(path);
     }
