@@ -18,3 +18,4 @@ foreach ($name in @('RetainedDiscoveryAndDirtyBuffer','PersistentRightAndBottomL
 $result | ConvertTo-Json -Depth 5
 if ($result.PhysicalManualDirectoryReturnAndShellExitRestart -ne $true -or $result.CopiedDocumentationTasks -ne $true) { throw 'Shell restart or copied-documentation task check failed.' }
 if ($result.ChangesTabRetainsShellAndPendingCommand -ne $true -or $result.InputLimitRequiresExplicitCancellation -ne $true) { throw 'Terminal continuity or input-limit guard check failed.' }
+if ($result.CommitMessageCursorAndPhysicalTyping -ne $true -or $result.RecipeKeepsTerminalSizeAndPage -ne $true) { throw 'Commit cursor or terminal stability check failed.' }

@@ -53,14 +53,18 @@ internal static class DiscoveryTerminalProbe
             terminal.InputForTesting = input => File.AppendAllText(Path.Combine(Root!, "input-events.jsonl"), JsonSerializer.Serialize(input) + "\n");
             await WaitAsync(() => Task.FromResult(terminal.CanPrepareForTesting));
             window.Topmost = true; window.Activate(); browser.Focus(); await browser.InvokeScript("window.axiomTerminal.focus()");
+            await Task.Delay(200);
+            var sizeBefore = await browser.InvokeScript("JSON.stringify({cols:window.axiomTerminal.cols,rows:window.axiomTerminal.rows,page:window.axiomPageToken})");
             Require(await terminal.PrepareAsync("git add ."), "Recipe could not fill empty prompt: " + terminal.StatusForTesting);
             await Task.Delay(200);
+            Require(await browser.InvokeScript("JSON.stringify({cols:window.axiomTerminal.cols,rows:window.axiomTerminal.rows,page:window.axiomPageToken})") == sizeBefore, "Preparing a command resized or reloaded the terminal.");
             Require(Git(workspace, "diff", "--cached", "--name-only") == "", "Recipe executed before Enter.");
             Require(!await terminal.PrepareAsync("git push"), "Recipe overwrote pending input.");
             var modes = (TabControl)window.FindControl<ContentControl>("GitPanelHost")!.Content!;
             var sameProcess = terminal.ProcessIdForTesting;
             modes.SelectedIndex = 1; window.UpdateLayout(); await Task.Delay(80);
             modes.SelectedIndex = 0; window.UpdateLayout(); await Task.Delay(160);
+            await WaitAsync(() => Task.FromResult(terminal.PageReadyForTesting));
             Require(terminal.ProcessIdForTesting == sameProcess && !terminal.CanPrepareForTesting, "Switching Changes lost shell or pending command.");
             // Physical Enter is sent only to the probe's own window and focused terminal.
             window.Activate(); browser.Focus(); await browser.InvokeScript("window.axiomTerminal.focus()"); await Task.Delay(100);
@@ -74,6 +78,13 @@ internal static class DiscoveryTerminalProbe
             var screen = await browser.InvokeScript("JSON.stringify(Array.from({length:window.axiomTerminal.buffer.active.length},(_,i)=>window.axiomTerminal.buffer.active.getLine(i).translateToString()).join('\\n'))");
             await File.WriteAllTextAsync(Path.Combine(Root!, "terminal-screen.json"), screen);
             Require(screen?.Contains("untracked.txt") == true, "Real terminal output did not render.");
+            var headBeforeCommit = Git(workspace, "rev-parse", "HEAD");
+            var commit = terminal.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, "Commit…"));
+            commit.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); await Task.Delay(250);
+            Require(Git(workspace, "rev-parse", "HEAD") == headBeforeCommit, "Commit recipe executed before Enter.");
+            NativeProbeInput.Type(window, "Prepared message from terminal"); NativeProbeInput.Key(0x0D);
+            await WaitAsync(() => Task.FromResult(terminal.CanPrepareForTesting && Git(workspace, "rev-parse", "HEAD") != headBeforeCommit));
+            Require(Git(workspace, "log", "-1", "--format=%B") == "Prepared message from terminal", "Commit cursor was not between the quotes.");
             Require(await terminal.PrepareAsync("Start-Sleep -Seconds 10"), "Could not prepare running-command fixture.");
             browser.Focus(); await browser.InvokeScript("window.axiomTerminal.focus()"); NativeProbeInput.Key(0x0D); await Task.Delay(300);
             Require(!await terminal.PrepareAsync("git push"), "Recipe injected into a running command.");
@@ -134,6 +145,8 @@ internal static class DiscoveryTerminalProbe
               , CopiedDocumentationTasks = true
               , ChangesTabRetainsShellAndPendingCommand = true
               , InputLimitRequiresExplicitCancellation = true
+              , CommitMessageCursorAndPhysicalTyping = true
+              , RecipeKeepsTerminalSizeAndPage = true
               , HumanChecks = "Human usability, keyboard/screen-reader/DPI, sustained use and CP account/server integration remain pending. No push performed."
             }, new JsonSerializerOptions { WriteIndented = true }));
         }

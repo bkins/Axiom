@@ -18,7 +18,8 @@ internal sealed class GitTerminalView : UserControl, IAsyncDisposable
     private readonly string _token = Guid.NewGuid().ToString("N");
     private readonly TerminalInputState _state;
     private readonly Func<bool> _contextValid;
-    private readonly TextBlock _status = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+    // Reserve stable space: prompt-state text must not resize ConPty and redraw its command line.
+    private readonly TextBlock _status = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap, Height = 54, TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis };
     private readonly List<Button> _recipes = [];
     private readonly StringBuilder _output = new();
     private readonly StringBuilder _history = new();
@@ -37,6 +38,7 @@ internal sealed class GitTerminalView : UserControl, IAsyncDisposable
     internal Action<string>? InputForTesting { get; set; }
     internal bool CanPrepareForTesting => _ready && !_disposed && !_inputRejected && _session?.IsRunning == true && _contextValid() && _state.CanPrepare;
     internal int? ProcessIdForTesting => _session?.ProcessId;
+    internal bool PageReadyForTesting => _ready;
     internal string StatusForTesting => _status.Text ?? "";
     internal string DiagnosticForTesting => $"ready={_ready}, disposed={_disposed}, prompt={_state.AtPrompt}, root={_state.AtRepositoryRoot}, canPrepare={_state.CanPrepare}, context={_contextValid()}, status={_status.Text}";
 
@@ -128,12 +130,12 @@ internal sealed class GitTerminalView : UserControl, IAsyncDisposable
             catch (Exception error) { _status.Text = "Could not restart shell: " + error.Message; }
             finally { _bridgeGate.Release(); }
         };
-        foreach (var (label, command) in new[] { ("Status", "git status"), ("Stage all changes here", "git add ."), ("Stage tracked changes", "git add -u"), ("Saved diff", "git diff"), ("Staged diff", "git diff --cached"), ("Commit…", "git commit"), ("Push", "git push") })
+        foreach (var (label, command) in new[] { ("Status", "git status"), ("Stage all changes here", "git add ."), ("Stage tracked changes", "git add -u"), ("Saved diff", "git diff"), ("Staged diff", "git diff --cached"), ("Commit…", "git commit -m \"\""), ("Push", "git push") })
         {
             var button = new Button { Content = label, Margin = new Thickness(0, 0, 5, 5), IsEnabled = false };
             AutomationProperties.SetName(button, "Prepare " + label + " in terminal");
             ToolTip.SetTip(button, "Insert " + command + " without Enter. Review/edit it, then press Enter in the terminal.");
-            button.Click += async (_, _) => await PrepareAsync(command);
+            button.Click += async (_, _) => await PrepareAsync(command, label == "Commit…" ? 1 : 0);
             _recipes.Add(button); commands.Children.Add(button);
         }
         var header = new TextBlock { Text = root, TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis };
@@ -185,8 +187,9 @@ internal sealed class GitTerminalView : UserControl, IAsyncDisposable
         var columns = packet.GetProperty("cols").GetInt32(); var rows = packet.GetProperty("rows").GetInt32();
         if (_columns != columns || _rows != rows) { _session!.Resize(columns, rows); _columns = columns; _rows = rows; }
     }
-    internal async Task<bool> PrepareAsync(string command)
+    internal async Task<bool> PrepareAsync(string command, int cursorBack = 0)
     {
+        if (cursorBack < 0 || cursorBack > command.Length) return false;
         if (!_ready || _disposed || _session is null) return false;
         await _bridgeGate.WaitAsync();
         try
@@ -195,7 +198,7 @@ internal sealed class GitTerminalView : UserControl, IAsyncDisposable
             bool prepared;
             lock (_outputGate) prepared = !_inputRejected && _session.IsRunning && _contextValid() && _state.TryPrepare(command);
             if (!prepared) { UpdateState(); return false; }
-            await _session.WriteAsync(command);
+            await _session.WriteAsync(command + string.Concat(Enumerable.Repeat("\u001b[D", cursorBack)));
             _view.Focus();
             await _view.InvokeScript("window.axiomTerminal.focus()");
             UpdateState(); return true;
@@ -212,6 +215,7 @@ internal sealed class GitTerminalView : UserControl, IAsyncDisposable
             : !_state.AtPrompt ? "Shell is running or waiting for input. Helpers resume at an empty prompt."
             : !_state.AtRepositoryRoot ? "Current directory differs from this repository root. Return there to use helpers."
             : "Review the current command, then press Enter. Use Ctrl+C to return to an empty prompt.";
+        ToolTip.SetTip(_status, _status.Text);
     }
     private string BuildHtml()
     {
