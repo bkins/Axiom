@@ -12,6 +12,30 @@ namespace Axiom.App.Tests;
 public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
+    public async Task ShiftAltDownOnlyInsertsAtBothRowsAndUndoesOnce()
+    {
+        var root = CreateTabWorkspace();
+        try
+        {
+            var window = CreateWindow(root);
+            window.FindControl<Grid>("EditorPreviewLayout")!.Children.Remove(window.FindControl<NativeWebView>("Preview")!);
+            window.Show(); await window.StartupCompleted;
+            var editor = window.FindControl<TextEditor>("Editor")!;
+            var source = "abcd\nefgh\nijkl\n";
+            window.SetEditorTextForTesting(source);
+            editor.CaretOffset = 1; editor.TextArea.Focus(); window.UpdateLayout();
+            editor.TextArea.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Down, KeyModifiers = KeyModifiers.Alt | KeyModifiers.Shift });
+            Assert.IsType<RectangleSelection>(editor.TextArea.Selection);
+            editor.TextArea.RaiseEvent(new TextInputEventArgs { RoutedEvent = InputElement.TextInputEvent, Text = "X" });
+            Assert.Equal("aXbcd\neXfgh\nijkl\n", window.EditorTextForTesting);
+            window.UndoEditorForTesting();
+            Assert.Equal(source, window.EditorTextForTesting);
+            await CloseWorkbenchTestAsync(window);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [AvaloniaFact]
     public async Task ShiftAltSelectionUsesExistingRectangleEditingAndUndo()
     {
         var root = CreateTabWorkspace();

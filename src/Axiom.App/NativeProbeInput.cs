@@ -68,6 +68,7 @@ internal static class NativeProbeInput
         GetWindowThreadProcessId(GetForegroundWindow(),out var process);
         if (process != Environment.ProcessId) throw new IOException("Native probe refuses to type into another process.");
         var inputs = new List<NativeProbeKeyboardInput>();
+        var extended = key is >= 0x21 and <= 0x28 ? 1u : 0u;
         if (alt) inputs.Add(new() { Type = 1, KeyCode = 0x12 });
         if (shift) inputs.Add(new()
         {
@@ -78,20 +79,21 @@ internal static class NativeProbeInput
         {
             Type = 1
           , KeyCode = key
+          , Flags = extended
         });
         inputs.Add(new()
         {
             Type = 1
           , KeyCode = key
-          , Flags = 2
+          , Flags = extended | 2
         });
-        if (alt) inputs.Add(new() { Type = 1, KeyCode = 0x12, Flags = 2 });
         if (shift) inputs.Add(new()
         {
             Type = 1
           , KeyCode = 0x10
           , Flags = 2
         });
+        if (alt) inputs.Add(new() { Type = 1, KeyCode = 0x12, Flags = 2 });
         if (SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf<NativeProbeKeyboardInput>()) != inputs.Count) throw new IOException("Native keyboard input was rejected.");
     }
     internal static async Task DragAsync(Control source,Control target)

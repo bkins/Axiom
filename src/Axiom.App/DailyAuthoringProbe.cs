@@ -31,7 +31,20 @@ internal static class DailyAuthoringProbe
             foreach (var name in new[] { "a.md", "b.md", "c.md" }) await window.OpenDocumentAsync(Path.Combine(workspace, name));
             var active = window.TabsForTesting.Last();
             var editor = window.FindControl<TextEditor>("Editor")!;
-            editor.CaretOffset = 1; editor.TextArea.Focus(); window.Activate(); window.UpdateLayout(); await Task.Delay(150);
+            var keys = new List<string>();
+            window.AddHandler(Avalonia.Input.InputElement.KeyDownEvent, (_, args) => keys.Add(args.Key + "/" + args.KeyModifiers), Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+            window.Topmost = true; window.WindowState = WindowState.Normal;
+            editor.TextArea.Focus(); window.Activate(); window.UpdateLayout(); await Task.Delay(150);
+            await NativeProbeInput.ClickAsync(editor);
+            editor.CaretOffset = 1;
+            editor.TextArea.Focus(); await Task.Delay(100);
+            NativeProbeInput.Key(0x28, shift: true, alt: true);
+            await Task.Delay(100);
+            Require(editor.TextArea.Selection is RectangleSelection, "Native Shift+Alt+Down alone did not create a rectangular selection. Keys: " + string.Join(", ", keys) + "; focus: " + window.FocusManager?.GetFocusedElement()?.GetType().Name);
+            NativeProbeInput.Type(window, "X"); await Task.Delay(150);
+            Require(window.EditorTextForTesting == "aXbcd\neXfgh\nijkl\n", "Native vertical-only rectangular typing did not insert in both rows. Actual: " + window.EditorTextForTesting);
+            window.UndoEditorForTesting(); Require(window.EditorTextForTesting == "abcd\nefgh\nijkl\n", "Vertical-only rectangular typing did not Undo as one action.");
+            editor.Select(1, 0); editor.CaretOffset = 1;
             NativeProbeInput.Key(0x28, shift: true, alt: true);
             NativeProbeInput.Key(0x27, shift: true, alt: true);
             await Task.Delay(100);
@@ -78,6 +91,7 @@ internal static class DailyAuthoringProbe
             {
                 Version = window.BuildIdentityForTesting.InformationalVersion
               , NativeShiftAltTypingAndUndo = true
+              , NativeVerticalOnlyTypingAndUndo = true
               , NativeTabDragPreservesBufferAndSelection = true
               , TabOrderAndRecoveryPersisted = true
               , NewIdentitySurvivesRecovery = true
