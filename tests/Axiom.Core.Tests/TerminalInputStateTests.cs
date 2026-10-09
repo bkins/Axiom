@@ -3,6 +3,23 @@ namespace Axiom.Core.Tests;
 public sealed class TerminalInputStateTests
 {
     [Fact]
+    public void EmptyPromptCancellationDoesNotNeedAnotherPromptMarker()
+    {
+        var state = new TerminalInputState("test");
+        state.ObserveOutput("\u001b]777;test;root\a");
+        state.ObserveInput("\u0003");
+        Assert.True(state.CanPrepare);
+        Assert.True(state.TryPrepare("git status"));
+        state.ObserveInput("\u0003");
+        Assert.False(state.CanPrepare);
+        state.ObserveOutput("\u001b]777;test;root\a");
+        state.ObserveInput("\r\u0003");
+        Assert.False(state.CanPrepare);
+        state.ObserveOutput("\u001b]777;test;root\a");
+        state.ObserveInput("\u001b[A\u0003");
+        Assert.False(state.CanPrepare);
+    }
+    [Fact]
     public void OnlyAnEmptyPromptAtTheOriginalRootCanBePrepared()
     {
         var state = new TerminalInputState("test");

@@ -32,6 +32,9 @@ public sealed class TerminalInputState(string token)
     {
         foreach (var character in input)
         {
+            // PSReadLine can redraw an already empty prompt on Ctrl+C without calling prompt again.
+            // No accepted input exists to cancel here; retain only that known-empty prompt.
+            if (character == '\u0003' && AtPrompt && _length == 0 && !_uncertain) continue;
             if (character is '\r' or '\n' or '\u0003') { AtPrompt = false; _length = 0; _uncertain = false; }
             else if (character is '\b' or '\u007f') _length = Math.Max(0, _length - 1);
             else if (char.IsControl(character)) _uncertain = true;
