@@ -14,12 +14,15 @@ public sealed record EditorPreferences(string FontFamily = "Cascadia Mono, Conso
     public bool SpellCheck { get; init; } = true;
     public string ToolbarCommands { get; init; } = ToolbarLayout.DefaultCommands;
     public bool CompactWorkbench { get; init; }
+    public CommandPlacement CommandPlacement { get; init; }
+    public DiscoveryPlacement DiscoveryPlacement { get; init; }
     public string PersonalDictionary { get; init; } = string.Empty;
     [System.Text.Json.Serialization.JsonIgnore]
     public string[] PersonalWords => PersonalDictionary.Split('\n', StringSplitOptions.RemoveEmptyEntries);
     public void Validate()
     {
         _ = ToolbarLayout.Read(ToolbarCommands);
+        if (!Enum.IsDefined(CommandPlacement) || !Enum.IsDefined(DiscoveryPlacement)) throw new ArgumentException("Choose a supported command and discovery placement.");
         if (PersonalDictionary is null || PersonalDictionary.Length > 81000 || PersonalWords.Length > 1000 || PersonalWords.Any(word => word.Length is < 1 or > 80 || word.Any(character => !char.IsLetter(character) && character != '\'' && character != '’')))
             throw new ArgumentException("Personal dictionary allows up to 1,000 words of 1–80 letters or apostrophes.");
         if (string.IsNullOrWhiteSpace(FontFamily) || FontFamily.Length > 200 || FontFamily.Any(char.IsControl))

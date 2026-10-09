@@ -595,6 +595,7 @@ public partial class MainWindow : Window
         Background = page;
         Foreground = text;
         TopCommandBar.Background = surface;
+        SideCommandHost.Background = surface;
         TopCommandBar.BorderBrush = border;
         BottomStatusBar.Background = page;
         BottomStatusBar.BorderBrush = border;
@@ -1298,6 +1299,7 @@ public partial class MainWindow : Window
         eventArgs.Cancel = true;
         await RunSessionTransitionAsync(async () =>
         {
+            if (_gitTerminal is { } terminal) await terminal.DisposeAsync();
             await _markCleanExit();
             _closingApproved = true;
             _recoveryTimer.Stop();

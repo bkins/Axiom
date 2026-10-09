@@ -19,10 +19,11 @@ public partial class MainWindow
         }
         RegisterCommand("application.toolbar", "Customize toolbar visibility and order", null, false, async (_, _) =>
         {
-            var choice = await new ToolbarCustomizationWindow(_editorPreferences.ToolbarCommands).ShowDialog<string?>(this);
+            var dialog = new ToolbarCustomizationWindow(_editorPreferences.ToolbarCommands, _editorPreferences.CommandPlacement);
+            var choice = await dialog.ShowDialog<string?>(this);
             if (choice is null) return new(CommandOutcome.Cancelled, "Toolbar changes cancelled.");
             if (ManagementState is null) return new(CommandOutcome.Unavailable, "Settings storage is unavailable.");
-            var value = _editorPreferences with { ToolbarCommands = choice };
+            var value = _editorPreferences with { ToolbarCommands = choice, CommandPlacement = dialog.Placement };
             await ManagementState.SetEditorPreferencesAsync(value, _appearance);
             ApplyEditorPreferences(value);
             return new(CommandOutcome.Completed, "Toolbar configuration saved. Hidden commands remain available from the palette and shortcuts.");
@@ -37,11 +38,21 @@ public partial class MainWindow
     private void ApplyToolbarLayout()
     {
         if (_toolbarControls.Count == 0) return;
+        var side = _editorPreferences.CommandPlacement == CommandPlacement.Side;
+        var target = side ? (Panel)SideCommandPanel : CommandPanel;
+        foreach (var control in _toolbarControls.Values) { CommandPanel.Children.Remove(control); SideCommandPanel.Children.Remove(control); }
         var index = 1;
         foreach (var id in ToolbarLayout.Read(_editorPreferences.ToolbarCommands))
         {
-            var control = _toolbarControls[id]; CommandPanel.Children.Remove(control); CommandPanel.Children.Insert(index++, control);
+            var control = _toolbarControls[id];
+            if (side) target.Children.Add(control); else target.Children.Insert(index++, control);
+            foreach (var button in control.GetLogicalDescendants().OfType<Button>().Prepend(control as Button).OfType<Button>())
+            {
+                button.Width = side ? 34 : double.NaN;
+                button.Padding = new Thickness(5); button.MinWidth = button.MinHeight = 30;
+            }
         }
+        SideCommandHost.IsVisible = side && target.Children.Count > 0 && _viewMode is not WorkbenchViewMode.Zen and not WorkbenchViewMode.Presentation;
         ApplyToolbarVisibility();
         ApplyWorkbenchDensity();
     }
@@ -61,7 +72,7 @@ public partial class MainWindow
     {
         var compact = _editorPreferences.CompactWorkbench;
         TopCommandBar.Padding = compact ? new Thickness(4,1) : new Thickness(6,3);
-        foreach (var button in CommandPanel.GetLogicalDescendants().OfType<Button>())
+        foreach (var button in CommandPanel.GetLogicalDescendants().Concat(SideCommandPanel.GetLogicalDescendants()).OfType<Button>())
         {
             button.Padding = new Thickness(compact ? 3 : 5);
             button.MinWidth = button.MinHeight = compact ? 28 : 30;
@@ -69,6 +80,6 @@ public partial class MainWindow
         DocumentTabs.FontSize = compact ? 12 : 14;
     }
 
-    internal IReadOnlyList<string> VisibleToolbarIdsForTesting => CommandPanel.Children.Where(control => control.IsVisible)
+    internal IReadOnlyList<string> VisibleToolbarIdsForTesting => (_editorPreferences.CommandPlacement == CommandPlacement.Side ? SideCommandPanel.Children : CommandPanel.Children).Where(control => control.IsVisible)
         .Select(control => _toolbarControls.FirstOrDefault(pair => ReferenceEquals(pair.Value, control)).Key ?? "menu").ToArray();
 }

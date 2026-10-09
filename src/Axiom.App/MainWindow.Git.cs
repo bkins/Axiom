@@ -7,10 +7,13 @@ public partial class MainWindow
 {
     private WorkspaceGitView? _gitView;
     private string? _gitWorkspaceRoot;
+    private GitTerminalView? _gitTerminal;
     private void ClearStaleGitPanel()
     {
         if (_gitWorkspaceRoot is null || WorkspacePathBoundary.Comparer.Equals(_gitWorkspaceRoot, _activeWorkspace?.RootPath)) return;
         _gitView?.CancelOperation();
+        if (_gitTerminal is { } terminal) _ = terminal.DisposeAsync();
+        _gitTerminal = null;
         _gitView = null; _gitWorkspaceRoot = null;
         GitPanelHost.Content = new Avalonia.Controls.TextBlock { Text = "Workspace changed. Open Git to inspect this workspace.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     }
@@ -20,6 +23,11 @@ public partial class MainWindow
     {
         if (_gitView?.IsBusy == true) return new(CommandOutcome.Unavailable, "A Git operation is running; use Cancel operation in the Git panel or wait.");
         if (_activeWorkspace is not { } workspace) return new(CommandOutcome.Unavailable, "Open a workspace to inspect Git.");
+        if (_gitView is not null && _gitTerminal is not null && WorkspacePathBoundary.Comparer.Equals(_gitWorkspaceRoot, workspace.RootPath))
+        {
+            _gitView.RefreshAvailability(); SidebarTopics.SelectedIndex = 6; SetToolWindowVisible(true); await PersistWorkbenchAsync();
+            return new(CommandOutcome.Completed, "Existing Git terminal retained. Refresh Changes after shell commands.");
+        }
         var service = new GitWorkspaceService();
         var snapshot = await service.InspectAsync(workspace.RootPath);
         if (snapshot is null) return new(CommandOutcome.Unavailable, "This workspace has no Git repository. Editing and recovery remain available; Git setup is deliberate and optional.");
@@ -31,14 +39,20 @@ public partial class MainWindow
             return FindTab(path) is { } tab && (tab.Session.IsDirty || tab.Session.Conflict is not null);
         }
         _gitView?.CancelOperation();
+        if (_gitTerminal is { } previous) await previous.DisposeAsync();
         _gitWorkspaceRoot = workspace.RootPath;
         _gitView = new WorkspaceGitView(this, service, snapshot, Dirty, ContextValid, () => { SetToolWindowVisible(false); Editor.TextArea.Focus(); _ = PersistWorkbenchAsync(); });
-        GitPanelHost.Content = _gitView;
+        _gitTerminal = new(snapshot.RepositoryRoot, ContextValid);
+        GitPanelHost.Content = new Avalonia.Controls.TabControl
+        {
+            Items = { new Avalonia.Controls.TabItem { Header = "Terminal", Content = _gitTerminal }, new Avalonia.Controls.TabItem { Header = "Changes", Content = _gitView } }
+        };
         SidebarTopics.SelectedIndex = 6;
         _toolWidth = 480;
         SetToolWindowVisible(true);
         await PersistWorkbenchAsync();
-        return new(CommandOutcome.Completed, "Embedded Git changes opened. Editing remains available; Git operates on explicitly reviewed saved files.");
+        return new(CommandOutcome.Completed, "Git terminal opened. Buttons prepare commands; Enter executes. Changes remains available.");
     }
     internal WorkspaceGitView? GitViewForTesting => _gitView;
+    internal GitTerminalView? GitTerminalForTesting => _gitTerminal;
 }

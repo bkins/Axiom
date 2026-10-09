@@ -112,7 +112,7 @@ public partial class MainWindow
         var window = new CpAnalysisWindow(snapshot
                                        , () => _session.DraftKey == draftKey && snapshot.Matches(Editor.Text ?? "")
                                        , () => _cpAnalysisClient
-                                       , candidate => { _cpAnalysisClient?.Dispose(); _cpAnalysisClient = candidate; });
+                                       , candidate => { _cpAnalysisClient?.Dispose(); _cpAnalysisClient = candidate; ApplyDiscoveryLayout(); });
         await window.ShowDialog(this);
         return new(CommandOutcome.Completed, "CP analysis screen closed; source preserved.");
     }

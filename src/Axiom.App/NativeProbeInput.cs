@@ -63,11 +63,12 @@ internal static class NativeProbeInput
         }).ToArray();
         if (SendInput((uint)inputs.Length,inputs,Marshal.SizeOf<NativeProbeKeyboardInput>()) != inputs.Length) throw new IOException("Native text input was rejected.");
     }
-    internal static void Key(ushort key, bool shift = false, bool alt = false)
+    internal static void Key(ushort key, bool shift = false, bool alt = false, bool control = false)
     {
         GetWindowThreadProcessId(GetForegroundWindow(),out var process);
         if (process != Environment.ProcessId) throw new IOException("Native probe refuses to type into another process.");
         var inputs = new List<NativeProbeKeyboardInput>();
+        if (control) inputs.Add(new() { Type = 1, KeyCode = 0x11 });
         var extended = key is >= 0x21 and <= 0x28 ? 1u : 0u;
         if (alt) inputs.Add(new() { Type = 1, KeyCode = 0x12 });
         if (shift) inputs.Add(new()
@@ -94,6 +95,7 @@ internal static class NativeProbeInput
           , Flags = 2
         });
         if (alt) inputs.Add(new() { Type = 1, KeyCode = 0x12, Flags = 2 });
+        if (control) inputs.Add(new() { Type = 1, KeyCode = 0x11, Flags = 2 });
         if (SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf<NativeProbeKeyboardInput>()) != inputs.Count) throw new IOException("Native keyboard input was rejected.");
     }
     internal static async Task DragAsync(Control source,Control target)

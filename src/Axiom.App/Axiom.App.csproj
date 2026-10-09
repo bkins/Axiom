@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets/**" />
+    <None Include="Assets/Terminal/THIRD-PARTY-NOTICES.txt" Link="ThirdPartyNotices/Terminal.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="Assets/Mermaid/THIRD-PARTY-NOTICES.txt" Link="ThirdPartyNotices/Mermaid.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="Walkthrough/**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="Help/UserGuide.md" LogicalName="Axiom.App.Help.UserGuide.md" />

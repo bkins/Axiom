@@ -217,7 +217,10 @@
     </Border>
 
     <Border x:Name="HelpPanelHost" IsVisible="False" DockPanel.Dock="Right" Width="340" MinWidth="280" BorderThickness="1,0,0,0" BorderBrush="#8893A3" />
-    <Grid x:Name="WorkbenchLayout" ColumnDefinitions="280,5,*,5,0,44">
+    <Border x:Name="SideCommandHost" DockPanel.Dock="Left" IsVisible="False" Width="48" Padding="3" Background="#1F2937">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="SideCommandPanel" Spacing="3" /></ScrollViewer>
+    </Border>
+    <Grid x:Name="WorkbenchLayout" ColumnDefinitions="280,5,*,5,0,44" RowDefinitions="*,0,0">
       <Border x:Name="WorkspaceSidebar" BorderBrush="#374151" BorderThickness="0,0,1,0" Padding="8">
               <DockPanel>
                 <TextBlock x:Name="DuplicateWarning" IsVisible="False" DockPanel.Dock="Bottom" Margin="4,8,4,4" TextWrapping="Wrap" Foreground="#B45309" />
@@ -375,17 +378,25 @@
                 </ListBox>
               </DockPanel>
             </TabItem>
-            <TabItem Header="Search" AutomationProperties.Name="Workspace search" ToolTip.Tip="Search Markdown text in the active workspace">
+            <TabItem Header="Discovery" AutomationProperties.Name="Workspace discovery" ToolTip.Tip="Find saved Markdown and follow connected documents">
               <DockPanel Margin="4">
                 <StackPanel DockPanel.Dock="Top" Spacing="6">
-                  <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Workspace search" VerticalAlignment="Center" /><Button Content="ⓘ" Tag="Workspace search" Padding="4,0" MinHeight="22" AutomationProperties.Name="About workspace search" Click="MetadataInfo_OnClick" /></StackPanel>
+                  <WrapPanel><TextBlock Text="Saved Markdown · offline" Margin="0,0,6,0" VerticalAlignment="Center" /><ComboBox x:Name="DiscoveryPlacementChoice" AutomationProperties.Name="Discovery layout" SelectionChanged="DiscoveryPlacement_OnChanged"><ComboBoxItem Content="Right panel" /><ComboBoxItem Content="Bottom results" /></ComboBox></WrapPanel>
+                  <WrapPanel>
+                    <Button Content="Open match" Margin="0,0,4,4" Click="DiscoveryOpen_OnClick" />
+                    <Button Content="Backlinks" Tag="5" Margin="0,0,4,4" Click="DiscoveryConnected_OnClick" />
+                    <Button Content="Relations" Tag="0" Margin="0,0,4,4" Click="DiscoveryConnected_OnClick" />
+                    <Button Content="Classify" Tag="2" Margin="0,0,4,4" Click="DiscoveryConnected_OnClick" />
+                    <Button Content="Reviewed CP search…" Margin="0,0,4,4" Click="CpWorkspaceAnalysis_OnClick" />
+                  </WrapPanel>
+                  <TextBlock x:Name="DiscoveryContext" Text="CP disconnected · offline search remains available" TextWrapping="Wrap" FontSize="12" />
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBox x:Name="WorkspaceSearchBox" AutomationProperties.Name="Search workspace" PlaceholderText="Find text in workspace" />
                     <Button Grid.Column="1" Margin="6,0,0,0" AutomationProperties.Name="Run workspace search" ToolTip.Tip="Search the active workspace" Click="WorkspaceSearch_OnClick">Search</Button>
                   </Grid>
                   <TextBlock x:Name="WorkspaceSearchStatus" Text="Open a workspace and enter text to search." TextWrapping="Wrap" />
                 </StackPanel>
-                <ListBox x:Name="WorkspaceSearchResults" AutomationProperties.Name="Workspace search results" DoubleTapped="WorkspaceSearchResults_OnDoubleTapped">
+                <ListBox x:Name="WorkspaceSearchResults" AutomationProperties.Name="Workspace search results" DoubleTapped="WorkspaceSearchResults_OnDoubleTapped" KeyDown="DiscoveryResults_OnKeyDown">
                   <ListBox.ItemTemplate>
                     <DataTemplate DataType="core:WorkspaceSearchResult">
                       <StackPanel Margin="0,3">

@@ -53,6 +53,7 @@ internal static class WorkspaceGitProbe
             await window.ProtectIfNeededForTestingAsync();
             var dirtyCommand = window.ExecuteCommandAsync("workspace.git");
             await dirtyCommand;
+            ((TabControl)window.FindControl<ContentControl>("GitPanelHost")!.Content!).SelectedIndex = 1;
             var browser = window.GitViewForTesting ?? throw new IOException("Git changes panel is missing.");
             Require(Rows(browser).All(file => file.RelativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
                                           || file.RelativePath.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase)), "Git selection included a non-Markdown file.");
@@ -65,6 +66,7 @@ internal static class WorkspaceGitProbe
             window.SetEditorTextForTesting(saved);
             var command = window.ExecuteCommandAsync("workspace.git");
             await command;
+            ((TabControl)window.FindControl<ContentControl>("GitPanelHost")!.Content!).SelectedIndex = 1;
             browser = window.GitViewForTesting!;
             Select(browser, "notes.md");
             Require(FindButton(browser, "Stage selected…").IsEnabled, "Clean saved file could not be staged.");

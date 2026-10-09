@@ -31,8 +31,10 @@ public partial class MainWindow
         _explorerFilterTimer.Tick += (_, _) => { _explorerFilterTimer.Stop(); RefreshExplorer(); };
         Closed += (_, _) => { ++_explorerGeneration; _explorerFilterTimer.Stop(); };
         Closed += (_, _) => _gitView?.CancelOperation();
-        SizeChanged += (_, _) => ClampWorkbenchWidths();
+        Closed += async (_, _) => { if (_gitTerminal is { } terminal) await terminal.DisposeAsync(); };
+        SizeChanged += (_, _) => { ClampWorkbenchWidths(); ApplyDiscoveryLayout(); };
         _workbenchReady = true;
+        InitializeDiscovery();
     }
 
     private async Task RestoreWorkbenchAsync()
@@ -58,7 +60,7 @@ public partial class MainWindow
         var available = Math.Max(620, Bounds.Width - (HelpPanelHost.IsVisible ? HelpPanelHost.Width : 0));
         var left = Math.Clamp(WorkbenchLayout.ColumnDefinitions[0].Width.Value, 180, Math.Min(480, available * 0.32));
         WorkbenchLayout.ColumnDefinitions[0].Width = new GridLength(left);
-        if (ToolWindowHost.IsVisible)
+        if (ToolWindowHost.IsVisible && !(SidebarTopics.SelectedIndex == 3 && _editorPreferences.DiscoveryPlacement == DiscoveryPlacement.Bottom))
         {
             var width = Math.Clamp(_toolWidth, 260, Math.Min(480, Math.Max(260, available - left - 290)));
             WorkbenchLayout.ColumnDefinitions[4].Width = new GridLength(width);
@@ -67,7 +69,7 @@ public partial class MainWindow
 
     private void SetToolWindowVisible(bool visible)
     {
-        if (!visible && ToolWindowHost.IsVisible)
+        if (!visible && ToolWindowHost.IsVisible && Grid.GetColumn(ToolWindowHost) == 4)
             _toolWidth = Math.Clamp(WorkbenchLayout.ColumnDefinitions[4].ActualWidth, 260, 480);
         ToolWindowHost.IsVisible = ToolWindowSplitter.IsVisible = visible;
         WorkbenchLayout.ColumnDefinitions[3].Width = new GridLength(visible ? 5 : 0);
@@ -75,6 +77,7 @@ public partial class MainWindow
         if (SidebarTopics.SelectedItem is TabItem item) ToolWindowTitle.Text = item.Header?.ToString();
         if (visible) HelpPanelHost.IsVisible = false;
         ClampWorkbenchWidths();
+        ApplyDiscoveryLayout();
     }
 
     private async void ToolWindow_OnClick(object? sender, RoutedEventArgs eventArgs)
@@ -114,7 +117,7 @@ public partial class MainWindow
 
     private async void WorkbenchSplitter_OnPointerReleased(object? sender, PointerReleasedEventArgs eventArgs)
     {
-        if (ToolWindowHost.IsVisible) _toolWidth = Math.Clamp(WorkbenchLayout.ColumnDefinitions[4].ActualWidth, 260, 480);
+        if (ToolWindowHost.IsVisible && Grid.GetColumn(ToolWindowHost) == 4) _toolWidth = Math.Clamp(WorkbenchLayout.ColumnDefinitions[4].ActualWidth, 260, 480);
         var left = Math.Clamp(WorkbenchLayout.ColumnDefinitions[0].ActualWidth, 180, 480);
         WorkbenchLayout.ColumnDefinitions[0].Width = new GridLength(left);
         ClampWorkbenchWidths();

@@ -66,6 +66,7 @@ public partial class MainWindow
         Editor.TextArea.TextView.CurrentLineBorder = null;
         ScheduleSpelling();
         ApplyToolbarLayout();
+        ApplyDiscoveryLayout();
         if (!available) UpdateChrome("Requested editor font is unavailable; using Consolas/monospace fallback.");
     }
 

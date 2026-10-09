@@ -10,6 +10,7 @@ public sealed class EverydayUseStateTests
     {
         using var fixture = new MutationTestWorkspace();
         var settings = new EditorPreferences("Consolas", 22, false, 8, MenuStyle.Rounded) { CompactTitleBar = false, HighlightCurrentLine = false, ShowNonPrintingCharacters = true, ShowPreviewLineNumbers = true, SpellCheck = false, PersonalDictionary = "Axiom\nWorkbench", ToolbarCommands = "document.save,document.new", CompactWorkbench = true };
+        settings = settings with { CommandPlacement = CommandPlacement.Side, DiscoveryPlacement = DiscoveryPlacement.Bottom };
         await fixture.State.SetEditorPreferencesAsync(settings, AppearancePreference.Dark);
         Assert.Equal(settings, await fixture.State.GetEditorPreferencesAsync());
         await Assert.ThrowsAsync<ArgumentException>(() => fixture.State.SetEditorPreferencesAsync(settings with { MenuStyle = (MenuStyle)99 }, AppearancePreference.Light));
