@@ -21,10 +21,10 @@ internal sealed class HelpPanel : UserControl
     private bool _selectingMatch;
     private AppearancePreference _appearance;
 
-    public HelpPanel(string cacheRoot, AppearancePreference appearance, Action close, Action<double> resize, Action? walkthrough = null)
+    public HelpPanel(string cacheRoot, AppearancePreference appearance, Action close, Action<double> resize, Action? walkthrough = null, IReadOnlyList<AxiomCommand>? commands = null)
     {
         _appearance = appearance;
-        _markdown = OfflineHelp.Read();
+        _markdown = OfflineHelp.Read(commands);
         _guide = new MarkdownStructureService().Parse(_markdown);
         _topics = new ComboBox { Name = "PersistentHelpTopics", ItemsSource = _guide.Headings, DisplayMemberBinding = new Avalonia.Data.Binding(nameof(DocumentHeading.Text)), HorizontalAlignment = HorizontalAlignment.Stretch };
         _topics.SelectionChanged += async (_, _) => { if (!_selectingMatch) await NavigateAsync(); };

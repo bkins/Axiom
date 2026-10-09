@@ -23,10 +23,27 @@ public partial class MainWindow
             menu.Items.Add(group);
             if (button != FileCommandsButton) button.IsVisible = false;
         }
+        var helpMenu = new MenuItem { Header = "Help" };
+        foreach (var (title, command) in new[]
+        {
+            ("Browse all feature topics", "help.home")
+          , ("Workspace Help", "help.workspace")
+          , ("Metadata Help", "help.metadata")
+          , ("Relationships Help", "help.relationships")
+          , ("CP connection Help", "help.cp")
+          , ("Semantic search test walkthrough", "help.semantic")
+          , ("Guided walkthrough", "help.walkthrough")
+        })
+        {
+            var item = new MenuItem { Header = title };
+            item.Click += async (_, _) => await ExecuteCommandAsync(command);
+            helpMenu.Items.Add(item);
+        }
+        menu.Items.Add(helpMenu);
         FileCommandsButton.Flyout = menu;
         CommandPanel.Children.Remove(FileCommandsButton);
         CommandPanel.Children.Insert(0, FileCommandsButton);
-        AutomationProperties.SetName(FileCommandsButton, "Main menu: File Edit Format Tools");
+        AutomationProperties.SetName(FileCommandsButton, "Main menu: File Edit Format Tools Help");
         ToolTip.SetTip(FileCommandsButton, "Main menu — Alt or F10; Alt+F/E/M opens a section");
         FileCommandsButton.Content = CreateWorkbenchIcon("menu");
         FileCommandsButton.Classes.Add("toolbar-icon");

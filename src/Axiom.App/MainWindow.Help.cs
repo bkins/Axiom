@@ -17,7 +17,7 @@ public partial class MainWindow
         _persistentHelp ??= new HelpPanel(_operationalPaths.Root, _appearance,
             () => HelpPanelHost.IsVisible = false,
             delta => { HelpPanelHost.Width = Math.Clamp(HelpPanelHost.Width + delta, 280, Math.Max(280, Bounds.Width - 550)); ClampWorkbenchWidths(); },
-            () => _ = ExecuteCommandAsync("help.walkthrough"));
+            () => _ = ExecuteCommandAsync("help.walkthrough"), _commands.Commands);
         HelpPanelHost.Child = _persistentHelp;
         SetToolWindowVisible(false);
         HelpPanelHost.IsVisible = true;
@@ -43,6 +43,9 @@ public partial class MainWindow
 
     internal string? HelpContext() => ToolWindowHost.IsVisible && SidebarTopics.SelectedIndex == 0 ? "Explicit relationships" :
         ToolWindowHost.IsVisible && SidebarTopics.SelectedIndex is 1 or 2 ? "Document metadata and classification" :
+        ToolWindowHost.IsVisible && SidebarTopics.SelectedIndex is 3 or 6 ? "Discovery and embedded Git terminal" :
+        ToolWindowHost.IsVisible && SidebarTopics.SelectedIndex == 4 ? "Navigate by document outline" :
+        ToolWindowHost.IsVisible && SidebarTopics.SelectedIndex == 5 ? "Incoming Markdown references" :
         FileTree.IsKeyboardFocusWithin ? "Workspace loading" :
         _readingMode ? "Workspace loading, reading mode" : "Follow Markdown links";
 }

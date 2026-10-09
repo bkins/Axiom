@@ -11,7 +11,9 @@ internal sealed class CpAnalysisWindow : Window
     internal CpAnalysisWindow( AnalysisSnapshot snapshot
                              , Func<bool> sourceStillCurrent
                              , Func<CpDocumentAnalysisClient?> getClient
-                             , Action<CpDocumentAnalysisClient?> setClient )
+                             , Action<CpDocumentAnalysisClient?> setClient
+                             , AppearancePreference appearance = AppearancePreference.System
+                             , Func<bool, CancellationToken, Task>? runLocalHelper = null )
     {
         Title = "CP connection and reviewed document analysis";
         Width = 820;
@@ -19,17 +21,20 @@ internal sealed class CpAnalysisWindow : Window
         MinWidth = 540;
         MinHeight = 480;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var endpoint = new TextBox { Name = "CpEndpoint", Text = getClient()?.Endpoint.AbsoluteUri ?? "http://localhost:5273", PlaceholderText = "CP Development endpoint" };
+        var endpoint = new TextBox { Name = "CpEndpoint", Text = getClient()?.Endpoint.AbsoluteUri ?? (LocalCpSetup.Available(true) ? "http://127.0.0.1:5277" : "http://localhost:5273"), PlaceholderText = "CP Development endpoint" };
         var credential = new TextBox { Name = "CpCredential", PasswordChar = '●', PlaceholderText = "Dedicated analysis credential (session only)" };
         var connect = new Button { Name = "CpConnect", Content = "Connect / check capabilities" };
         var disconnect = new Button { Content = "Disconnect" };
+        var copyCredential = new Button { Name = "CpCopyLocalCredential", Content = "Copy local credential", IsEnabled = runLocalHelper is not null || LocalCpSetup.Available(false) };
+        var startLocal = new Button { Name = "CpStartLocal", Content = "Start local CP", IsEnabled = runLocalHelper is not null || LocalCpSetup.Available(true) };
+        var help = OfflineHelp.TopicButton(this, "CP connection and reviewed analysis", appearance);
         var submit = new Button { Name = "CpSubmit", Content = "Submit reviewed snapshot for insights", IsEnabled = getClient() is not null };
         var cancel = new Button { Content = "Cancel request", IsEnabled = false };
         var close = new Button { Content = "Close", IsCancel = true };
         var question = new TextBox { Text = "Summarize this document and identify uncertainties.", PlaceholderText = "Analysis question (up to 4,000 characters)" };
         var review = new TextBox { Name = "CpSnapshotReview", Text = snapshot.Text, IsReadOnly = true, AcceptsReturn = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap, MinHeight = 140 };
         var output = new TextBox { Name = "CpDerivedOutput", IsReadOnly = true, AcceptsReturn = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap, MinHeight = 140 };
-        var status = new TextBlock { Text = "Optional connection. No content is sent until you submit the exact snapshot shown below.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        var status = new TextBlock { Name = "CpConnectionStatus", Text = "Optional connection. No content is sent until you submit the exact snapshot shown below.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         CancellationTokenSource? requestCancellation = null;
         bool ConnectedEndpointMatches() => getClient() is { } client && Uri.TryCreate(endpoint.Text, UriKind.Absolute, out var proposed)
             && new Uri(proposed.AbsoluteUri.TrimEnd('/') + "/").Equals(client.Endpoint);
@@ -39,6 +44,8 @@ internal sealed class CpAnalysisWindow : Window
             endpoint.IsEnabled = credential.IsEnabled = question.IsEnabled = !busy;
             submit.IsEnabled = !busy && ConnectedEndpointMatches();
             cancel.IsEnabled = busy;
+            copyCredential.IsEnabled = !busy && (runLocalHelper is not null || LocalCpSetup.Available(false));
+            startLocal.IsEnabled = !busy && (runLocalHelper is not null || LocalCpSetup.Available(true));
         }
         endpoint.PropertyChanged += (_, change) =>
         {
@@ -66,6 +73,17 @@ internal sealed class CpAnalysisWindow : Window
             }
             catch { candidate.Dispose(); throw; }
         });
+        async Task LocalAsync(bool start) => await RunAsync(async cancellationToken =>
+        {
+            status.Text = start ? "Starting local CP…" : "Copying local credential…";
+            await (runLocalHelper ?? LocalCpSetup.RunAsync)(start, cancellationToken);
+            if (start) endpoint.Text = "http://127.0.0.1:5277";
+            status.Text = start
+                ? "Local CP is running at http://127.0.0.1:5277; credential copied. Paste it into the credential field, then Connect / check capabilities. No document was submitted."
+                : "Local credential copied. Paste it into the credential field, then Connect / check capabilities. No document was submitted.";
+        });
+        copyCredential.Click += async (_, _) => await LocalAsync(false);
+        startLocal.Click += async (_, _) => await LocalAsync(true);
         disconnect.Click += (_, _) => { setClient(null); credential.Text = ""; output.Text = ""; submit.IsEnabled = false; status.Text = "Disconnected; session credential discarded."; };
         submit.Click += async (_, _) => await RunAsync(async cancellationToken =>
         {
@@ -89,6 +107,7 @@ internal sealed class CpAnalysisWindow : Window
                 new TextBlock { Text = "Connection (credential retained in memory only)", FontWeight = Avalonia.Media.FontWeight.Bold }
               , endpoint, credential
               , new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { connect, disconnect } }
+              , new WrapPanel { Children = { copyCredential, startLocal, help } }
               , status
               , new TextBlock { Text = $"Exact reviewed snapshot: {snapshot.ReferenceKey}; SHA-256 {snapshot.SourceHash}", TextWrapping = Avalonia.Media.TextWrapping.Wrap }
               , review, question

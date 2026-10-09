@@ -1,18 +1,38 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 091BAFA91AB8E6649595D8FB3B9AB0DD7F6AD81765DB633539213A3645B24B2E. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 3044099C888B1554FED77B9794F01EA321061F44A3461B938709D65D250C49D4. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
-# Axiom v1 User Guide
+# Axiom User Guide
 
-## Official Windows 1.1.0 release
+Current feature guidance for the Windows application. Help describes available behavior and its limits; release acceptance and historical build evidence are maintained separately in Operations. Use Help topics or Search Help text to find a feature. This guide is bundled offline with each build.
 
-Ben accepted the cumulative 1.0.34 build on October 7, 2026 and promoted it to official 1.1.0. This preserves the same document workflows and schema-9 state. Shift+Enter inserts a hard break without a visible slash, Ctrl+S saves modified open tabs, and Workspace Files fills its intended panel height. Linux/macOS and signing remain on hold. Close the previous app normally, resolving unsaved/recovery choices, then open the official package's Axiom.App.exe; Test-Axiom.cmd continues to use isolated test state.
 
-## Preview reliability in 1.0.33
+## Find Help for every feature
+
+Open **Main menu → Help → Browse all feature topics**, use the topic selector, or search words from a feature's name. The Help toolbar icon and F1 open the same offline guide. The main Help panel also includes **All commands and default shortcuts**, generated from the running command catalog and linked to feature instructions. Customized bindings are shown in Keyboard Shortcuts, not in that default reference.
+
+| Feature group | Help topics to look for |
+| --- | --- |
+| Documents and collections | Open and edit; Manage documents and collections; Work with document tabs; Recent documents; Pin important documents |
+| Workspace navigation | Workspace navigation and safe moves; Hierarchical outlines and advanced tools; Navigate by document outline; Search the workspace; Discovery and embedded Git terminal |
+| Editing | Lists, field information and C# highlighting; Authoring assistance; Daily authoring; Save shortcuts; Settings and editor preferences |
+| Markdown and Preview | Structured Markdown and wiki navigation; Follow Markdown links; Incoming Markdown references; Preview reliability; Preview navigation and synchronized scrolling |
+| Identity and metadata | Axiom identity; Document metadata and classification; Explicit relationships |
+| Recovery and conflicts | Recovery; Deleted documents and recorded folder structure; External changes |
+| Layout and commands | Compact workbench; Toolbar and viewing modes; Command palette; Keyboard shortcut settings; Command workflows and cancellation |
+| History and Git | Document history, comparison and restore; Git Changes; Discovery and embedded Git terminal |
+| Export | Export to Word and HTML; Plain-text export; PDF export; EPUB and OpenDocument Text export |
+| Images and templates | Drop files and import assets; Templates and named creation; Authoring assistance |
+| Connected reading | CP connection and reviewed analysis; Local CP controls; Semantic search: step-by-step test; Read-only browser and phone companion |
+| Maintenance and build | Diagnostics, backups, and versions; Per-user installation and trusted updates; Identify the running build; Platform state compatibility |
+
+**CP connection Help** and **Semantic search test walkthrough** also have direct entries under Main menu → Help. Both CP review screens have a Help button and support F1. Topics describe current behavior and supported limits; historical release records are maintained outside the in-app guide.
+
+## Preview reliability and protected recovery
 
 Large images and documents use a private temporary HTML file when Preview exceeds the native browser's string-loading budget. Your Markdown and image files remain unchanged. Only the exact generated file is allowed as an internal navigation target; external navigation restrictions still apply. Normal close removes this view's generated files. An unexpected exit can leave temporary HTML in the app's cache.
 
 Preview failures display a persistent status message while leaving the editor, Undo and recovery available. Reopening or switching the document retries Preview. After an unexpected exit, choose **Restore** if offered to recover protected unsaved text without overwriting its saved file. Open the portable **Axiom.App.exe** to use your existing app state; **Test-Axiom.cmd** uses separate test state.
 
-## Authoring improvements in 1.0.32
+## Lists, field information and C# highlighting
 
 Metadata has an information button immediately beside Tags, Type and Aliases. Each explains that field; information stays available when the current document is not eligible for editing. Classify filters and Workspace Search have the same label-level help, and relationship editing explains Target, Kind and Optional note. Apply and Cancel retain their existing meaning; reading information does not change metadata or Markdown.
 
@@ -24,13 +44,13 @@ Right-click the editor for six groups: History (Undo/Redo), Clipboard, Inline fo
 
 Known callouts (note, info, tip, important, warning, caution and danger) show a representative type icon and a title in Preview. The source marker is hidden from the rendered title/body, including quotes written without a space after >. A custom title is preserved; otherwise the type name is used. Body formatting, lists and nested quotes remain intact. Unknown types remain ordinary quoted text. Source Markdown retains its marker for portability; existing export representations are unchanged.
 
-## Windows interaction improvements in 1.0.31
+## Windows keyboard and pointer interaction
 
 The compact title bar keeps the document title in its own region and provides Minimize, Maximize/Restore and Close buttons. Settings can switch back to the standard title bar. Inactive tabs have a distinct boundary and background; the horizontal scrollbar reserves its own row below the tabs.
 
 Help topics and search remain above the hosted Help content and accept mouse input. In the workspace tree, drag a file or folder onto its destination folder and review the move before continuing. Cancelling leaves the source and unsaved buffers unchanged; a move involving unsaved descendants still requires the normal save/discard decision. Refreshing the tree reveals the active document and its parent folders without clearing your filter. Show in Explorer selects the actual requested item, including names with spaces or commas. The workspace context menu and command palette also provide Show workspace folder in Explorer to reveal the root folder itself.
 
-## Toolbar and viewing modes in 1.0.30
+## Toolbar and viewing modes
 
 Choose Main menu > Tools > Customize Toolbar, or use the application.toolbar command. Check commands to show them, select a row and choose Move up/Move down to reorder, then Apply. Cancel leaves the saved configuration unchanged; Reset restores the default command choices/order when you Apply. Settings also offers Configure toolbar; that dialog changes the pending Settings choice until you Apply Settings. The main menu remains available even if you hide every optional toolbar action. Hidden actions remain accessible through the command palette, menu and configured shortcuts. Enrollment and Pin still depend on the current document/workspace.
 
@@ -38,10 +58,9 @@ Tools > Viewing modes provides Full screen (F11 toggles), Zen / distraction-free
 
 Compact is a separate remembered spacing preference, also available in Settings. It reduces toolbar padding and tab text size while retaining command access. Exit view retains that preference; toggle Compact again or turn off Compact workbench spacing to restore normal density. Presets are the initial supported design: Zen and distraction-free share one mode, and Presentation navigation scrolls the current document. Moving arbitrary toolbar groups into different quadrants is deferred for design review.
 
-The final 1.0.30 candidate includes all preceding October 3 findings, including offline Mermaid Preview, English spell-check, current-line highlighting, Shift+Enter, workspace navigation and embedded local Git. Mermaid exports currently retain readable fenced source with an explicit warning; diagram graphics in exports remain a future extension. Ben's native visual/keyboard/DPI and release acceptance remain separate from automated verification.
 
 
-## Embedded local Git in 1.0.29
+## Git Changes: managed saved-file workflow
 
 Workspace Git opens the Git Changes tool panel in the main workbench. Use its branch icon in the right rail or the workspace.git command. Repository details and limits expand on demand. Select changed saved Markdown files to review Saved diff (HEAD against disk) or Staged diff (HEAD against index). The read-only comparison remains beside the editor and shows added/removed/unchanged lines, both line numbers and newline markers. Refresh clears old diff output and loads current Git status.
 
@@ -51,10 +70,10 @@ Stage/Unstage operates only on explicitly selected supported saved Markdown file
 
 Close or Escape collapses the panel and returns editor focus; Escape during a Git operation cancels that operation. Completed operations remain completed, so refresh before retrying a cancelled sequence. Switching/forgetting the workspace clears the stale panel and cancels its pending operation; reopened Git inspects the current workspace. Panel choice/width use the existing workbench layout settings. If a restored Git panel has no current snapshot, choose Open workspace Git.
 
-This initial workflow covers local changes, saved/staged diffs, deliberate stage/unstage and unsigned selected-file commit. Git must be installed. Remote operations, branch switching, conflict resolution, filtered/LFS files, submodules, renames and sparse checkout remain outside this supported workflow. Existing repository policy checks and disabled hooks/filters remain visible in the review. Axiom history checkpoints remain separate from branch commits. Human acceptance is still pending.
+The managed Changes tab covers local changes, saved/staged diffs, deliberate stage/unstage and unsigned selected-file commit. Git must be installed. Remote operations, branch switching, conflict resolution, filtered/LFS files, submodules, renames and sparse checkout remain outside this supported workflow. Existing repository policy checks and disabled hooks/filters remain visible in the review. Axiom history checkpoints remain separate from branch commits.
 
 
-## Authoring assistance in 1.0.28
+## Authoring assistance: spelling, images, symbols and callouts
 
 Ordinary Enter retains normal Markdown behavior. Shift+Enter inserts a standard Markdown hard break using two trailing spaces and the document's newline convention; inside fenced code it inserts a literal newline. One Undo reverses it. The editor context menu includes existing formatting plus table, horizontal rule, note callout, hard break, clipboard actions and symbol insertion. Right-click inside a selection retains it; keyboard invocation uses the current selection/caret. The identity line remains protected from these formatting operations.
 
@@ -84,10 +103,10 @@ flowchart LR
 ```
 ````
 
-The bundled renderer is Mermaid 11.16.1. Valid diagrams show a graphic with expandable Diagram source; invalid or unsupported diagrams show an error and readable source. Rendering uses strict mode, disables document configuration, HTML labels and external resources, and limits rendering to eight diagrams, 20,000 characters per diagram, 300 edges and a ten-second asynchronous deadline. Light/Dark refresh retains source and navigation. All six exports (HTML, PDF, Word, EPUB, ODT and text) currently preserve readable Mermaid source and report an explicit warning; they do not export diagram graphics. This is the initial export contract. Source/recovery are never silently saved or rewritten by diagram rendering.
+The bundled renderer is Mermaid 11.16.1. Valid diagrams show a graphic with expandable Diagram source; invalid or unsupported diagrams show an error and readable source. Rendering uses strict mode, disables document configuration, HTML labels and external resources, and limits rendering to eight diagrams, 20,000 characters per diagram, 300 edges and a ten-second asynchronous deadline. Light/Dark refresh retains source and navigation. All six exports (HTML, PDF, Word, EPUB, ODT and text) currently preserve readable Mermaid source and report an explicit warning; they do not export diagram graphics.  Source/recovery are never silently saved or rewritten by diagram rendering.
 
 
-## Compact workbench in 1.0.27
+## Compact workbench and window controls
 
 The main toolbar uses a consistent outline icon family with transparent idle backgrounds. The hamburger opens File, Edit, Format and Tools. Alt or F10 focuses it; Alt+F, Alt+E and Alt+M open those sections. The command palette and your customized shortcuts remain available. Quiet and Rounded menu styles remain in Settings.
 
@@ -97,7 +116,7 @@ The Workspace Files header has a magnifier for the filename filter and an action
 
 Disabled navigation and image commands provide their unavailable reason through a hover/focus host; keyboard focus reports the reason in the footer, and commands remain unable to execute. Metadata refresh shows local progress and completed/unchanged/error feedback with saved-file and eligible-identity counts. It does not save or enroll your current buffer. The info icon beside Metadata opens optional tags/type/alias guidance and a link to Metadata Help; eligibility instructions and errors remain visible.
 
-## Workspace navigation and safe moves in 1.0.26
+## Workspace navigation and safe moves
 
 Opening a saved workspace document or selecting its tab selects the canonical file in Workspace Files and expands its parent folders. This retains keyboard focus and does not expand the file's heading outline. A filter stays in place; the filter status explains when it hides the active document.
 
@@ -111,7 +130,7 @@ Drag a workspace file or folder onto another folder, or onto the blank explorer 
 
 Moves reject linked files/folders, cycles, root escape, existing destinations and case-only renames. Folder review supports up to 10,000 entries. Move receipts protect restart reconciliation: paths for pins, document identities, protected drafts, recent files and remembered tabs are updated transactionally. A filesystem move followed by a state failure blocks more file operations until restart reconciliation. If the moved subtree changed before reconciliation, Diagnostics reports that it needs inspection; Axiom does not repeat the filesystem move or guess which version is correct.
 
-## Editing reliability in 1.0.25
+## Wrapping, focus, scrolling and diagnostics
 
 Wrap long editor lines in Settings to fit text within the editor. Wrapped visual rows retain the original Markdown line number; switching wrapping does not insert line breaks. With wrapping off, Enter in a long list reveals the full marker of the continued list item.
 
@@ -123,9 +142,9 @@ Opening Axiom again with the same application-state root activates the existing 
 
 Tools → Diagnostics shows readable timestamps, severity, actions and reported problems. Use Show/hide technical details to inspect the original log records. Refresh reloads the bounded log tail; Copy copies the displayed view. For a file-lock report, preserve unsaved work and close competing Axiom windows normally before retrying.
 
-## 1.0.24 hierarchical outlines and advanced walkthrough
+## Hierarchical outlines and advanced tools
 
-Workspace Files shows only Markdown content. A folder appears when it contains a `.md` or `.markdown` document directly or anywhere in its subfolders; Axiom keeps every parent needed to reach that document. Empty folders and branches containing only other file types are hidden. Adding or removing the last Markdown document updates the visible branch after the workspace refreshes.
+Workspace Files shows only Markdown content. A folder appears when it is genuinely empty or contains a `.md` or `.markdown` document directly or anywhere in its subfolders; Axiom keeps every parent needed to reach that document. Genuinely empty folders remain visible. Populated branches containing only other file types stay hidden. Adding or removing the last Markdown document updates the visible branch after the workspace refreshes.
 
 When editing causes the rendered preview to refresh, Axiom keeps the visible source block in place and uses the prior proportional position if that block no longer exists. This applies whether synchronized scrolling is on or off. Synchronized scrolling still controls whether deliberate scrolling in one pane moves the other pane.
 
@@ -135,9 +154,9 @@ Per-file outlines now follow heading structure: H2 sections nest below their H1,
 
 The packaged Guided walkthrough now includes an advanced Tools chapter covering all seven actions: Diagnostics, State Maintenance and verified backups, portable updates, per-user installation, trusted update offers, portable version switching and About. Use the step selector to jump directly to a Tools topic. Captions explain prerequisites, explicit choices and cancellation; screenshots show real review screens in isolated example state. Help remains the maintained reference for recovery/update details. Following a tutorial does not automatically install, download or change your documents.
 
-## 1.0.23 workbench and guided walkthrough
+## Workbench and guided walkthrough
 
-The 1.0.23 candidate uses a workbench layout inspired by Rider. **Workspace Files** is the left panel. Type in **Filter files** to narrow filenames and paths; matching files retain their folder hierarchy. Escape clears the filter. The magnifier beside the filter opens **Workspace Search** for document contents. `Ctrl+Shift+F` toggles that search panel.
+The workbench has Workspace Files, the editor/Preview, and retained tool panels. **Workspace Files** is the left panel. Type in **Filter files** to narrow filenames and paths; matching files retain their folder hierarchy. Escape hides the filename filter while retaining its query. Choose Clear to remove it. The Discovery/search action opens full-text workspace search. `Ctrl+Shift+F` toggles that search panel.
 
 Expand a folder to browse files. Expand a document to load its headings on demand. Folder arrows, document symbols and H1–H6 heading labels distinguish each row. Click a document once to open it, or select it and press Enter. Click a heading to open that document and move to its current source and preview position. Open documents use their unsaved buffer for the outline. If a heading changes, Axiom navigates only to a unique current match and reports an ambiguous/missing heading rather than using an obsolete position. Outlines in unopened files refresh when expanded again.
 
@@ -147,11 +166,10 @@ The toolbar uses icons for actions. Hover for descriptions and shortcuts; keyboa
 
 **File > Workspaces and navigation** opens/refreshes workspaces and accesses recent documents or commands. **History and recovery** contains Git/history/checkpoint/deleted-document review. **Create and organize** contains document/folder creation and management. **Document** contains New, Save, Save As, Close, link navigation and structure. **Export current buffer** contains Word, HTML, text, PDF, EPUB and OpenDocument Text. **CP review and search** retains explicit reviewed CP workflows. Destructive operations, CP consent and detailed history review keep their dedicated review dialogs.
 
-Press **F1**, then choose **Guided walkthrough** in the embedded Help panel, or search for **Open captioned app walkthrough** in the Command Palette. It opens the packaged `Walkthrough/index.html` in your browser. The offline slideshow uses actual Windows app screenshots of synthetic example documents, captions explaining each step, Previous/Next controls, arrow keys and Home/End. It requires no account, network connection, autoplay or audio. If your browser does not open, open that file directly from the extracted package.
+Press **F1**, then choose **Guided walkthrough** in the embedded Help panel, or search for **Open captioned app walkthrough** in the Command Palette. It opens the packaged `Walkthrough/index.html` in your browser. The offline walkthrough provides current instructions, Previous/Next controls, arrow keys and Home/End. Its steps complement the feature topics in Help. It requires no account, network connection, autoplay or audio. If your browser does not open, open that file directly from the extracted package.
 
-Earlier version-specific sections below preserve their historical wording. These navigation paths supersede older references to left-side Files/Search/Metadata tabs or ungrouped File commands in the current candidate. Linux/macOS remains on hold; visual preference, physical accessibility/DPI and release acceptance remain pending.
 
-## 1.0.3 candidate: manage documents and collections
+## Manage documents and collections
 
 The File menu adds named workspace document/folder creation, Rename, Move, Duplicate, Delete to Recycle Bin, Remembered Workspaces, and Make Axiom Documents. Select an explorer document, then choose a command. Destinations are workspace-relative and must not already exist. Moves retain identity and warn about relative references; enrolled duplicates get a new ID.
 
@@ -163,14 +181,13 @@ The explorer selects one document. For bulk enrollment, choose **Enroll multiple
 
 Files restored or added externally appear after the workspace watcher refreshes the explorer; your dirty editor stays intact. **F5** or **File → Refresh Workspace** requests a rescan. External restore does not recreate removed pins automatically; Axiom deleted-document recovery restores its recorded pin.
 
-Use each candidate's `Test-Axiom.cmd` and disposable collections for independent testing. Native workflow acceptance remains pending. See [Document and Workspace Management](../04%20-%20Features/Document%20and%20Workspace%20Management.md).
 
 ## Open and edit
 
-In accepted 1.0.4 and later, startup restores the active remembered workspace and the explorer includes empty folders. Missing roots remain remembered for recovery. The 1.0.1 behavior described below applies to that older accepted version.
+Startup restores the active remembered workspace. Missing roots remain remembered for recovery.
 
 1. Open **File…**, select **Open Workspace…**, and choose a document folder. Axiom adopts the folder as its active workspace and remembers workspace-owned state locally.
-2. Expand folders in the **Files** tab and double-click a `.md` or `.markdown` document, or choose **File… > New**. Folders appear before documents at each level.
+2. Expand folders in **Workspace Files** and click a `.md` or `.markdown` document, or choose **File… > New**. Folders appear before documents at each level.
 3. Edit source on the left and read the live preview on the right.
 4. Use **File… > Save** (`Ctrl+S`) for the current document, **File… > Save All** (`Ctrl+Shift+S`) for all modified open tabs, or **File… > Save As…** (no default shortcut) for another destination. Save All prompts for modified untitled documents and stops on cancellation or save failure, preserving remaining dirty buffers and the selected tab. Existing explicit custom shortcut bindings retain precedence; use Keyboard Shortcuts to review or reset any previously customized save bindings. Undo and Redo are under **Edit…**.
 
@@ -178,21 +195,21 @@ While you edit the current document, Axiom keeps the preview near the same propo
 
 Use **Format…** to apply bold, italic, inline code, links, paragraph or heading styles, bulleted, numbered or task lists, and fenced code blocks to the current selection or caret. `Ctrl+B`, `Ctrl+I`, and `Ctrl+K` apply bold, italic, and link formatting while the source editor has focus. Each formatting action is one undo step and remains unsaved until you choose **Save**.
 
-With the source editor focused, use **Ctrl+F** to find text or **Ctrl+H** for Find/Replace. Searches use the current editor buffer, including unsaved changes. Replace All changes that buffer; Undo restores the previous text. Your saved Markdown changes only when you save. Physical shortcut and focus checks remain pending for the current candidate.
+With the source editor focused, use **Ctrl+F** to find text or **Ctrl+H** for Find/Replace. Searches use the current editor buffer, including unsaved changes. Replace All changes that buffer; Undo restores the previous text. Your saved Markdown changes only when you save.
 
 At the end of a non-empty list item, press **Enter** to continue its bullet, next visible number, or an unchecked task box. Press **Enter** on an empty list item to remove its marker and end the list. Press **Tab** or **Shift+Tab** to indent or outdent the current list item or selected list lines by one level. Outside list content, Tab keeps the editor's normal behavior.
 
-To reference an existing image, first save the current Markdown document inside the active workspace, then choose **Image…**. If no workspace is open when a new document is first saved, Axiom adopts the containing folder as the workspace and refreshes Files. The image picker starts in that workspace. Select a PNG, JPEG, GIF, WebP, BMP, or SVG file that is also inside it. Axiom inserts a portable relative Markdown path; selected single-line text becomes the alt text, or a filename-derived placeholder is selected for you to replace. Preview resolves supported workspace-local images without rewriting that portable source reference. Saving the Markdown remains explicit. Axiom does not copy or manage the image file. If a selection is outside the workspace or otherwise unusable, Axiom leaves the Markdown unchanged and explains why.
+To reference an existing image, first save the current Markdown document inside the active workspace, then choose **Image…**. If no workspace is open when a new document is first saved, Axiom adopts the containing folder as the workspace and refreshes Workspace Files. The image picker starts in that workspace. Select a PNG, JPEG, GIF, WebP, BMP, or SVG file that is also inside it. Axiom inserts a portable relative Markdown path; selected single-line text becomes the alt text, or a filename-derived placeholder is selected for you to replace. Preview resolves supported workspace-local images without rewriting that portable source reference. Saving the Markdown remains explicit. Axiom does not copy or manage the image file. If a selection is outside the workspace or otherwise unusable, Axiom leaves the Markdown unchanged and explains why.
 
-Choose **Theme: System**, **Theme: Light**, or **Theme: Dark** from the command bar to change the application and preview appearance. System follows the supported operating-system setting. Axiom remembers the choice across launches. Switching themes does not change the Markdown buffer, selection, caret, workspace, or undo history.
+Choose **System**, **Light**, or **Dark** appearance in Settings or the Command Palette to change the application and preview appearance. System follows the supported operating-system setting. Axiom remembers the choice across launches. Switching themes does not change the Markdown buffer, selection, caret, workspace, or undo history.
 
-Opening a folder as a workspace does not copy, rewrite, save, or enroll any Markdown file. Selecting the same folder again reuses its Axiom workspace record. Axiom 1.0.1 does not yet reopen that workspace automatically at startup or provide a saved-workspace switcher.
+Opening a folder as a workspace does not copy, rewrite, save, or enroll any Markdown file. Selecting the same folder again reuses its Axiom workspace record. Startup restores the remembered workspace; Remembered Workspaces lets you switch collections.
 
-The explorer shows only folders that contain Markdown and the `.md` or `.markdown` documents beneath them. Non-Markdown files are omitted. Axiom does not follow linked directories; inaccessible or linked descendants are skipped with a warning while the rest of the workspace remains usable.
+The explorer shows Markdown files, their ancestors and genuinely empty folders. Non-Markdown files are omitted. Axiom does not follow linked directories; inaccessible or linked descendants are skipped with a warning while the rest of the workspace remains usable.
 
 ## Search the workspace
 
-1. Select the **Search** tab in the left workspace pane.
+1. Open **Discovery** using Ctrl+Shift+F or its search icon.
 2. Enter literal text and choose **Search**.
 3. Review matches by relative file path, excerpt, and line number.
 4. Double-click a result to open the document and select the matching text.
@@ -201,11 +218,11 @@ Search is case-insensitive and reads the current `.md` and `.markdown` files dir
 
 ## Navigate by document outline
 
-Select the **Outline** tab in the left workspace pane to see headings from the current editor buffer. The outline updates shortly after typing, including for unsaved changes. It supports normal `#` headings and setext headings, ignores heading-like text inside fenced code, and keeps duplicate heading names as separate entries.
+Select **Outline** in the right tool panel to see headings from the current editor buffer. The outline updates shortly after typing, including for unsaved changes. It supports normal `#` headings and setext headings, ignores heading-like text inside fenced code, and keeps duplicate heading names as separate entries.
 
 Double-click an outline entry to move the editor caret and viewport to that heading. Outline navigation does not save or modify the document.
 
-On the `benny/axiom-1.0.5` development branch, outline and preview share the same heading interpretation. Preview headings have GitHub-style fragment IDs, including distinct suffixes for repeated headings. Document tabs and clean-session restoration are available as described below; link-following commands and a backlinks panel remain under development.
+Outline and Preview share heading interpretation, including distinct fragment IDs for duplicate headings. Follow Markdown links and incoming references using the navigation topics below.
 
 ## Identify the running build
 
@@ -219,24 +236,13 @@ Pins are workspace-specific Axiom state. Pinning ordinary Markdown does not enro
 
 ## Read the status areas
 
-The message beside the toolbar reports the latest operation or error. The bottom status area remains stable and shows:
-
-- the current document or workspace path;
-- the active workspace name;
-- whether the document is ordinary Markdown or an Axiom document;
-- whether it is new, saved, unsaved, or conflicted;
-- recovery protection or failure state; and
-- the running version and build provenance.
-
-Because transient messages and durable context are separate, a save confirmation or error does not hide the current document state.
-
-An asterisk in the window title means the editor differs from the saved file. Closing or leaving dirty work offers Save, Discard, or Cancel.
+The footer shows operation/recovery information, then word count, line/column and running build. A dirty indicator means the buffer differs from its saved file. Document details opens the full workspace/path/identity/encoding/newline/recovery context. Success messages expire; operation failures remain visible with Details and Dismiss until resolved or explicitly dismissed. Dismissing a report does not resolve a conflict. Closing dirty work offers Save, Discard or Cancel.
 
 ## Axiom identity
 
 Existing files do not become Axiom documents automatically. Select **Make Axiom Document** only when stable identity is useful. The new ID is an unsaved editor change until you save. If copied files contain the same ID, Axiom warns and offers a distinct ID for the copy.
 
-## Structured Markdown and wiki navigation (1.0.14 candidate)
+## Structured Markdown and wiki navigation
 
 **File → Document Structure…**, also available as **Browse document structure** in the palette, shows headings, sections, tasks, links, fenced/indented code and tables from the current buffer. Select a row and **Show source** to select its exact source range. Browsing never edits or saves Markdown. Logical node IDs are reconciled across ordinary edits; a changed or ambiguous node requires refreshing the browser. A section runs from its heading to the next heading of the same or higher level.
 
@@ -248,7 +254,7 @@ The semantic foundation exposes structural snapshots and stores derived results 
 
 ## Recovery
 
-### Deleted documents and recorded folder structure (1.0.13 candidate)
+### Deleted documents and recorded folder structure
 
 **Delete Document to Recycle Bin** captures exact saved bytes, original workspace path, document identity, pin and a classification/relationship receipt before recycling. Capture failure prevents deletion. Protected recycle supports Markdown documents up to 20 MiB; larger files remain untouched. Resolve unsaved changes first: recovery captures the saved file, not discarded edits.
 
@@ -267,7 +273,7 @@ If Undo returns the editor exactly to the saved file, Axiom clears the current s
 If another editor changes a clean open file, Axiom reloads it. If Axiom also has unsaved edits, a banner opens a side-by-side comparison. Choose **Use my edits**, **Reload disk version**, or **Decide later**. Axiom blocks Save while this conflict remains unresolved.
 
 
-## 1.0.4: diagnostics, backups, and versions
+## Diagnostics, backups, and versions
 
 Open Tools → About Axiom to identify the running build and its state location. Tools → Diagnostics provides Refresh and Copy for a bounded log tail. Review copied diagnostics before sharing because paths and exception details may appear.
 
@@ -275,9 +281,8 @@ Tools → State Maintenance shows database integrity/schema and record counts. E
 
 Tools → Install Portable Update first explains the operation, then asks you to select **payload-manifest.json** inside a newer published Axiom application package, beside **Axiom.App.exe**. Select the application package, rather than the Markdown workspace; extract ZIP downloads first. Axiom verifies it, displays its identity, and offers explicit installation into a new version folder. Restart is the button in the **Version ready** dialog, not a separate Tools command. It protects unsaved edits with Save/Discard/Cancel and carries forward the current state root. Later leaves this app running and displays the installed package directory. When ready, Tools → Switch Portable Version selects that directory's manifest and offers Restart. Switching also supports an older original package if it can read the current database schema. Keep old packages for rollback; do not replace running binaries manually.
 
-The retained 1.0.3 and 1.0.4 Test-Axiom.cmd launchers use separate Axiom-Test-1.0.3 and Axiom-Test-1.0.4 state roots under LOCALAPPDATA. They still edit whichever Markdown folder you select: use disposable collections. Ben accepted the combined 1.0.4 release, including the 1.0.3 workflows, on September 28; see the [combined retest guide and supplied packages](../03%20-%20Architecture/Testing/Axiom%201.0.4%20Combined%20Acceptance%20Review%20-%202026-09-28.md). The 1.0.4.1 package is an update-test fixture only; start with Candidate's launcher and switch from inside Axiom to test retention of the same state.
 
-## 1.0.5 development: work with document tabs
+## Work with document tabs
 
 Opening a workspace file, pin, or search result keeps your other documents open. Selecting its tab preserves each document's edits, undo history, caret/selection and editor position. Opening the same file again selects its existing tab. Tabs with the same filename show relative paths; untitled documents have distinct numbers. An asterisk marks unsaved edits, and Conflict or Missing labels identify inactive files needing attention.
 
@@ -285,23 +290,23 @@ Use Ctrl+Tab / Ctrl+Shift+Tab to cycle tabs. Choose File → Close Tab, press Ct
 
 Recovery protects saved and untitled dirty tabs independently. Startup offers each protected draft; Later preserves that draft for another launch. Restoring a draft for an already-open clean file reuses that tab. No recovery choice silently writes Markdown.
 
-After a normal close, startup restores saved-file tabs in their previous order and selects the active document. Axiom remembers caret/selection and editor/preview positions separately from Markdown. Each workspace remembers its own clean open set. Missing or unavailable files are skipped with feedback. Untitled work is recovered through protected drafts rather than treated as a saved file. Cancel or a failed Save stops a close or workspace/version transition; successful earlier saves remain saved and other buffers remain open. Native preview position/dialog testing and the 1.0.5 acceptance gate remain pending; Markdown link navigation and backlinks are still under development.
+After a normal close, startup restores saved-file tabs in their previous order and selects the active document. Axiom remembers caret/selection and editor/preview positions separately from Markdown. Each workspace remembers its own clean open set. Missing or unavailable files are skipped with feedback. Untitled work is recovered through protected drafts rather than treated as a saved file. Cancel or a failed Save stops a close or workspace/version transition; successful earlier saves remain saved and other buffers remain open.
 
-### Follow Markdown links in 1.0.5 development
+### Follow Markdown links
 
 Click a standard Markdown link in Preview, or place the editor caret inside an inline/reference link and use File → Follow Markdown Link or Ctrl+Enter. Axiom resolves same-workspace .md/.markdown targets, reuses an open tab and positions the editor at the requested heading. Open-buffer headings are used when that target has unsaved edits. Unsupported/external/outside-workspace links show feedback and do not launch content or switch workspaces. A missing heading offers Open document or Cancel; a missing document leaves the current tab selected.
 
 Back/Forward buttons and Alt+Left/Alt+Right return to source caret locations while retaining dirty buffers and undo. Unavailable history locations are skipped with feedback; changing workspaces clears history. A changed preview link requires a refreshed preview. These actions never save or enroll a document. Native preview-click/fragment-scroll usability remains pending human acceptance.
 
-### Incoming Markdown references in 1.0.5 development
+### Incoming Markdown references
 
-Select Backlinks in the workspace sidebar to inspect references to the active saved document. Results show source path, heading/text context, line and Saved or Unsaved provenance. Double-click a result or select it and press Enter to open the reference itself. A changed source is relocated only when the matching destination is unique; ambiguous or removed references require a rebuild.
+Select Backlinks in the right tool panel to inspect references to the active saved document. Results show source path, heading/text context, line and Saved or Unsaved provenance. Double-click a result or select it and press Enter to open the reference itself. A changed source is relocated only when the matching destination is unique; ambiguous or removed references require a rebuild.
 
 Rebuild reads saved Markdown off the UI thread; Cancel retains previous results with a Stale indication. Complete means eligible files were processed, while Partial/Error lists skipped or failed paths. Failed source reads retain earlier references under the partial warning; deleted sources are removed on rebuild. Saved file/folder changes schedule a refreshed index. Dirty source tabs replace their saved results with an Unsaved overlay, including an empty overlay when links are removed; Discard restores saved results and Save schedules a saved-file rebuild. Untitled buffers cannot supply relative-path references. Unverified overlay targets are checked when followed; open-target headings are checked against their live buffer. Indexing and navigation never enroll ordinary Markdown.
 
-## Document metadata and classification (increment B candidate)
+## Document metadata and classification
 
-Open the **Metadata** sidebar tab to inspect the active document's ID, workspace path, and saved identity status. Tags and aliases are entered one per line; Type is optional free text. **Apply** saves these values locally without saving Markdown. **Cancel** discards the panel edits. Leaving the document with pending panel edits offers Apply, Discard, or Cancel. Metadata editing requires a saved unique canonical document ID; use **Make Axiom Document** and deliberate Save for ordinary files, then Refresh saved identities. Untitled, missing, ambiguous, and unsaved identity changes remain read-only.
+Open **Metadata** in the right tool panel to inspect the active document's ID, workspace path, and saved identity status. Tags and aliases are entered one per line; Type is optional free text. **Apply** saves these values locally without saving Markdown. **Cancel** discards the panel edits. Leaving the document with pending panel edits offers Apply, Discard, or Cancel. Metadata editing requires a saved unique canonical document ID; use **Make Axiom Document** and deliberate Save for ordinary files, then Refresh saved identities. Untitled, missing, ambiguous, and unsaved identity changes remain read-only.
 
 If the fields are greyed out, read the explanation above them. For an ordinary document, open it from an active workspace, click **Make Axiom document** in Metadata, then **Save document**. Enrollment first adds an unsaved ID marker to the editor; Save deliberately writes it to Markdown. **Refresh saved identities** checks the saved file again. Copied IDs and incomplete discovery show their own reasons and require resolution before editing. Merely opening Metadata never enrolls or saves anything.
 
@@ -311,31 +316,29 @@ The **Classify** tab filters by every entered tag (one per line), optional exact
 
 **Export metadata** reviews unique saved identities and writes a selected JSON file. **Import metadata** previews every record. All changes default to Skip; select each replacement you want and Apply selected replacements. Missing/ambiguous identities cannot be selected. Files or metadata changed since review require a refreshed preview. Imports replace selected tags/type/aliases atomically, never save/enroll Markdown, and never erase records absent from the transfer file. Local metadata survives rename, missing/recycled documents and forgotten workspaces; a duplicated document with a new ID begins empty. Keep an explicit JSON export if you need these local values in another Axiom state.
 
-Increment B uses state schema 6. Its isolated launcher must use a different state folder from increment A/schema 5. Retain the verified pre-migration backup and old binaries; an older package rejects newer state rather than downgrading it.
 
-## Explicit relationships (increment C candidate)
+## Explicit relationships
 
-Open the **Relations** sidebar tab for incoming and outgoing connections for the current saved Axiom document. **Add** creates a directed connection from this document to another unique saved Axiom document in the workspace. Choose a target, keep or change the neutral **Related** kind, enter an optional note, and Apply. Self connections and duplicate direction/kind pairs are rejected. Reverse connections are independent.
+Open **Relations** in the right tool panel for incoming and outgoing connections for the current saved Axiom document. **Add** creates a directed connection from this document to another unique saved Axiom document in the workspace. Choose a target, keep or change the neutral **Related** kind, enter an optional note, and Apply. Self connections and duplicate direction/kind pairs are rejected. Reverse connections are independent.
 
 Select an outgoing relationship to **Edit** or **Remove** it from its source document. The editor makes an explicit proposal; Cancel leaves it unchanged. Removal confirms your intent. Double click or Enter follows the other endpoint in its existing tab and retains dirty buffers; Back/Forward return to prior locations. A missing or ambiguous endpoint stays visible by ID and does not guess a path. Refresh identities after a file returns or a copied ID is resolved. Relations remain local metadata and do not modify Markdown links or source text.
 
 Metadata export now writes version 2 with classifications and relationships. Unresolved relationship IDs remain in the export when one endpoint belongs to the active unique collection. Import still accepts version 1 classifications. Its review defaults to Skip for every classification/relationship; select each intended replacement. Missing/ambiguous relationship endpoints cannot be applied, and stale files or revisions require refresh. A selected mixed batch commits atomically; failure leaves every value unchanged. Keep the explicit JSON export for transfer to another Axiom state.
 
-Increment C uses schema 7 and a separate `Axiom-Test-1.0.5-C` launcher state. Retain earlier packages and verified pre-migration backups for rollback; do not point older binaries at migrated state expecting an automatic downgrade. Human acceptance of these candidates remains pending.
 
-## Workspace loading, reading mode, and Help (1.0.6 candidate)
+## Workspace loading, reading mode, and Help
 
 **Open Workspace** selects a physical folder containing Markdown. A loading indicator appears while discovery, identity inspection, and metadata discovery run in the background. **Cancel loading** stops discovery and retains the previous workspace and every open buffer. After discovery succeeds, existing Save/Discard/Cancel and pending-metadata safeguards resolve work before adoption. Failures retain the prior workspace. Linked or inaccessible paths are reported separately; partial metadata discovery disables identity-bound changes. Remembered workspaces remain available through File commands.
 
-Click a Markdown leaf once in **Files** to open/reuse its tab. Folders still select/expand; right click and keyboard navigation remain separate. Enter opens a selected leaf. Double clicking reuses the same tab. Use **Enroll multiple files** for the separate bulk review workflow.
+Click a Markdown leaf once in **Workspace Files** to open/reuse its tab. Folders still select/expand; right click and keyboard navigation remain separate. Enter opens a selected leaf. Double clicking reuses the same tab. Use **Enroll multiple files** for the separate bulk review workflow.
 
-Click **Read** or press **Ctrl+Shift+R** to hide the editor and let Preview fill the document area. **Show editor** or the same shortcut restores editing. Tabs, navigation, metadata, conflict banners and dirty indicators remain visible. Toggling does not save, discard, alter identity, or reset undo/caret/selection/scroll; hidden buffers remain recoverable. The preference persists locally, including after clean startup. Recovered unsaved tabs retain their dirty indicators in reading mode.
+Click the reading-mode icon or press **Ctrl+Shift+R** to hide the editor and let Preview fill the document area. **Show editor** or the same shortcut restores editing. Tabs, navigation, metadata, conflict banners and dirty indicators remain visible. Toggling does not save, discard, alter identity, or reset undo/caret/selection/scroll; hidden buffers remain recoverable. The preference persists locally, including after clean startup. Recovered unsaved tabs retain their dirty indicators in reading mode.
 
-Click **Help** or press **F1** for a bundled offline copy of this maintained User Guide. The topic selector jumps among headings; context actions from the sidebar suggest relevant workspace, metadata/classification, relationships or navigation guidance. Help does not require enrollment or a network connection and does not modify documents. The bundled copy is generated by `scripts/Sync-OfflineHelp.ps1` from this guide and carries a source SHA-256; edit this guide, then regenerate it. Links to separate project documentation stay within the offline Help navigation restrictions. The 1.0.7 development features below extend Help; menu/icon integration still requires design selection.
+Click **Help** or press **F1** for a bundled offline copy of this maintained User Guide. The topic selector jumps among headings; context actions from the sidebar suggest relevant workspace, metadata/classification, relationships or navigation guidance. Help does not require enrollment or a network connection and does not modify documents. The bundled copy is generated by `scripts/Sync-OfflineHelp.ps1` from this guide and carries a source SHA-256; edit this guide, then regenerate it. Use the topic selector and feature links to navigate the bundled guide. Main menu → Help offers all feature topics plus direct CP connection and semantic-test topics.
 
 With **Relations** selected, F1 opens **Explicit relationships** even when focus is on its header, a button or an empty list. With **Metadata** or **Classify** selected, F1 opens **Document metadata and classification**. The Help topic selector shows the selected heading so you can confirm the context or choose another topic.
 
-## Export to Word and HTML (1.0.7 development)
+## Export to Word and HTML
 
 Use **File → Export current buffer to Word** or **Export current buffer to HTML**. Export uses the active document as it appears now, including unsaved edits. It does not save the Markdown, change enrollment, or discard your work. Choose an output filename ending in `.docx` or `.html`; replacement requires confirmation. Cancel export during conversion/writing to retain any existing output.
 
@@ -343,7 +346,7 @@ Both formats support headings, paragraphs, emphasis, lists, static task checkbox
 
 Only the active document is exported. Metadata JSON transfer remains a separate workflow. Export completion shows the destination; errors and warnings explain incomplete conversion. Use **Cancel export** to stop a pending write; existing output is retained until successful commit. Choose an output location outside Axiom state and open/source documents.
 
-## EPUB and OpenDocument Text export (1.0.22 development)
+## EPUB and OpenDocument Text export
 
 Choose **File → Export current buffer to EPUB** (`.epub`) for reading or **Export current buffer to OpenDocument Text** (`.odt`) for editable interchange. Both capture the active unsaved buffer and use the existing overwrite confirmation, cancellation and protected-output rules. They do not save Markdown, enroll documents or change recovery state.
 
@@ -351,71 +354,71 @@ One Markdown document becomes one EPUB reading chapter, with a contents entry fo
 
 Safe web/mail links and valid current-document heading links are retained. Links to other local documents and missing heading targets retain their label with a warning; linked documents are not bundled. Raw active HTML, Axiom identity markers and separate metadata/relationships are excluded. EPUB reflows with the reader's font and viewport; ODT page layout and fonts depend on the office application. Format validation does not establish reader layout acceptance. Review outputs in your intended readers after implementation is complete.
 
-## Searchable Help while working (1.0.7 development)
+## Searchable Help while working
 
 **Help** opens a side panel in the main window. Keep it open while editing, selecting tabs, reading or using metadata and relations. Search matches literal text in headings and the body, without regard to case. Select a matching passage to jump to its topic and highlight matching text where it appears in the rendered guidance. Empty and no-match searches report their state. Browse topics at any time; ordinary focus changes do not retarget a manually chosen topic. **F1** or explicit contextual Help chooses the relevant topic. **Close Help** hides the panel; reopening retains its topic. Use **−/+** to narrow/widen it, or close it to recover the full document area.
 
 Help is generated from this maintained User Guide and stays offline. Product changes must update this guide and regenerate bundled Help; builds and portable publishing check for stale Help when the maintained source is available. Native keyboard focus, themes, DPI and narrow-window usability remain acceptance checks for this development build.
 
-## Settings and editor preferences (1.0.7 development)
+## Settings and editor preferences
 
-Choose **Settings** to configure font family, font size (8–40), wrapping, tab width (1–8 columns) and Light/Dark/System appearance. **Apply** persists the choices; **Cancel** preserves earlier settings. **Reset editor defaults** prepares the original editor choices in the dialog; press Apply to save them. Unknown fonts fall back to Consolas/monospace with status feedback. Settings affect every editor tab and survive restart without changing source text, unsaved work, selection, undo or recovery. Theme uses the existing application appearance preference. Shortcut configuration is later work.
+Choose **Settings** to configure font family, font size (8–40), wrapping, tab width (1–8 columns) and Light/Dark/System appearance. **Apply** persists the choices; **Cancel** preserves earlier settings. **Reset editor defaults** prepares the original editor choices in the dialog; press Apply to save them. Unknown fonts fall back to Consolas/monospace with status feedback. Settings affect every editor tab and survive restart without changing source text, unsaved work, selection, undo or recovery. Theme uses the existing application appearance preference. Keyboard Shortcuts lets you review, override and reset command bindings.
 
-## Recent documents (1.0.7 development)
+## Recent documents
 
 Use **File → Recent Documents** to reopen one of the latest 20 successfully opened documents, with its path shown. Open reuses an existing tab and uses the existing safe workspace switch if needed. Missing files or workspaces give actionable feedback. Cancelled/failed opens do not enter history. **Remove selected** and **Clear history** forget only history; they never delete files, pins, metadata or protected drafts. Remembered Workspaces remains the single workspace registry.
 
-### Approved icon and selectable menus — September 30, 2026
+### Icon and selectable menus
 
 Ben selected the teal architectural A icon and both menu looks. The application window and Windows executable use the A icon. In Settings, choose Menu style: Quiet (flat groups) or Rounded (rounded groups), then Apply. The choice persists across restarts in the existing editor preferences setting; older preferences default to Quiet. Cancel leaves the selection unchanged. Reset editor defaults retains the menu choice. Both styles preserve File/Edit/Format commands, shortcuts and working buffers. Native visual review at different themes and display scales remains a human acceptance check.
 
-## Plain-text export (1.0.8 development)
+## Plain-text export
 
-Use File → Export current buffer to plain text to write a UTF-8 `.txt` file from the active buffer, including unsaved edits. The same overwrite confirmation, cancellation and protected-destination rules apply as for Word and HTML. Markdown files and recovery state are unchanged. Headings and paragraphs become readable text; lists retain nesting and numbering, tasks retain checkbox symbols, quotes retain a `>` prefix, and code retains indentation. Links include their destination when different from the label. Images retain alt text without embedded bytes. Tables use ` | ` separators and warn that column alignment is approximate. PDF export is available in this development candidate. Human acceptance remains pending.
+Use File → Export current buffer to plain text to write a UTF-8 `.txt` file from the active buffer, including unsaved edits. The same overwrite confirmation, cancellation and protected-destination rules apply as for Word and HTML. Markdown files and recovery state are unchanged. Headings and paragraphs become readable text; lists retain nesting and numbering, tasks retain checkbox symbols, quotes retain a `>` prefix, and code retains indentation. Links include their destination when different from the label. Images retain alt text without embedded bytes. Tables use ` | ` separators and warn that column alignment is approximate. PDF export is available in the current application.
 
-## PDF export (1.0.8 development)
+## PDF export
 
 Use File → Export current buffer to PDF, choose Letter or A4 portrait, and select a `.pdf` output file. Export captures the active buffer when invoked, including unsaved edits, and writes directly without a printer dialog, Office or an online conversion service. Output uses neutral light styling, 18 mm margins and page numbers. Headings, emphasis, nested lists/tasks, quotes, code, safe hyperlinks, tables and supported local images are retained. Table headers repeat; very tall rows can continue across pages and produce a review warning. Long code and URLs wrap; images fit printable width and height. Missing/unsupported images retain alt text and warnings. No remote images or executable HTML are loaded. Unicode is searchable/selectable using installed Windows fonts and browser fallback; unusual scripts require a suitable installed font.
 
-The Windows export renderer requires the same WebView2 Runtime as Preview. Export is limited to 4 million source characters, 64 million HTML characters including embedded images, 20 MiB per image and 128 MiB output. Native browser PDF rendering times out after 60 seconds. Cancel or failure preserves an existing destination and the active document; only successful output commits replace it. Cancellation closes the isolated renderer; it cannot interrupt a synchronous Markdown parse already executing. Keep your Markdown as the editable source. Human review of the exact candidate remains pending until all planned features are implemented.
+The Windows export renderer requires the same WebView2 Runtime as Preview. Export is limited to 4 million source characters, 64 million HTML characters including embedded images, 20 MiB per image and 128 MiB output. Native browser PDF rendering times out after 60 seconds. Cancel or failure preserves an existing destination and the active document; only successful output commits replace it. Cancellation closes the isolated renderer; it cannot interrupt a synchronous Markdown parse already executing. Keep your Markdown as the editable source.
 
 Linux uses the bundled offline graphics renderer rather than a browser printer. It supports Letter/A4, page numbers, headings/emphasis, lists/tasks, quotes, wrapped code, safe web/mail links, local images and tables with repeated headers and split tall rows. Its margins are 48 points. Limits are one million source characters, 2,048 pages, 32 table columns, 4,096 distinct styled characters, 1,024 images, 20 MiB per image, 16 million decoded pixels per image, 64 MiB total image bytes and 128 MiB output. Images inside table cells retain alt text; move them outside the table to embed them. Complex scripts, emoji and copied Unicode depend on installed fonts. For example, the Windows verification font rendered Japanese correctly but copied some characters as compatibility radicals. Review the warnings and actual PDF before sharing. Native Linux execution and macOS browser PDF geometry remain unverified.
 
-## Templates and named creation (1.0.9 development)
+## Templates and named creation
 
 File → New Workspace Document offers Blank or Choose template. Keep reusable `.md` or `.markdown` templates in any local folder you own; the template picker selects a file without changing it. Templates can contain `{{title}}` (the new filename without its extension) and `{{date}}` (local creation date as `yyyy-MM-dd`). Other tokens remain literal. Templates do not run scripts or fetch online content. A canonical first-line Axiom identity is removed from the expanded text, so the template's identity is not copied. New documents remain ordinary Markdown until explicitly enrolled.
 
 Choose an existing folder inside the workspace and enter the Markdown filename. Review all expanded Markdown in the preview before choosing Create document. Cancel closes the workflow without creating a file. Existing filenames, invalid names, paths outside the workspace and linked destinations are rejected. Creation opens a new tab and retains existing dirty tabs. Templates are limited to 4 MiB; relative links and images remain relative to the new document and may need adjustment.
 
-## Drop files and import assets (1.0.9 development)
+## Drop files and import assets
 
 Drop local Markdown files onto Axiom to open them using the existing tab workflow. Opening keeps the files at their original locations and reuses already-open tabs with unsaved edits. Unsupported files are reported and are not copied. To deliberately copy a Markdown file instead, use File → Copy Markdown into Workspace, choose an existing destination folder and a filename, then confirm the source and destination. Ordinary Markdown copies remain ordinary; an enrolled copy receives a fresh identity. Relative references are not rewritten. Copies use the disk content captured for review, including when a source file is open with unsaved edits.
 
-Use File → Import Image into Workspace, or drop an image, to copy a local PNG, JPEG, GIF, WebP, BMP or SVG into an existing workspace asset folder you select. Save the active document inside the workspace first. Choose a filename retaining the original extension and confirm the copy. Axiom inserts an escaped relative image reference at the caret, using selected single-line text as alt text where possible. Existing image filenames are rejected; choose another name rather than overwrite. Imported bytes are retained exactly and the original stays untouched. Reference insertion is an editor Undo action; undoing it retains the imported image file. If reference insertion fails (for example the caret touches the identity line), the dialog reports the retained image location so you can insert it later. Markdown imports are limited to 4 MiB and images to 20 MiB. Files are processed separately; an unsuccessful file does not roll back earlier successful imports. Copy failures clean up temporary output; a completed copy with a state failure requires restart reconciliation. Human acceptance remains pending.
+Use File → Import Image into Workspace, or drop an image, to copy a local PNG, JPEG, GIF, WebP, BMP or SVG into an existing workspace asset folder you select. Save the active document inside the workspace first. Choose a filename retaining the original extension and confirm the copy. Axiom inserts an escaped relative image reference at the caret, using selected single-line text as alt text where possible. Existing image filenames are rejected; choose another name rather than overwrite. Imported bytes are retained exactly and the original stays untouched. Reference insertion is an editor Undo action; undoing it retains the imported image file. If reference insertion fails (for example the caret touches the identity line), the dialog reports the retained image location so you can insert it later. Markdown imports are limited to 4 MiB and images to 20 MiB. Files are processed separately; an unsuccessful file does not roll back earlier successful imports. Copy failures clean up temporary output; a completed copy with a state failure requires restart reconciliation.
 
-## Preview navigation and synchronized scrolling (1.0.10 development)
+## Preview navigation and synchronized scrolling
 
 Preview at caret moves the rendered preview to the editor caret's Markdown block. Each rendered top-level block has a Source link that shows the editor, moves the caret to that block's source and focuses the editor. These links are available by keyboard. They use the current rendered document; a stale link after an edit is ignored until Preview refreshes. Markdown links continue to use the existing safe navigation workflow. Document HTML/scripts remain disabled, and synchronization uses application-owned browser code.
 
 Scroll sync starts off on each launch. Toggle it on to synchronize scrolling between editor and preview, using structural blocks rather than whole-document height. Scrolling the preview changes the editor viewport without moving the caret or selection. Scroll sync is suspended in reading mode, during document transitions and while Preview is stale; toggle off whenever you want independent scrolling. Mapping within a large paragraph, table or code block is approximate because source and rendered heights differ. Preview position is retained through edits and tab switches using a unique unchanged block prefix where available, with proportional scroll fallback when the anchor changed or is ambiguous. Navigation, scrolling and reading mode do not save or modify source text.
 
-## Document statistics and operation feedback (1.0.10 development)
+## Document statistics and operation feedback
 
 The bottom bar shows source-word count and one-based line/column at the caret. Words are contiguous Unicode letter/digit runs with internal apostrophes; code, link destinations and alt text count, while the canonical document identity does not. This is a source count, not a language-aware reading count. Counts refresh after a short typing pause. The format display reports the encoding observed during file reading and the current buffer's CRLF, LF, CR, mixed or absent newlines. Without a BOM, the reader assumes UTF-8; recovered buffers can show encoding unobserved. Save retains the established policy of UTF-8 without BOM. The display does not offer arbitrary encoding conversion.
 
-Success/information messages are nonblocking and expire after eight seconds. A reported operation failure remains visible, with Details and Dismiss controls, even if later informational messages occur. Details displays the full message; dismissing it does not resolve the underlying failure or any existing conflict/reconciliation gate. Dirty/save/recovery state remains in the bottom bar. All human acceptance checks remain deferred until all planned features are implemented.
+Success/information messages are nonblocking and expire after eight seconds. A reported operation failure remains visible, with Details and Dismiss controls, even if later informational messages occur. Details displays the full message; dismissing it does not resolve the underlying failure or any existing conflict/reconciliation gate. Dirty/save/recovery state remains in the bottom bar.
 
 
-## Command palette (1.0.11 implementation in progress)
+## Command palette
 
-Use File → Command Palette or Ctrl+Shift+P to search the commands currently migrated to shared dispatch. Type a title or command ID, use Down/arrow keys to select a match, and Enter or Run to invoke it. Unavailable commands show a reason and cannot run. Escape or Cancel closes the palette and restores focus. The expanded checkpoint includes editing, formatting, workspace and document management, templates/import, metadata/relationships, history/Git, appearance, diagnostics and Windows installation commands. Commands that use a panel selection require that selection first. Physical keyboard/focus checks and human acceptance remain pending. The palette displays current configured bindings.
+Use File → Command Palette or Ctrl+Shift+P to search the available commands. Type a title or command ID, use Down/arrow keys to select a match, and Enter or Run to invoke it. Unavailable commands show a reason and cannot run. Escape or Cancel closes the palette and restores focus. The catalog includes editing, formatting, workspace and document management, templates/import, metadata/relationships, history/Git, appearance, diagnostics and Windows installation commands. Commands that use a panel selection require that selection first.  The palette displays current configured bindings.
 
-## Keyboard shortcut settings (1.0.11 implementation in progress)
+## Keyboard shortcut settings
 
 Use File → Keyboard Shortcuts to edit bindings for currently registered commands. Apply validates the whole set and saves it in local application state; changes survive restart. Blank removes an application binding. Cancel discards staged edits. Reset defaults stages the original bindings; press Apply to save the reset. Conflicting or reserved gestures show a validation message and keep the dialog open. The palette displays effective bindings; its Ctrl+Shift+P access remains reserved.
 
-Use Ctrl/Alt/Shift plus a letter, digit or F1–F12. Plain typing keys, Ctrl+Alt (AltGr), standard clipboard/selection, formatting/navigation/menu access, and native editor Undo/Redo are protected. Undo/Redo remain read-only. Unknown retired command IDs are ignored during loading; unsupported or invalid saved configurations fall back to defaults and report an error without overwriting stored data. Save still follows existing confirmation/recovery rules. The registered command catalog is configurable, while protected native editor and navigation gestures retain their existing behavior. Native physical input and human acceptance remain pending.
-## Document history, comparison and restore (1.0.12 candidate)
+Use Ctrl/Alt/Shift plus a letter, digit or F1–F12. Plain typing keys, Ctrl+Alt (AltGr), standard clipboard/selection, formatting/navigation/menu access, and native editor Undo/Redo are protected. Undo/Redo remain read-only. Unknown retired command IDs are ignored during loading; unsupported or invalid saved configurations fall back to defaults and report an error without overwriting stored data. Save still follows existing confirmation/recovery rules. The registered command catalog is configurable, while protected native editor and navigation gestures retain their existing behavior.
+## Document history, comparison and restore
 
 Git is required only for durable document history. Normal editing, Undo and recovery work without it. Axiom uses local Git history as the revision authority; recovery drafts remain independent. Save never creates a Git commit automatically.
 
@@ -425,16 +428,16 @@ Restore into buffer asks for confirmation, then resolves existing unsaved work w
 
 If the workspace has no repository, File → Set Up Git History offers explicit local Git initialization. Confirming creates only .git; it does not commit documents or configure a remote. A workspace already covered by Git is not reinitialized. File → Checkpoint Saved Document requires a saved, conflict-free document and reviews its path, repository, byte count and SHA-256 before confirmation. A checkpoint records only those reviewed bytes; changed bytes after review are rejected. It uses a temporary index and a local refs/axiom/document-history reference, leaving the user branch, HEAD, real index and unrelated files untouched. Cancellation creates no visible checkpoint before the final atomic publication; publication finishes once started.
 
-Axiom checkpoint references are local and path-specific. Ordinary Git pushes/clones do not automatically transfer these references. Back up the repository if these revisions matter. Existing committed Git rename history is followed, while a path-specific Axiom checkpoint reference is not automatically moved to another path by a filesystem rename. Workspace Git integration is available in the 1.0.18 candidate; broader history transfer remains external Git work. History source can also be unavailable after deletion or repository changes; choose another readable revision. None of these actions enrolls an ordinary document. Human acceptance and the unfinished 1.0.11 command migration/native checks remain pending.
+Axiom checkpoint references are local and path-specific. Ordinary Git pushes/clones do not automatically transfer these references. Back up the repository if these revisions matter. Existing committed Git rename history is followed, while a path-specific Axiom checkpoint reference is not automatically moved to another path by a filesystem rename. Workspace Git integration is available in the managed Changes tab; broader history transfer remains external Git work. History source can also be unavailable after deletion or repository changes; choose another readable revision. None of these actions enrolls an ordinary document.
 
-## Workspace Git (1.0.18 candidate)
+## Workspace Git
 
 File → Workspace Git, or the command palette, shows the local repository, branch and changed paths. Select a document to compare HEAD with its saved file or staged content. The Git view reads saved files; dirty drafts and externally conflicted open documents must be resolved before staging or committing. No operation silently saves a draft.
 
 Stage selected and Unstage selected require explicit confirmation and act only on selected regular Markdown files inside the active workspace. Git's configured line-ending normalization applies to staged content; saved files remain unchanged. Inspect Staged diff to see the bytes that will be committed. Deleted documents can be staged deliberately. Other file types, paths outside the active workspace, coordinated renames/copies, custom/LFS filters, submodules, sparse checkouts, detached HEAD and unresolved Git operations require external Git. Git is optional for editing.
 
-Commit selected staged asks for a message, then reviews the branch, paths and message. It commits only those selected staged entries, using your configured Git author identity. Unrelated staging, working files and dirty buffers remain unchanged. Managed Changes commits are local, unsigned and run without repository hooks; use the terminal for signing or hook-governed workflows. Managed Changes never pushes, pulls, changes branches or resets a working tree; the embedded terminal runs the commands you enter. Concurrent HEAD/index/source changes reject a stale managed review. Cancel stops before publication; a commit already published remains committed. Diff/source reads are limited to 4 MiB per document. Human release acceptance remains pending.
-## Per-user installation and trusted updates (1.0.19 candidate)
+Commit selected staged asks for a message, then reviews the branch, paths and message. It commits only those selected staged entries, using your configured Git author identity. Unrelated staging, working files and dirty buffers remain unchanged. Managed Changes commits are local, unsigned and run without repository hooks; use the terminal for signing or hook-governed workflows. Managed Changes never pushes, pulls, changes branches or resets a working tree; the embedded terminal runs the commands you enter. Concurrent HEAD/index/source changes reject a stale managed review. Cancel stops before publication; a commit already published remains committed. Diff/source reads are limited to 4 MiB per document.
+## Per-user installation and trusted updates
 
 From a verified published Windows package, Tools → Install for Current User creates a verified state backup, installs into the existing local Axiom Versions folder, and registers Windows uninstall for the current user. Start menu shortcut and Markdown Open with registration are separate explicit choices; your default editor remains yours. Retained copies of the exact payload can be registered without duplicating that version. Existing versions and all documents, dirty buffers and recovery state remain. Installation does not restart this running app; use the existing Switch Portable Version workflow when ready.
 
@@ -443,10 +446,10 @@ Close the installed version before using Windows Installed apps to uninstall. It
 Tools → Check Trusted Update contacts only the HTTPS offer URL you explicitly provide. Enter the offer JSON SHA-256 obtained through an independently trusted publisher channel, then review version, channel, schema and release notes before choosing Download. No feed is configured and no background update checks run. Redirects, embedded URL credentials, escaping/linked/duplicate ZIP paths, oversized downloads and contradictory compiled payload identities are rejected. Bounds are 256 KiB for offers, 512 MiB downloaded ZIP, 1 GiB expanded payload and 10,000 entries. Cancel leaves nothing installed; isolated partial/failed downloads remain for diagnosis. A hash supplied by the same untrusted download source does not establish publisher trust.
 
 A verified download is offered to the existing Install Portable Update review, schema and restart workflow by choosing its payload-manifest.json. That workflow now creates a verified state backup before switching versions. Older incompatible schemas are rejected. About includes source/build/schema/channel, package release notes and retained version location; legacy manifests show unspecified metadata. Public distribution, code signing, physical input and human release acceptance remain pending; package integrity alone is not publisher authentication.
-### Shared-command completion checkpoint
+### Shared commands
 
-The 1.0.19 follow-up includes palette commands for formatting, current-tab closing, back/forward/link navigation, workspace refresh/open, selected rename/move/duplicate/recycle/folder creation, all four current export formats, editor settings/shortcuts, diagnostics/state/About and scroll synchronization. These menu paths use the same command implementation; existing fixed editing/navigation shortcuts remain reserved. Destructive palette actions still require their normal confirmations; Cancel preserves saved and dirty source. Formatting retains the canonical identity marker and one-action Undo. Export reads a captured unsaved buffer and retains atomic output safeguards. Shortcut Apply validates the whole binding set; Cancel after Reset retains the last saved configuration. Broader command migration remains in progress; this checkpoint does not claim full 1.0.11 acceptance.
-### Expanded command workflows and cancellation
+The palette includes commands for formatting, current-tab closing, back/forward/link navigation, workspace refresh/open, selected rename/move/duplicate/recycle/folder creation, all supported export formats, editor settings/shortcuts, diagnostics/state/About and scroll synchronization. These menu paths use the same command implementation; existing fixed editing/navigation shortcuts remain reserved. Destructive palette actions still require their normal confirmations; Cancel preserves saved and dirty source. Formatting retains the canonical identity marker and one-action Undo. Export reads a captured unsaved buffer and retains atomic output safeguards. Shortcut Apply validates the whole binding set; Cancel after Reset retains the last saved configuration.
+### Command workflows and cancellation
 
 Workspace catalog/recent documents, template creation, Markdown and image import, bulk enrollment, buffer enrollment, pinning, image references, appearance, metadata and relationship actions, search/indexing, selected-result navigation, portable install/switch, conflict review, tab cycling and status review now share the command catalog. Actions retain their original confirmations, identity checks and persistence boundaries. Make Axiom Document changes the buffer only; Save writes the identity. Ctrl+Tab and Ctrl+Shift+Tab retain working buffers when switching tabs. A tab's close button targets that tab, including an inactive tab.
 
@@ -454,13 +457,13 @@ Export Cancel, workspace-loading Cancel and reference-index Cancel can interrupt
 
 ## CP connection and reviewed analysis
 
-File → CP connection and reviewed insights opens the optional Development connection screen. Choose an HTTPS CP endpoint, or an explicitly selected loopback HTTP Development endpoint. Enter the dedicated document-analysis credential: it stays in session memory, clears from the entry box after connection, and is discarded on Disconnect or application exit. This is a separate credential from CP health/Admin access. Capability checks send no document text. The server must include the Development document-analysis routes and be enabled with its dedicated credential hash; the normal CP API endpoint alone is insufficient. A 404 means the analysis route is missing, 401 means the dedicated credential was rejected, and 503 can mean analysis is disabled. See the [CP connection walkthrough](Axiom CP Connection Walkthrough.md) for setup and an example review. Unavailable CP leaves offline editing, literal search, recovery and exports available.
+File → CP connection and reviewed insights opens the optional Development connection screen. Choose an HTTPS CP endpoint, or an explicitly selected loopback HTTP Development endpoint. Enter the dedicated document-analysis credential: it stays in session memory, clears from the entry box after connection, and is discarded on Disconnect or application exit. This is a separate credential from CP health/Admin access. Capability checks send no document text. The server must include the Development document-analysis routes and be enabled with its dedicated credential hash; the normal CP API endpoint alone is insufficient. A 404 means the analysis route is missing, 401 means the dedicated credential was rejected, and 503 can mean analysis is disabled. See Local CP controls and Semantic search: step-by-step test in these Help topics for connection and review instructions. Unavailable CP leaves offline editing, literal search, recovery and exports available.
 
 Review the exact current buffer, including any unsaved text and document marker, before choosing Submit reviewed snapshot for insights. The question and that snapshot are sent explicitly; no automatic workspace upload, source save or document edits occur. Cancel request stops waiting and propagates cancellation to CP. Derived text appears separately with source-hash freshness, time and provider/model provenance. Model-generated claims and citations require review; a returned model identifier does not attest an immutable model revision.
 
 File → Reviewed semantic search and cross-document analysis lists up to 16 open buffers: the current document and open documents inside the active workspace. Select the documents yourself and review the text. Add saved workspace documents for review lets you explicitly choose closed Markdown files anywhere inside the active workspace, including subfolders. Files are captured locally and added unchecked; selection does not submit them. Open files must use their reviewed buffers. Each saved file is limited to 1 MiB/200,000 characters, with at most 16 files per picker selection and 64 saved candidates per review session. Select 1–16 documents totaling at most 200,000 characters for a request. Saved source hashes are re-read before requests and navigation; changed or newly opened sources require a fresh review. Build reviewed semantic index submits only selected source sections; the active index remains in this screen's session memory. Optionally select Reuse/store derived vectors in local Axiom state to persist vectors only (no source text or credential), keyed by endpoint, model digest, source hash and source range. Unchanged sections are reused incrementally; an unavailable digest disables persistent reuse. Type and Tag filters use the captured saved metadata locally and are not sent to CP. A cancelled/failed rebuild never replaces a completed index with a partial one. Semantic search sends your explicit query and ranks matching source sections; Related excludes the first selected source document and proposes matches without creating stored relationships. Similarity scores are rankings, not confidence probabilities. Open selected source section checks captured hashes before selecting its source range.
 
-Analyze reviewed documents sends the selected snapshots and question for separate cross-document output. Derived output includes a source-hash manifest, provider/model/provenance and creation time so explicit copying retains the analysis context. CP is asked to cite source lines using [[referenceKey|Lfirst-Llast]]. Open selected cited source range navigates only a reference that resolves to a reviewed source and valid line range with a current hash. Invalid/missing citations remain unverified; a valid source range does not prove that the model claim is true. Source changes/conflicts require closing and reopening the review screen; changes to the selected source set require rebuilding the semantic index. Clear derived index/results discards them. Selecting derived text and copying it is explicit. Clear all persisted semantic results removes the derived caches without changing Markdown, metadata or recovery. Ollama catalog digests are checked before/after embedding execution and on queries; unknown digests stay explicitly unverified. Platform credential vaults and human relevance/grounding acceptance remain pending. The initial Development endpoint supports existing local Ollama infrastructure; unsupported/simulated providers are reported rather than silently substituted.
+Analyze reviewed documents sends the selected snapshots and question for separate cross-document output. Derived output includes a source-hash manifest, provider/model/provenance and creation time so explicit copying retains the analysis context. CP is asked to cite source lines using [[referenceKey|Lfirst-Llast]]. Open selected cited source range navigates only a reference that resolves to a reviewed source and valid line range with a current hash. Invalid/missing citations remain unverified; a valid source range does not prove that the model claim is true. Source changes/conflicts require closing and reopening the review screen; changes to the selected source set require rebuilding the semantic index. Clear derived index/results discards them. Selecting derived text and copying it is explicit. Clear all persisted semantic results removes the derived caches without changing Markdown, metadata or recovery. Ollama catalog digests are checked before/after embedding execution and on queries; unknown digests stay explicitly unverified. Manually entered credentials remain in session memory; configured local Windows helpers retain their credential outside Axiom. Review model relevance and grounding yourself. The initial Development endpoint supports existing local Ollama infrastructure; unsupported/simulated providers are reported rather than silently substituted.
 
 ## Read-only browser and phone companion
 
@@ -474,21 +477,20 @@ Disconnect and clear or closing the page discards the session credential and dis
 
 ## Platform state compatibility
 
-New candidates use state schema 9. Startup retains a verified backup before migration and preserves workspace IDs, pins, identities, settings and unsaved recovery drafts. Older schema-8 candidates cannot open upgraded state; keep each candidate's isolated test state root when comparing versions.
+The current application uses state schema 9. Startup retains a verified backup before migration and preserves workspace IDs, pins, identities, settings and unsaved recovery drafts. Older schema-8 applications cannot open upgraded state; keep separate application state roots when comparing versions.
 
 Windows keeps its existing case-insensitive path identity. macOS/Linux conservatively retain exact path spelling so distinct case-sensitive filenames are not merged. Use the workspace folder picker and the filesystem's actual spelling. The state records its path policy and refuses to reinterpret state created under an incompatible policy. Use separate state roots when moving between Windows and macOS/Linux; adopt the original Markdown collection explicitly rather than copying active application state between policies.
 
 On macOS/Linux, opening an existing file also checks its device/inode through `/usr/bin/stat`, reusing an already open tab for the same physical file. Save refuses to overwrite a physical file owned by another tab; choose another destination or close the other tab deliberately. These checks preserve unsaved buffers and do not change document IDs. If the system utility is missing or cannot identify the file, the operation reports the failure. Case-insensitive Unix volumes, native utility execution, launch and platform parity still require native verification. Cross-published previews are not accepted supported-platform releases.
 
-## 1.1.1 findings fixes — development candidate
+## Save shortcuts and pinned-file labels
 
-The first post-1.1.0 development slice corrects the default save gestures: Ctrl+S saves the active document, Ctrl+Shift+S saves all modified open documents, and Save As remains in the menu without a default shortcut. Explicit user shortcut overrides remain user settings. Save All retains cancellation, conflict checks and remaining dirty buffers.
+The default save gestures are: Ctrl+S saves the active document, Ctrl+Shift+S saves all modified open documents, and Save As remains in the menu without a default shortcut. Explicit user shortcut overrides remain user settings. Save All retains cancellation, conflict checks and remaining dirty buffers.
 
 Pinned rows show the filename; hover for the workspace-relative path, including when two pinned documents share a filename. Git's changed-document list shows only supported Markdown (.md and .markdown); use external Git for other files. Repository-wide safety checks still apply. Spelling underlines clear and refresh when changing tabs so one document's offsets cannot appear on another.
 
-This is a development candidate for review. Empty-folder visibility, drag edge scrolling, caption polish, source-list renumbering and caret-loss investigation are separately tracked. The next-release ideas remain planned; these fixes do not imply release acceptance.
 
-## Reliability corrections in 1.1.2
+## Empty folders, edge scrolling and ordered-item deletion
 
 Workspace Files keeps genuinely empty folders and their ancestors visible after refresh or reopening. Populated branches containing only other file types stay hidden; Git administration folders are excluded. Creating a folder does not create placeholder Markdown files.
 
@@ -498,7 +500,7 @@ Selecting complete ordered-list item lines and pressing Delete or Backspace remo
 
 Compact caption buttons use centered glyphs, theme-aware hover and visible keyboard focus. The close button has a red hover treatment. Standard Windows title-bar fallback remains available in Settings.
 
-## Daily authoring in the 1.2.0 development candidate
+## Daily authoring: tab order, column selection and document details
 
 Drag a document tab onto another tab to change their order. Move tab left/right in the tab context menu or command palette provides the same action without dragging. Axiom remembers saved-file tab order in workspace state; it does not save dirty Markdown when reordering. Caret, selection, Undo history and protected recovery remain attached to the original tab. Untitled drafts continue to use recovery rather than saved-file session locations.
 
@@ -510,9 +512,8 @@ The normal footer has two lines: operation/recovery information, then words/line
 
 On Windows, Git's Open terminal here opens Windows PowerShell in the currently inspected repository root. It rechecks the root first. External commands are your responsibility; refresh Git in Axiom after making changes. This is an external terminal, and does not upload source or save unsaved buffers.
 
-These changes are implementation candidates awaiting human review. Subsequent proposal approval authorized the discovery, command-placement, and embedded-terminal integration below.
 
-## Discovery and embedded Git terminal in the 1.2.0 candidate
+## Discovery and embedded Git terminal
 
 Open Discovery using the search icon or Ctrl+Shift+F. It searches **saved Markdown in the active workspace**, showing each matching file, passage and source line. Enter in the query runs a search; Open match, Enter on a result, or double-click opens its source passage. Existing dirty tabs keep their buffers. If the source passage changed, Axiom reports that the old match cannot be selected instead of assuming an offset is current.
 
@@ -528,4 +529,73 @@ Buttons below the terminal insert `git status`, `git add .`, `git add -u`, `git 
 
 Helpers are available only at an empty prompt at the original repository root. They do not replace pending input or inject into running programs. Shell history/cursor editing and completion conservatively disable helpers until an empty prompt returns; Ctrl+C cancels the current command/input. If you change directories, type a command to return to the displayed root before using helpers. **Restart shell** starts a new shell after exit; restarting a running shell asks you to confirm stopping it and discarding its pending command.
 
-The terminal is a real shell: commands can change any accessible saved files, including non-Markdown files, and run Git hooks or remote operations. Unsaved editor buffers remain separate and are never silently saved by a helper. Changing workspaces or closing Axiom stops this shell and its attached programs. Open terminal here remains available in Changes as an external fallback. The frontend and its licenses are bundled for offline use. Human visual, DPI, accessibility, ordinary Git/authentication and connected-CP acceptance remain pending.
+The terminal is a real shell: commands can change any accessible saved files, including non-Markdown files, and run Git hooks or remote operations. Unsaved editor buffers remain separate and are never silently saved by a helper. Changing workspaces or closing Axiom stops this shell and its attached programs. Open terminal here remains available in Changes as an external fallback. The frontend and its licenses are bundled for offline use.
+
+## Local CP controls
+
+Open Main menu → File → CP review and search → CP connection and reviewed insights. On Windows with the configured local CP setup, **Copy local credential** copies the existing credential to the clipboard. Paste it into the password field. **Start local CP** runs the existing startup helper, uses `http://127.0.0.1:5277`, and copies the same credential. It can also be used when that local service is already running. Then explicitly choose **Connect / check capabilities**. Neither helper connects automatically nor sends a document. The helper buttons are disabled if their local setup files are absent; manual endpoint/credential entry remains available for another service.
+
+The local helpers are installed in `%LOCALAPPDATA%\Axiom\CpConnection`. They start the normal CP Development API, including its Development services/data, using installed Ollama models. They do not add automatic Windows startup. The endpoint is accessible only from this computer. Axiom runs only the two fixed helper launchers in that folder; a trusted local setup is required. **Help** in the connection screen opens its bundled topic; F1 does the same. Disconnect clears the Axiom session credential, not the reusable local setup.
+
+## Semantic search: step-by-step test
+
+Semantic search finds source passages by meaning. It uses embeddings to rank the documents you explicitly select; it does not search every file automatically. Insights answers a question in generated prose. These are separate operations in the same review screen.
+
+### Prepare three small documents
+
+Create a disposable workspace folder and save these three Markdown files. Open all three in Axiom, then activate Solar.md before opening the review screen. No enrollment or metadata is needed for the first test.
+
+**Solar.md**
+
+```markdown
+## Solar electricity
+Solar panels convert sunlight into electricity.
+The system generates power during daylight.
+Batteries can store surplus energy for use at night.
+```
+
+**Wind.md**
+
+```markdown
+## Wind electricity
+Wind turbines use moving air to generate electrical power.
+Output varies with wind speed.
+Batteries can store surplus energy when generation exceeds demand.
+```
+
+**Lunch.md**
+
+```markdown
+## Lunch recipe
+Combine cooked pasta with tomatoes and olive oil.
+Add basil and serve warm.
+Store leftover food in the refrigerator.
+```
+
+### Connect and review the sources
+
+1. Open Main menu → File → CP review and search → CP connection and reviewed insights. If already connected, retain that session. With the configured local Windows setup, click Start local CP or Copy local credential, paste into the password field, and Connect / check capabilities at `http://127.0.0.1:5277`. Confirm embeddings are configured and catalog models are present. Close the connection screen; closing retains the session connection.
+2. Open Main menu → File → CP review and search → Reviewed semantic search and cross-document analysis. **Help** or **F1** in that screen opens this walkthrough.
+3. Tick the three document checkboxes. Read the exact SOURCE/HASH/text snapshots below them. Leave the optional Type/Tag filters empty and derived-vector persistence unchecked for the first pass. Nothing has been uploaded merely by selecting documents.
+4. If a document is closed, Add saved workspace documents for review can add it from the active workspace. Added sources start unchecked; select them explicitly. Use an open document's reviewed buffer instead of adding another saved copy of it.
+
+### Build and search by meaning
+
+5. Click **Build reviewed semantic index**. This submits only the selected source sections for embeddings. Wait for Index built with provider/model and current hashes. **Semantic search** and **Related to first selected document** should become enabled. A missing model/service or failed build should explain the failure and leave Markdown intact.
+6. In the shared query/question field, type **Which passages discuss generating electrical energy from moving air?** Click **Semantic search**. You should see ranked source-section rows showing document reference, heading, line and similarity. Wind.md should be relevant. Solar.md may also rank because it concerns electricity. Lunch.md should be less useful for this query. Exact order and numerical scores are model-dependent; assess whether results help you locate the passage. Similarity is not a percentage confidence or proof of truth.
+7. Select the Wind.md result, then **Open selected source section**. The review window closes and Axiom opens/selects that captured source range. Confirm the expected text is selected and the file was not edited or saved by navigation. This also tests useful source navigation rather than merely receiving a numeric score.
+
+### Related documents and cross-document insights
+
+8. Reopen the semantic screen with Solar.md active, select the sources again and rebuild; the default index lives only in that review window. Confirm Solar.md is the first selected source in the displayed order. Click **Related to first selected document**. Its own sections are excluded; Wind.md should be a useful related candidate. This proposes matches and does not create a stored relationship.
+9. Replace the question with **Compare how the two energy documents generate electricity and handle surplus power. Cite the reviewed sources and exclude the recipe.** Click **Analyze reviewed documents**. This submits the selected snapshots for generated cross-document insights; it is separate from semantic ranking and does not require building an index first. Review the answer, source manifest and resolved citation rows. Select a resolved citation and Open selected cited source range to check its text. A valid citation location does not prove that the claim is supported; inspect it yourself. Missing/invalid citations stay unverified rather than becoming navigation targets.
+
+### Freshness, cancellation and optional reuse
+
+10. For a freshness check, add a saved closed workspace document, select it and build. While the review screen stays open, edit that saved file in another editor and save it. Axiom should refuse an operation on the stale captured source and ask you to reopen for fresh snapshots. Reopen, review and rebuild. Do not use an old score as evidence about changed text.
+11. **Clear derived index/results** clears the session's index, ranked matches and answer without touching source files. Search/Related require another completed build. **Cancel request** requests cancellation; if a short request already completed, its completed result can remain. A cancelled/failed rebuild must not publish a partial index.
+12. Optional: tick **Reuse/store derived vectors in local Axiom state**, build, then build the same selection again. With a verified unchanged model digest, the status should report reused sections. This stores derived vectors, source hashes and ranges, not document text or the credential. Changed source/model hashes must prevent stale reuse. **Clear all persisted semantic results** removes that local derived cache without changing Markdown or metadata. Type/Tag fields filter ranked matches using captured local classification; leave them blank until you have deliberately assigned matching metadata.
+
+### Record the result
+
+Pass the workflow when selection/review, completed embedding build, useful semantic matches, source navigation, cross-document review and stale-source refusal work as described. Record the running Axiom build, provider/model, the query and anything confusing. A network success proves connectivity; it does not establish useful rankings or grounded answers. Ordinary Discovery remains literal search over saved workspace Markdown and needs no CP connection.

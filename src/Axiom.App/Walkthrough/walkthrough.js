@@ -14,7 +14,9 @@ function show(index, announce = true) {
     next.disabled = selected === slides.length - 1;
     jump.value = String(selected);
     counter.textContent = `${selected + 1} / ${slides.length}`;
-    imageLink.href = slides[selected].querySelector('img').getAttribute('src');
+    const image = slides[selected].querySelector('img');
+    imageLink.hidden = !image;
+    if (image) imageLink.href = image.getAttribute('src');
     if (announce) announcement.textContent = `Step ${selected + 1} of ${slides.length}: ${slides[selected].querySelector('h2').textContent}. ${slides[selected].querySelector('.caption').textContent}`;
 }
 previous.addEventListener('click', () => show(selected - 1));
@@ -28,5 +30,4 @@ document.addEventListener('keydown', event => {
     show(destinations[event.key]);
 });
 document.querySelector('#navigation').hidden = false;
-imageLink.hidden = false;
 show(0, false);

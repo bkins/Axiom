@@ -52,6 +52,11 @@ public partial class App : Application
                 var window = (MainWindow)desktop.MainWindow;
                 window.Opened += async (_, _) => await DiscoveryTerminalProbe.StartAsync(window);
             }
+            if (CpHelpProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await CpHelpProbe.StartAsync(window);
+            }
             if (WorkspaceNavigationProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

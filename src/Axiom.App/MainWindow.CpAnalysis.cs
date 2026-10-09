@@ -79,7 +79,7 @@ public partial class MainWindow
             return true;
         }
         var selected = await new CpWorkspaceAnalysisWindow(_cpAnalysisClient, entries.Select(entry => entry.Snapshot).ToArray(), Fresh, _recovery as ISemanticDocumentResultStore, classifications,
-                                                         workspaceRoot is null ? null : LoadSavedAsync, VerifyFreshAsync).ShowDialog<SemanticMatch?>(this);
+                                                         workspaceRoot is null ? null : LoadSavedAsync, VerifyFreshAsync, _appearance).ShowDialog<SemanticMatch?>(this);
         if (selected is null) return new(CommandOutcome.Completed, "Reviewed analysis closed; source retained.");
         if (savedPaths.TryGetValue(selected.Section.DocumentKey, out var savedPath))
         {
@@ -112,7 +112,8 @@ public partial class MainWindow
         var window = new CpAnalysisWindow(snapshot
                                        , () => _session.DraftKey == draftKey && snapshot.Matches(Editor.Text ?? "")
                                        , () => _cpAnalysisClient
-                                       , candidate => { _cpAnalysisClient?.Dispose(); _cpAnalysisClient = candidate; ApplyDiscoveryLayout(); });
+                                       , candidate => { _cpAnalysisClient?.Dispose(); _cpAnalysisClient = candidate; ApplyDiscoveryLayout(); }
+                                       , _appearance);
         await window.ShowDialog(this);
         return new(CommandOutcome.Completed, "CP analysis screen closed; source preserved.");
     }

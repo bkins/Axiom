@@ -10,6 +10,30 @@ namespace Axiom.App.Tests;
 public sealed class CpAnalysisWindowTests
 {
     [AvaloniaFact]
+    public void Local_Buttons_Do_Not_Connect_Or_Submit_And_Starting_Local_Disables_A_Different_Connected_Endpoint()
+    {
+        using var client = new CpDocumentAnalysisClient(new Uri("https://fixture.invalid/"), "fixture-only-analysis-credential-at-least-32");
+        var calls = new List<bool>();
+        var connectionChanges = 0;
+        var window = new CpAnalysisWindow(AnalysisSnapshot.Capture("one", "Reviewed source"), () => true, () => client, _ => connectionChanges++,
+            runLocalHelper: (start, _) => { calls.Add(start); return Task.CompletedTask; });
+        window.Show();
+        var controls = window.GetLogicalDescendants().ToArray();
+        var copy = controls.OfType<Button>().Single(button => button.Name == "CpCopyLocalCredential");
+        var start = controls.OfType<Button>().Single(button => button.Name == "CpStartLocal");
+        var endpoint = controls.OfType<TextBox>().Single(control => control.Name == "CpEndpoint");
+        copy.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal(client.Endpoint.AbsoluteUri, endpoint.Text);
+        start.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal(new[] { false, true }, calls);
+        Assert.Equal(0, connectionChanges);
+        Assert.Equal("http://127.0.0.1:5277", endpoint.Text);
+        Assert.False(controls.OfType<Button>().Single(button => button.Name == "CpSubmit").IsEnabled);
+        Assert.Contains(controls.OfType<Button>(), button => button.Name == "ContextualHelp");
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void Reopened_Connection_Displays_Actual_Endpoint_And_Disables_Submission_After_Edit()
     {
         using var client = new CpDocumentAnalysisClient(new Uri("https://fixture.invalid/analysis/"), "fixture-only-analysis-credential-at-least-32");

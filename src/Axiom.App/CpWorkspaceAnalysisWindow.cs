@@ -10,7 +10,8 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
 {
     internal CpWorkspaceAnalysisWindow(CpDocumentAnalysisClient client, IReadOnlyList<AnalysisSnapshot> candidates, Func<IReadOnlyList<AnalysisSnapshot>, bool> fresh, ISemanticDocumentResultStore? cache = null, IReadOnlyDictionary<string, DocumentClassification?>? classifications = null,
                                       Func<Task<IReadOnlyList<AnalysisSnapshot>>>? loadSaved = null,
-                                      Func<IReadOnlyList<AnalysisSnapshot>, Task<bool>>? verifyFresh = null)
+                                      Func<IReadOnlyList<AnalysisSnapshot>, Task<bool>>? verifyFresh = null,
+                                      AppearancePreference appearance = AppearancePreference.System)
     {
         Title = "Reviewed semantic search and cross-document analysis";
         Width = 880;
@@ -24,7 +25,7 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
         var question = new TextBox { Name = "CpSemanticQuery", PlaceholderText = "Explicit query or cross-document question" };
         var typeFilter = new TextBox { PlaceholderText = "Local saved Type filter (exact match, optional)" };
         var tagFilter = new TextBox { PlaceholderText = "Local saved Tag filter (exact match, optional)" };
-        var status = new TextBlock { Text = "Select open buffers or explicitly add saved Markdown from the active workspace. Review exact snapshots before submitting; no background upload.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        var status = new TextBlock { Name = "CpWorkspaceStatus", Text = "Select open buffers or explicitly add saved Markdown from the active workspace. Review exact snapshots before submitting; no background upload.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var addSaved = new Button { Name = "CpAddSavedSources", Content = "Add saved workspace documents for review", IsEnabled = loadSaved is not null };
         var sourceList = new StackPanel { Spacing = 6 };
         var build = new Button { Name = "CpSemanticBuild", Content = "Build reviewed semantic index" };
@@ -41,6 +42,7 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
         var openCitation = new Button { Content = "Open selected cited source range" };
         var open = new Button { Content = "Open selected source section" };
         var close = new Button { Content = "Close", IsCancel = true };
+        var help = OfflineHelp.TopicButton(this, "Semantic search: step-by-step test", appearance);
         var index = new CpSemanticIndex();
         CancellationTokenSource? cancellation = null;
         var loadingSaved = false;
@@ -166,7 +168,7 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
         Content = new ScrollViewer { Content = new StackPanel
         {
             Margin = new Thickness(18), Spacing = 10
-          , Children = { status, addSaved, sourceList, review, question, typeFilter, tagFilter, persistent, clearCache
+          , Children = { help, status, addSaved, sourceList, review, question, typeFilter, tagFilter, persistent, clearCache
                       , new WrapPanel { Children = { build, search, related, analyze, cancel, clear } }
                       , results, open, answer, citations, openCitation, close }
         } };

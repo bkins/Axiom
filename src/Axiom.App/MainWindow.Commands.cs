@@ -104,7 +104,7 @@ public partial class MainWindow
             await ShowHelpAsync(HelpContext());
             return new(CommandOutcome.Completed, "Help opened.");
         });
-        foreach (var topic in new[] { ("home", "Browse Help", (string?)null), ("metadata", "Metadata Help", "metadata"), ("workspace", "Workspace Help", "Workspace loading"), ("relationships", "Relationships Help", "Explicit relationships") })
+        foreach (var topic in new[] { ("home", "Browse Help", (string?)null), ("metadata", "Metadata Help", "metadata"), ("workspace", "Workspace Help", "Workspace loading"), ("relationships", "Relationships Help", "Explicit relationships"), ("cp", "CP connection Help", "CP connection and reviewed analysis"), ("semantic", "Semantic search test walkthrough", "Semantic search: step-by-step test") })
         {
             RegisterCommand("help." + topic.Item1, topic.Item2, null, false, async (_, _) =>
             {

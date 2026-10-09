@@ -143,7 +143,7 @@ public sealed partial class MainWindowTests
             window.KeyRelease(Key.F1, RawInputModifiers.None, PhysicalKey.F1, null);
             Assert.Equal("Explicit relationships", requested);
             var guide = new MarkdownStructureService().Parse(OfflineHelp.Read());
-            Assert.Equal("Explicit relationships (increment C candidate)", OfflineHelp.FindTopic(guide, requested)!.Text);
+            Assert.Equal("Explicit relationships", OfflineHelp.FindTopic(guide, requested)!.Text);
             window.ToggleToolWindowForTesting(1);
             window.FindControl<Button>("MetadataEnroll")!.Focus();
             window.KeyPress(Key.F1, RawInputModifiers.None, PhysicalKey.F1, null);
