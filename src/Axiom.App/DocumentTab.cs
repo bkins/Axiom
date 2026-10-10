@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using AvaloniaEdit.Document;
+using AvaloniaEdit;
+using AvaloniaEdit.Editing;
 using Axiom.Core;
 
 namespace Axiom.App;
@@ -22,6 +24,9 @@ internal sealed class DocumentTab : INotifyPropertyChanged
     public int CaretOffset { get; set; }
     public int SelectionStart { get; set; }
     public int SelectionLength { get; set; }
+    public Selection? EditorSelection { get; set; }
+    public TextViewPosition CaretPosition { get; set; }
+    public string? SelectionSourceText { get; set; }
     public double HorizontalOffset { get; set; }
     public double VerticalOffset { get; set; }
     public double PreviewScrollRatio { get; set; }

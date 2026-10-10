@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Axiom.Core;
+using AvaloniaEdit.Editing;
 
 namespace Axiom.App;
 
@@ -116,6 +117,9 @@ public partial class MainWindow
         tab.CaretOffset = Editor.CaretOffset;
         tab.SelectionStart = Editor.SelectionStart;
         tab.SelectionLength = Editor.SelectionLength;
+        tab.EditorSelection = Editor.TextArea.Selection;
+        tab.CaretPosition = Editor.TextArea.Caret.Position;
+        tab.SelectionSourceText = tab.Document.Text;
         if (!tab.HasPendingScrollRestore && !_readingMode)
         {
             tab.HorizontalOffset = Editor.TextArea.TextView.HorizontalOffset;
@@ -139,6 +143,16 @@ public partial class MainWindow
             Math.Min(tab.SelectionLength, Math.Max(0, tab.Document.TextLength - tab.SelectionStart)));
         Editor.CaretOffset = Math.Min(tab.CaretOffset, tab.Document.TextLength);
         Editor.UpdateLayout();
+        // Selection offsets alone lose rectangular shape and backwards anchors.
+        // Replaced inactive text uses the clamped offsets above instead of stale positions.
+        if (tab.EditorSelection is { } selection && tab.SelectionSourceText == tab.Document.Text)
+        {
+            if (selection is RectangleSelection)
+                Editor.TextArea.Selection = new RectangleSelection(Editor.TextArea, selection.StartPosition, selection.EndPosition);
+            else if (!selection.IsEmpty)
+                Editor.TextArea.Selection = Selection.Create(Editor.TextArea, tab.Document.GetOffset(selection.StartPosition.Location), tab.Document.GetOffset(selection.EndPosition.Location));
+            if (tab.CaretPosition.Line > 0) Editor.TextArea.Caret.Position = tab.CaretPosition;
+        }
         Editor.ScrollToHorizontalOffset(tab.HorizontalOffset);
         Editor.ScrollToVerticalOffset(tab.VerticalOffset);
         tab.HasPendingScrollRestore = true;

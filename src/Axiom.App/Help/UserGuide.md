@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 3044099C888B1554FED77B9794F01EA321061F44A3461B938709D65D250C49D4. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 5B617DFBF361A72AC1084B4506B461F47228E0082D299AB1C1EF339374843B13. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -504,7 +504,7 @@ Compact caption buttons use centered glyphs, theme-aware hover and visible keybo
 
 Drag a document tab onto another tab to change their order. Move tab left/right in the tab context menu or command palette provides the same action without dragging. Axiom remembers saved-file tab order in workspace state; it does not save dirty Markdown when reordering. Caret, selection, Undo history and protected recovery remain attached to the original tab. Untitled drafts continue to use recovery rather than saved-file session locations.
 
-Hold Shift+Alt and use the arrow keys to select a rectangular region of source text. Typing replaces the selected columns across rows; Undo restores the edit as one action. Rectangles touching the canonical document identity line reject typing, deletion, cut and paste. Keep that marker intact.
+Hold Shift+Alt and use the arrow keys to select a rectangular region of source text. Typing replaces the selected columns across rows; Undo restores the edit as one action. In the selection-retention follow-up candidate, switching between open tabs also retains rectangular selections (including zero-width multi-row insertion), selection direction and the caret. This applies within the running session; restart position restoration retains its existing offset-based behavior. Rectangles touching the canonical document identity line reject typing, deletion, cut and paste. Keep that marker intact.
 
 New and reviewed blank/template creation assign one Axiom identity to the new document. Templates do not donate their identity. The identity remains in source Markdown and survives recovery and Save; Preview hides the marker. Opening existing ordinary Markdown continues to leave enrollment under your control. Tabs show a diamond for Axiom documents and a document glyph for ordinary Markdown; their tooltip includes the identity/path/recovery details. A failed recovery remains visibly labeled. Tab close controls are centered red buttons; closing a dirty tab retains the normal save/discard/cancel choice.
 

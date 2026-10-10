@@ -12,7 +12,7 @@ $errorPath = Join-Path $output 'error.txt'
 if (Test-Path -LiteralPath $errorPath) { throw ([IO.File]::ReadAllText($errorPath)) }
 if ($process.ExitCode -ne 0) { throw "Probe exit code: $($process.ExitCode)" }
 $result = Get-Content -LiteralPath (Join-Path $output 'result.json') -Raw | ConvertFrom-Json
-foreach ($name in @('NativeShiftAltTypingAndUndo','NativeVerticalOnlyTypingAndUndo','NativeTabDragPreservesBufferAndSelection','TabOrderAndRecoveryPersisted','NewIdentitySurvivesRecovery','ConciseFooterAndWorkspaceHeader','TerminalRootAndArgumentConfiguration')) {
+foreach ($name in @('NativeShiftAltTypingAndUndo','NativeVerticalOnlyTypingAndUndo','NativeRectangleTabRoundTripAndTyping','NativeTabDragPreservesBufferAndSelection','TabOrderAndRecoveryPersisted','NewIdentitySurvivesRecovery','ConciseFooterAndWorkspaceHeader','TerminalRootAndArgumentConfiguration')) {
     if ($result.$name -ne $true) { throw "Native check failed: $name" }
 }
 $result | ConvertTo-Json -Depth 5

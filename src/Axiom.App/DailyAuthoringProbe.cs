@@ -41,6 +41,7 @@ internal static class DailyAuthoringProbe
             NativeProbeInput.Key(0x28, shift: true, alt: true);
             await Task.Delay(100);
             Require(editor.TextArea.Selection is RectangleSelection, "Native Shift+Alt+Down alone did not create a rectangular selection. Keys: " + string.Join(", ", keys) + "; focus: " + window.FocusManager?.GetFocusedElement()?.GetType().Name);
+            await RoundTripRectangleAsync(window, editor, active);
             NativeProbeInput.Type(window, "X"); await Task.Delay(150);
             Require(window.EditorTextForTesting == "aXbcd\neXfgh\nijkl\n", "Native vertical-only rectangular typing did not insert in both rows. Actual: " + window.EditorTextForTesting);
             window.UndoEditorForTesting(); Require(window.EditorTextForTesting == "abcd\nefgh\nijkl\n", "Vertical-only rectangular typing did not Undo as one action.");
@@ -49,6 +50,7 @@ internal static class DailyAuthoringProbe
             NativeProbeInput.Key(0x27, shift: true, alt: true);
             await Task.Delay(100);
             Require(editor.TextArea.Selection is RectangleSelection, "Native Shift+Alt did not create a rectangular selection.");
+            await RoundTripRectangleAsync(window, editor, active);
             NativeProbeInput.Type(window, "X"); await Task.Delay(150);
             Require(window.EditorTextForTesting == "aXcd\neXgh\nijkl\n", "Native rectangular typing did not change both selected rows.");
             window.UndoEditorForTesting(); Require(window.EditorTextForTesting == "abcd\nefgh\nijkl\n", "Rectangular typing did not Undo as one action.");
@@ -92,16 +94,42 @@ internal static class DailyAuthoringProbe
                 Version = window.BuildIdentityForTesting.InformationalVersion
               , NativeShiftAltTypingAndUndo = true
               , NativeVerticalOnlyTypingAndUndo = true
+              , NativeRectangleTabRoundTripAndTyping = true
               , NativeTabDragPreservesBufferAndSelection = true
               , TabOrderAndRecoveryPersisted = true
               , NewIdentitySurvivesRecovery = true
               , ConciseFooterAndWorkspaceHeader = true
               , TerminalRootAndArgumentConfiguration = true
-              , HumanChecks = "Human visual/DPI, terminal interaction, sustained use and release acceptance remain pending. Layout/discovery integration awaits prototype/task review."
+              , HumanChecks = "Human visual/DPI, sustained use, selection-loss reproduction and release acceptance remain pending. Earlier layout/Terminal human evidence is retained for its exact candidate."
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception exception) { await File.WriteAllTextAsync(Path.Combine(Root!, "error.txt"), exception.ToString()); }
         finally { window.UnsavedChoiceForTesting = _ => Task.FromResult("Discard"); window.Close(); }
+    }
+
+    private static async Task RoundTripRectangleAsync(MainWindow window, TextEditor editor, DocumentTab active)
+    {
+        var selection = editor.TextArea.Selection;
+        var segments = selection.Segments.Select(segment => (segment.StartOffset, segment.Length)).ToArray();
+        var caret = editor.TextArea.Caret.Position;
+        var tabs = window.FindControl<ListBox>("DocumentTabs")!;
+        var other = window.TabsForTesting.First(tab => tab != active && tab.Session.Path is not null);
+        async Task ClickTabAsync(DocumentTab tab)
+        {
+            window.UpdateLayout();
+            var container = tabs.GetVisualDescendants().OfType<ListBoxItem>().Single(item => ReferenceEquals(item.DataContext, tab));
+            await NativeProbeInput.ClickAsync(container.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == tab.Label));
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (!ReferenceEquals(editor.Document, tab.Document) && DateTime.UtcNow < deadline) await Task.Delay(25);
+            Require(ReferenceEquals(editor.Document, tab.Document), "Native tab click did not activate its document.");
+        }
+        await ClickTabAsync(other);
+        await ClickTabAsync(active);
+        Require(editor.TextArea.Selection is RectangleSelection &&
+            segments.SequenceEqual(editor.TextArea.Selection.Segments.Select(segment => (segment.StartOffset, segment.Length))) &&
+            caret == editor.TextArea.Caret.Position, "Native tab round trip lost rectangle shape, segments or caret.");
+        editor.TextArea.Focus();
+        await Task.Delay(100);
     }
 
     private static void Require(bool condition, string message) { if (!condition) throw new IOException(message); }
