@@ -27,6 +27,7 @@ internal static class WindowsInstallationProbe
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         var paths = new AppDataPaths(Path.Combine(root, "isolated-state"));
+        var defaultChoices = ReadDefaultChoices();
         var state = new SqliteStateStore(paths);
         await state.InitializeAsync();
         await state.SaveDraftAsync(new RecoveryDraft("installation-protected", null, "retained draft", DateTimeOffset.UtcNow, null, true));
@@ -44,6 +45,13 @@ internal static class WindowsInstallationProbe
         Require((await new PortablePackageService(paths).ValidateAsync(downloaded)).InformationalVersion == manifest.InformationalVersion, "Downloaded payload identity changed.");
         var registration = "Axiom-" + WorkspaceFileOperations.Hash(System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(paths.Root)))[..16];
         var keyPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\" + registration;
+        using (var registered = Registry.CurrentUser.OpenSubKey(@"Software\RegisteredApplications"))
+            Require(registered?.GetValue(registration) as string == @"Software\Axiom\" + registration + @"\Capabilities", "Default Apps registration is missing.");
+        using (var associations = Registry.CurrentUser.OpenSubKey(@"Software\Axiom\" + registration + @"\Capabilities\FileAssociations"))
+            foreach (var extension in new[] { ".md", ".markdown" })
+                Require(associations?.GetValue(extension) as string == registration + ".Markdown", "Default Apps association is missing.");
+        Require(ReadDefaultChoices() == defaultChoices, "Registration changed the user's default editor.");
+        Require(WindowsInstallationService.DefaultAppsUri(paths.Root).AbsoluteUri.EndsWith("registeredAppUser=" + registration, StringComparison.Ordinal), "Default Apps Settings is not scoped to this installation.");
         using (var key = Registry.CurrentUser.OpenSubKey(keyPath))
             Require(key?.GetValue("InstallLocation") as string == destination, "Per-user installation registration missing.");
         var link = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), registration + ".lnk");
@@ -61,6 +69,11 @@ internal static class WindowsInstallationProbe
         Require(await UninstallAsync(uninstall) == 0, "Verified uninstall failed.");
         Require(!Directory.Exists(destination) && !File.Exists(link), "Uninstall left its payload or shortcut.");
         using (var key = Registry.CurrentUser.OpenSubKey(keyPath)) Require(key is null, "Uninstall registration remained.");
+        using (var registered = Registry.CurrentUser.OpenSubKey(@"Software\RegisteredApplications"))
+            Require(registered?.GetValue(registration) is null, "Default Apps registration remained.");
+        using (var capabilities = Registry.CurrentUser.OpenSubKey(@"Software\Axiom\" + registration))
+            Require(capabilities is null, "Owned capabilities remained.");
+        Require(ReadDefaultChoices() == defaultChoices, "Uninstall changed the user's default editor.");
         var drafts = await state.GetRecoverableDraftsAsync();
         Require(drafts.Single().Text == "retained draft" && File.Exists(backup), "Uninstall changed user state or backup.");
         await File.WriteAllTextAsync(Path.Combine(root, "result.json"), JsonSerializer.Serialize(new
@@ -69,6 +82,9 @@ internal static class WindowsInstallationProbe
           , ActualPerUserRegistration = true
           , ActualStartMenuShortcut = true
           , ExplicitOpenWithRegistration = true
+          , DefaultAppsCapabilitiesAndScopedSettings = true
+          , DefaultEditorChoicePreserved = true
+          , DefaultAppsRegistrationRemoved = true
           , ModifiedPayloadUninstallBlocked = true
           , VerifiedPayloadAndIntegrationRemoved = true
           , DraftStateAndBackupRetained = true
@@ -76,6 +92,19 @@ internal static class WindowsInstallationProbe
           , LivePublisherNetworkVerified = false
           , HumanChecks = "Windows Installed apps display, physical input, trust/signing/distribution and human release acceptance remain pending."
         }, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private static string ReadDefaultChoices()
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        var values = new List<string?>();
+        foreach (var extension in new[] { ".md", ".markdown" })
+        {
+            using var choice = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\" + extension + @"\UserChoice");
+            values.Add(choice?.GetValue("ProgId") as string);
+            values.Add(choice?.GetValue("Hash") as string);
+        }
+        return JsonSerializer.Serialize(values);
     }
 
     private static async Task<int> UninstallAsync(string script)

@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 5B617DFBF361A72AC1084B4506B461F47228E0082D299AB1C1EF339374843B13. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: DC614FFE202D0474CA96B80B02507F44794301D6F93DFCE46B11DC66D8AC6E26. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -281,6 +281,14 @@ Tools → State Maintenance shows database integrity/schema and record counts. E
 
 Tools → Install Portable Update first explains the operation, then asks you to select **payload-manifest.json** inside a newer published Axiom application package, beside **Axiom.App.exe**. Select the application package, rather than the Markdown workspace; extract ZIP downloads first. Axiom verifies it, displays its identity, and offers explicit installation into a new version folder. Restart is the button in the **Version ready** dialog, not a separate Tools command. It protects unsaved edits with Save/Discard/Cancel and carries forward the current state root. Later leaves this app running and displays the installed package directory. When ready, Tools → Switch Portable Version selects that directory's manifest and offers Restart. Switching also supports an older original package if it can read the current database schema. Keep old packages for rollback; do not replace running binaries manually.
 
+
+## Open Markdown from Windows
+
+The 1.3.0 development candidate opens .md and .markdown files passed from Windows in a remembered workspace when one contains the file. The active workspace wins when it contains the file; otherwise the most specific remembered root wins, then the most recently opened workspace. Forgotten workspaces are not rediscovered automatically. Files outside remembered workspaces open directly in a tab without creating a workspace or adding document identity.
+
+An existing Axiom instance receives the file request. Workspace changes retain the existing Save/Discard/Cancel review for dirty documents; Cancel leaves your current workspace and edits intact. Opening an already-open document keeps its working buffer. For an external file request, Axiom clears an explorer text filter if needed to select and reveal the requested workspace file. Normal tab switching retains its existing filter behavior.
+
+Choose Tools > Install for Current User from a verified package, then Register for Markdown Open with. After installation, Open Default Apps takes you to Windows Settings for that registration. Choose Axiom for .md and .markdown there. Registration offers Axiom as a handler; Windows keeps your existing default until you choose. Portable packages can still open a file using its full path argument. Removing the installed version removes its owned integration and keeps documents, state and backups.
 
 ## Work with document tabs
 

@@ -1,10 +1,17 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
 namespace Axiom.Infrastructure;
 
 public sealed class WindowsInstallationService(AppDataPaths paths)
 {
+    public static string RegistrationName(string stateRoot) =>
+        "Axiom-" + WorkspaceFileOperations.Hash(System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(stateRoot)))[..16];
+
+    public static Uri DefaultAppsUri(string stateRoot) =>
+        new("ms-settings:defaultapps?registeredAppUser=" + Uri.EscapeDataString(RegistrationName(stateRoot)));
+
     public async Task<string> InstallAsync(string source, bool startMenuShortcut, bool markdownAssociation, CancellationToken cancellationToken = default)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Per-user installation requires Windows.");
@@ -35,7 +42,7 @@ public sealed class WindowsInstallationService(AppDataPaths paths)
             throw new IOException("Register only a verified version owned by this Axiom state root.");
         var verified = await new PortablePackageService(paths).ValidateAsync(destination, cancellationToken);
         if (verified.InformationalVersion != manifest.InformationalVersion) throw new IOException("Installation identity changed.");
-        var registration = "Axiom-" + WorkspaceFileOperations.Hash(System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(paths.Root)))[..16];
+        var registration = RegistrationName(paths.Root);
         var integration = Path.Combine(paths.Root, "Installation");
         WorkspaceFileOperations.ValidateAncestors(paths.Root, integration, requireParent: false);
         Directory.CreateDirectory(integration);
@@ -64,6 +71,13 @@ public sealed class WindowsInstallationService(AppDataPaths paths)
         key.SetValue("NoRepair", 1);
         if (association)
         {
+            using var program = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + programId);
+            program.SetValue("", "Axiom Markdown document");
+            using var application = program.CreateSubKey("Application");
+            application.SetValue("ApplicationName", "Axiom");
+            application.SetValue("ApplicationIcon", "\"" + executable + "\",0");
+            using var icon = program.CreateSubKey("DefaultIcon");
+            icon.SetValue("", "\"" + executable + "\",0");
             using var app = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + programId + @"\shell\open\command");
             app.SetValue("", command + " -Document \"%1\"");
             foreach (var extension in new[] { ".md", ".markdown" })
@@ -71,6 +85,15 @@ public sealed class WindowsInstallationService(AppDataPaths paths)
                 using var choices = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + extension + @"\OpenWithProgids");
                 choices.SetValue(programId, Array.Empty<byte>(), RegistryValueKind.None);
             }
+            var capabilitiesPath = @"Software\Axiom\" + registration + @"\Capabilities";
+            using var capabilities = Registry.CurrentUser.CreateSubKey(capabilitiesPath);
+            capabilities.SetValue("ApplicationName", registration);
+            capabilities.SetValue("ApplicationDescription", "Open and edit Markdown in Axiom, with remembered workspace navigation.");
+            capabilities.SetValue("ApplicationIcon", "\"" + executable + "\",0");
+            using var fileAssociations = capabilities.CreateSubKey("FileAssociations");
+            foreach (var extension in new[] { ".md", ".markdown" }) fileAssociations.SetValue(extension, programId);
+            using var registered = Registry.CurrentUser.CreateSubKey(@"Software\RegisteredApplications");
+            registered.SetValue(registration, capabilitiesPath);
         }
         if (shortcut)
         {
@@ -85,7 +108,11 @@ public sealed class WindowsInstallationService(AppDataPaths paths)
                 """, cancellationToken);
             await RunPowerShellAsync(script, cancellationToken);
         }
+        if (association) NotifyAssociationsChanged(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
     }
+
+    [DllImport("shell32.dll", EntryPoint = "SHChangeNotify")]
+    private static extern void NotifyAssociationsChanged(uint eventId, uint flags, IntPtr first, IntPtr second);
 
     public static string BuildUninstallScript(string directory, string stateRoot, string registration, string? shortcut, string programId) => $$"""
         $ErrorActionPreference = 'Stop'
@@ -131,6 +158,12 @@ public sealed class WindowsInstallationService(AppDataPaths paths)
         if ((Get-ItemProperty -LiteralPath $key -ErrorAction SilentlyContinue).InstallLocation -eq $package) {
             Remove-Item -LiteralPath $key -Recurse
             Remove-Item -LiteralPath 'HKCU:\Software\Classes\{{Quote(programId)}}' -Recurse -ErrorAction SilentlyContinue
+            $registered = 'HKCU:\Software\RegisteredApplications'
+            $capabilities = 'Software\Axiom\' + $registration + '\Capabilities'
+            if ((Get-ItemPropertyValue -LiteralPath $registered -Name $registration -ErrorAction SilentlyContinue) -eq $capabilities) {
+                Remove-ItemProperty -LiteralPath $registered -Name $registration -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath ('HKCU:\Software\Axiom\' + $registration) -Recurse -ErrorAction SilentlyContinue
+            }
             foreach ($extension in @('.md', '.markdown')) { Remove-ItemProperty -LiteralPath ('HKCU:\Software\Classes\' + $extension + '\OpenWithProgids') -Name '{{Quote(programId)}}' -ErrorAction SilentlyContinue }
             $shortcut = '{{Quote(shortcut ?? "")}}'
             if ($shortcut -and (Test-Path -LiteralPath $shortcut)) { Remove-Item -LiteralPath $shortcut }

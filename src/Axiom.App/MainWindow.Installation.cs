@@ -24,7 +24,21 @@ public partial class MainWindow
             var shortcut = await ChoiceDialog.ShowAsync(this, "Start menu shortcut", "Create a Start menu shortcut for this installation?", "Create shortcut", "Skip") == "Create shortcut";
             var association = await ChoiceDialog.ShowAsync(this, "Markdown Open with registration", "Offer Axiom in Open with for .md and .markdown files? Your default editor is retained.", "Register", "Skip") == "Register";
             var destination = await new WindowsInstallationService(_operationalPaths).InstallAsync(AppContext.BaseDirectory, shortcut, association);
-            await ChoiceDialog.ShowAsync(this, "Axiom installed", $"Verified installation: {destination}\n\nUse Windows Installed apps to uninstall after closing this version. This app remains running. Portable version switching and retained versions remain available.", "OK");
+            var installedMessage = $"Verified installation: {destination}\n\nUse Windows Installed apps to uninstall after closing this version. This app remains running. Portable version switching and retained versions remain available.";
+            if (association)
+            {
+                var choice = await ChoiceDialog.ShowAsync(this, "Axiom installed", installedMessage + "\n\nChoose Axiom for .md and .markdown in Windows Default Apps to make it your default Markdown editor.", "Open Default Apps", "Later");
+                if (choice == "Open Default Apps")
+                {
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(WindowsInstallationService.DefaultAppsUri(_operationalPaths.Root).AbsoluteUri) { UseShellExecute = true }); }
+                    catch (Exception exception)
+                    {
+                        _log.Error("installation.defaultapps.open.failed", exception, destination);
+                        await ChoiceDialog.ShowAsync(this, "Axiom is installed", "Windows Default Apps could not be opened. Open Windows Settings → Apps → Default apps and choose this Axiom registration for .md and .markdown.", "OK");
+                    }
+                }
+            }
+            else await ChoiceDialog.ShowAsync(this, "Axiom installed", installedMessage, "OK");
             return new(Axiom.Core.CommandOutcome.Completed, "Per-user installation completed.");
         }
         catch (Exception exception)

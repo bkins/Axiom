@@ -175,7 +175,7 @@ public partial class MainWindow : Window
                 await InitializeManagementAsync();
                 await RestoreWorkbenchAsync();
                 await RestoreDraftIfAvailableAsync();
-                if (Program.StartupDocument is { } startupDocument) await OpenDocumentAsync(startupDocument);
+                if (Program.StartupDocument is { } startupDocument) await OpenExternalDocumentAsync(startupDocument);
             }
             finally { _startupCompleted.TrySetResult(); }
         };

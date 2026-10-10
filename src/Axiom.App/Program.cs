@@ -10,6 +10,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--external-opening-probe" && args.Length == 2) ExternalOpeningProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--cp-help-probe" && args.Length == 2) CpHelpProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--discovery-terminal-probe" && args.Length == 2) DiscoveryTerminalProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--daily-authoring-probe" && args.Length == 2) DailyAuthoringProbe.Configure(args[1]);
