@@ -12,7 +12,8 @@ internal static class LocalCpSetup
 
     internal static async Task RunAsync(bool start, CancellationToken cancellationToken)
     {
-        if (!Available(start)) throw new InvalidOperationException("Local CP setup is not installed. See CP connection Help; manual endpoint/credential entry remains available.");
+        if (!OperatingSystem.IsWindows()) throw new InvalidOperationException("Local CP helpers require Windows. Enter your endpoint and credential manually.");
+        if (!File.Exists(HelperPath(start))) throw new InvalidOperationException($"Local CP helper was not found at {HelperPath(start)}. Check the local CP setup or enter your endpoint and credential manually.");
         using var process = Process.Start(new ProcessStartInfo
         {
             FileName        = HelperPath(start)

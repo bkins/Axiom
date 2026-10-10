@@ -115,7 +115,12 @@ internal static class CpHelpProbe
     }
 
     private static T Control<T>(Window window, string name) where T : Control => window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
-    private static void Click(Window window, string name) => Control<Button>(window, name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+    private static void Click(Window window, string name)
+    {
+        var button = Control<Button>(window, name);
+        Require(button.IsEffectivelyEnabled, "Button is disabled: " + name);
+        button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+    }
     private static void Require(bool condition, string message) { if (!condition) throw new IOException(message); }
     private static async Task<bool> ContainsAsync(Avalonia.Controls.NativeWebView view, string text)
     {
