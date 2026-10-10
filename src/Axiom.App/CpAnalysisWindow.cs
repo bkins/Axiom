@@ -25,7 +25,8 @@ internal sealed class CpAnalysisWindow : Window
         var credential = new TextBox { Name = "CpCredential", PasswordChar = '●', PlaceholderText = "Dedicated analysis credential (session only)" };
         var connect = new Button { Name = "CpConnect", Content = "Connect / check capabilities" };
         var disconnect = new Button { Content = "Disconnect" };
-        var copyCredential = new Button { Name = "CpCopyLocalCredential", Content = "Copy local credential", IsEnabled = runLocalHelper is not null || LocalCpSetup.Available(false) };
+        var canCopyLocalCredential = runLocalHelper is not null || OperatingSystem.IsWindows();
+        var copyCredential = new Button { Name = "CpCopyLocalCredential", Content = "Copy local credential", IsEnabled = canCopyLocalCredential };
         var startLocal = new Button { Name = "CpStartLocal", Content = "Start local CP", IsEnabled = runLocalHelper is not null || LocalCpSetup.Available(true) };
         var help = OfflineHelp.TopicButton(this, "CP connection and reviewed analysis", appearance);
         var submit = new Button { Name = "CpSubmit", Content = "Submit reviewed snapshot for insights", IsEnabled = getClient() is not null };
@@ -44,7 +45,7 @@ internal sealed class CpAnalysisWindow : Window
             endpoint.IsEnabled = credential.IsEnabled = question.IsEnabled = !busy;
             submit.IsEnabled = !busy && ConnectedEndpointMatches();
             cancel.IsEnabled = busy;
-            copyCredential.IsEnabled = !busy && (runLocalHelper is not null || LocalCpSetup.Available(false));
+            copyCredential.IsEnabled = !busy && canCopyLocalCredential;
             startLocal.IsEnabled = !busy && (runLocalHelper is not null || LocalCpSetup.Available(true));
         }
         endpoint.PropertyChanged += (_, change) =>

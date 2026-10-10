@@ -10,6 +10,37 @@ namespace Axiom.App.Tests;
 public sealed class CpAnalysisWindowTests
 {
     [AvaloniaFact]
+    public void Failed_Copy_Leaves_Credential_Source_And_Connection_Untouched_And_Allows_Retry()
+    {
+        var changes = 0;
+        var attempts = 0;
+        var window = new CpAnalysisWindow(AnalysisSnapshot.Capture("one", "Reviewed source"), () => true, () => null, _ => changes++,
+            runLocalHelper: (_, _) => ++attempts == 1
+                ? Task.FromException(new InvalidOperationException("Local CP helper was not found at fixture path."))
+                : Task.CompletedTask);
+        window.Show();
+        var controls = window.GetLogicalDescendants().ToArray();
+        var copy = controls.OfType<Button>().Single(button => button.Name == "CpCopyLocalCredential");
+        var credential = controls.OfType<TextBox>().Single(control => control.Name == "CpCredential");
+        var endpoint = controls.OfType<TextBox>().Single(control => control.Name == "CpEndpoint");
+        var status = controls.OfType<TextBlock>().Single(control => control.Name == "CpConnectionStatus");
+        credential.Text = "user-entered-credential";
+        var originalEndpoint = endpoint.Text;
+        copy.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.Contains("fixture path", status.Text);
+        Assert.True(copy.IsEffectivelyEnabled);
+        copy.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.StartsWith("Local credential copied", status.Text);
+        Assert.Equal(2, attempts);
+        Assert.Equal(0, changes);
+        Assert.Equal(originalEndpoint, endpoint.Text);
+        Assert.Equal("user-entered-credential", credential.Text);
+        Assert.Equal("Reviewed source", controls.OfType<TextBox>().Single(control => control.Name == "CpSnapshotReview").Text);
+        Assert.False(controls.OfType<Button>().Single(button => button.Name == "CpSubmit").IsEnabled);
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void Local_Buttons_Do_Not_Connect_Or_Submit_And_Starting_Local_Disables_A_Different_Connected_Endpoint()
     {
         using var client = new CpDocumentAnalysisClient(new Uri("https://fixture.invalid/"), "fixture-only-analysis-credential-at-least-32");
