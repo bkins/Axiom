@@ -13,6 +13,24 @@ public sealed class LocalCpSetupTests
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => LocalCpSetup.RunHelperAsync(missing, CancellationToken.None));
         Assert.Contains(missing, error.Message);
         Assert.Contains("exited with code", error.Message);
+        Assert.Contains("Command host:", error.Message);
+    }
+
+    [Fact]
+    public async Task Failed_Helper_Does_Not_Disclose_Arbitrary_Output()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var root = Path.Combine(Path.GetTempPath(), "axiom-helper-output-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var helper = Path.Combine(root, "Start-Axiom-Cp.cmd");
+            await File.WriteAllTextAsync(helper, "@echo off\r\necho sensitive-output\r\necho sensitive-error 1>&2\r\nexit /b 1\r\n", TestContext.Current.CancellationToken);
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => LocalCpSetup.RunHelperAsync(helper, TestContext.Current.CancellationToken));
+            Assert.DoesNotContain("sensitive", error.Message);
+            Assert.Contains("No recognized command-host diagnostic", error.Message);
+        }
+        finally { Directory.Delete(root, true); }
     }
 
     [Fact]

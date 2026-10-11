@@ -28,6 +28,8 @@ internal static class LocalCpSetup
               , WorkingDirectory = Environment.SystemDirectory
               , UseShellExecute = false
               , CreateNoWindow  = true
+              , RedirectStandardError = true
+              , RedirectStandardOutput = true
               , WindowStyle     = ProcessWindowStyle.Hidden
             });
         }
@@ -38,7 +40,23 @@ internal static class LocalCpSetup
         using var process = helper ?? throw new InvalidOperationException("The local CP helper could not start.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromMinutes(3));
+        // Drain both pipes concurrently so a failing helper cannot block on output.
+        // Successful clipboard-helper output is deliberately discarded.
+        var standardError = process.StandardError.ReadToEndAsync(timeout.Token);
+        var standardOutput = process.StandardOutput.ReadToEndAsync(timeout.Token);
         await process.WaitForExitAsync(timeout.Token);
-        if (process.ExitCode != 0) throw new InvalidOperationException($"The local CP helper at {helperPath} exited with code {process.ExitCode}. Check the local setup or use its external launcher.");
+        var error = (await standardError).Trim();
+        await standardOutput;
+        if (process.ExitCode != 0)
+        {
+            // Only disclose known command-host diagnostics, never arbitrary helper
+            // output that might contain credentials or other sensitive values.
+            var commandFailure = error.Contains("is not recognized as an internal or external command", StringComparison.OrdinalIgnoreCase)
+                || error.Equals("Access is denied.", StringComparison.OrdinalIgnoreCase)
+                || error.Equals("The system cannot find the path specified.", StringComparison.OrdinalIgnoreCase)
+                || error.Equals("The system cannot find the file specified.", StringComparison.OrdinalIgnoreCase);
+            var detail = commandFailure ? " Command host: " + error[..Math.Min(error.Length, 1024)] : " No recognized command-host diagnostic was returned.";
+            throw new InvalidOperationException($"The local CP helper at {helperPath} exited with code {process.ExitCode}.{detail} Check the local setup or use its external launcher.");
+        }
     }
 }
