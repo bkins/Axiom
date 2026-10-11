@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.ComponentModel;
 
 namespace Axiom.App;
 
@@ -10,16 +11,30 @@ internal static class LocalCpSetup
 
     internal static bool Available(bool start) => OperatingSystem.IsWindows() && File.Exists(HelperPath(start));
 
-    internal static async Task RunAsync(bool start, CancellationToken cancellationToken)
+    internal static Task RunAsync(bool start, CancellationToken cancellationToken)
+        => RunHelperAsync(HelperPath(start), cancellationToken);
+
+    internal static async Task RunHelperAsync(string helperPath, CancellationToken cancellationToken)
     {
         if (!OperatingSystem.IsWindows()) throw new InvalidOperationException("Local CP helpers require Windows. Enter your endpoint and credential manually.");
-        if (!File.Exists(HelperPath(start))) throw new InvalidOperationException($"Local CP helper was not found at {HelperPath(start)}. Check the local CP setup or enter your endpoint and credential manually.");
-        using var process = Process.Start(new ProcessStartInfo
+        cancellationToken.ThrowIfCancellationRequested();
+        Process? helper;
+        try
         {
-            FileName        = HelperPath(start)
-          , UseShellExecute = true
-          , WindowStyle     = ProcessWindowStyle.Hidden
-        }) ?? throw new InvalidOperationException("The local CP helper could not start.");
+            // File.Exists collapses access/detection failures into false. Let Windows
+            // resolve the fixed launcher and report its actual launch error instead.
+            helper = Process.Start(new ProcessStartInfo
+            {
+                FileName        = helperPath
+              , UseShellExecute = true
+              , WindowStyle     = ProcessWindowStyle.Hidden
+            });
+        }
+        catch (Win32Exception exception)
+        {
+            throw new InvalidOperationException($"Windows could not launch the local CP helper at {helperPath}. Windows error {exception.NativeErrorCode}: {exception.Message}. Check the local CP setup or use its external launcher.", exception);
+        }
+        using var process = helper ?? throw new InvalidOperationException("The local CP helper could not start.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromMinutes(3));
         await process.WaitForExitAsync(timeout.Token);
