@@ -25,20 +25,20 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
         var question = new TextBox { Name = "CpSemanticQuery", PlaceholderText = "Explicit query or cross-document question" };
         var typeFilter = new TextBox { PlaceholderText = "Local saved Type filter (exact match, optional)" };
         var tagFilter = new TextBox { PlaceholderText = "Local saved Tag filter (exact match, optional)" };
-        var status = new TextBlock { Name = "CpWorkspaceStatus", Text = "Select open buffers or explicitly add saved Markdown from the active workspace. Review exact snapshots before submitting; no background upload.", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        var status = new TextBlock { Name = "CpWorkspaceStatus", Text = "Select open buffers or explicitly add saved Markdown from the active workspace. Review exact snapshots before submitting; no background upload.", TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontWeight = Avalonia.Media.FontWeight.SemiBold };
         var addSaved = new Button { Name = "CpAddSavedSources", Content = "Add saved workspace documents for review", IsEnabled = loadSaved is not null };
         var sourceList = new StackPanel { Spacing = 6 };
         var build = new Button { Name = "CpSemanticBuild", Content = "Build reviewed semantic index" };
         var search = new Button { Name = "CpSemanticSearch", Content = "Semantic search", IsEnabled = false };
         var related = new Button { Content = "Related to first selected document", IsEnabled = false };
-        var analyze = new Button { Content = "Analyze reviewed documents" };
+        var analyze = new Button { Name = "CpAnalyzeReviewed", Content = "Analyze reviewed documents" };
         var cancel = new Button { Content = "Cancel request", IsEnabled = false };
-        var clear = new Button { Content = "Clear derived index/results" };
-        var persistent = new CheckBox { Content = "Reuse/store derived vectors in local Axiom state (requires verified model digest)", IsEnabled = cache is not null };
+        var clear = new Button { Name = "CpClearDerived", Content = "Clear derived index/results" };
+        var persistent = new CheckBox { Name = "CpReuseVectors", Content = "Reuse/store derived vectors in local Axiom state (requires verified model digest)", IsEnabled = cache is not null };
         var clearCache = new Button { Content = "Clear all persisted semantic results", IsEnabled = cache is not null };
         var results = new ListBox { Name = "CpSemanticResults", MinHeight = 120 };
         var answer = new TextBox { IsReadOnly = true, AcceptsReturn = true, MinHeight = 120, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
-        var citations = new ListBox { MinHeight = 60 };
+        var citations = new ListBox { Name = "CpResolvedCitations", MinHeight = 60 };
         var openCitation = new Button { Content = "Open selected cited source range" };
         var open = new Button { Content = "Open selected source section" };
         var close = new Button { Content = "Close", IsCancel = true };
@@ -113,7 +113,10 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
             var result = await client.GetInsightsAsync(selected, question.Text, token);
             answer.Text = AnalysisCitationPolicy.Report(result);
             citations.ItemsSource = AnalysisCitationPolicy.Resolve(result).Select(section => new SemanticMatch(section, 0)).ToArray();
-            status.Text = $"Derived answer: {result.Provider}/{result.Model ?? "not attested"}; {result.CreatedAt:u}; {result.Provenance}. {(await FreshAsync(selected) ? "Hashes current." : "STALE sources.")} Review citations/claims; no source edits.";
+            var resolvedCount = AnalysisCitationPolicy.Resolve(result).Count;
+            status.Text = $"Derived answer: {result.Provider}/{result.Model ?? "not attested"}; {result.CreatedAt:u}; {result.Provenance}. {(await FreshAsync(selected) ? "Hashes current." : "STALE sources.")} "
+                        + (resolvedCount == 0 ? "No validated citations: answer is unverified; cited-source navigation is unavailable. " : $"{resolvedCount} validated citation ranges; review claim support yourself. ")
+                        + "No source edits.";
         });
         clear.Click += (_, _) => { index = new(); results.ItemsSource = null; citations.ItemsSource = null; answer.Text = ""; search.IsEnabled = related.IsEnabled = false; status.Text = "Derived session index and results discarded."; };
         clearCache.Click += async (_, _) =>
@@ -165,12 +168,25 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
             catch (Exception exception) { status.Text = exception is InvalidOperationException ? exception.Message : "Saved workspace sources could not be read safely."; }
             finally { loadingSaved = false; addSaved.IsEnabled = true; }
         };
-        Content = new ScrollViewer { Content = new StackPanel
+        var actions = new StackPanel
+        {
+            Name = "CpSemanticActionBar", Margin = new Thickness(18, 10), Spacing = 10,
+            Children =
+            {
+                new Border { Name = "CpSemanticStatusBanner", Padding = new Thickness(12), BorderThickness = new Thickness(2), CornerRadius = new CornerRadius(6),
+                    Child = new StackPanel { Spacing = 6, Children = { new TextBlock { Text = "Operation status", FontWeight = Avalonia.Media.FontWeight.Bold }, status } } },
+                new WrapPanel { Children = { build, search, related, analyze, cancel, clear, close } }
+            }
+        };
+        var statusBanner = actions.Children.OfType<Border>().Single();
+        statusBanner.Bind(Border.BorderBrushProperty, this.GetResourceObservable("SystemControlHighlightAccentBrush"));
+        var body = new ScrollViewer { Name = "CpSemanticScrollBody", Content = new StackPanel
         {
             Margin = new Thickness(18), Spacing = 10
-          , Children = { help, status, addSaved, sourceList, review, question, typeFilter, tagFilter, persistent, clearCache
-                      , new WrapPanel { Children = { build, search, related, analyze, cancel, clear } }
-                      , results, open, answer, citations, openCitation, close }
+          , Children = { help, addSaved, sourceList, review, question, typeFilter, tagFilter, persistent, clearCache
+                      , results, open, answer, citations, openCitation }
         } };
+        DockPanel.SetDock(actions, Dock.Bottom);
+        Content = new DockPanel { Children = { actions, body } };
     }
 }
