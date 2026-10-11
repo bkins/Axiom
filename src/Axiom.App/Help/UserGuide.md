@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 97A78C856F717C2BD052BAA471F2CECD34885B0242F945F41E072C971BB21DA7. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: EDD81A5C14F5B5CE2EB655A58CE567F2D8E2E536F5B8A532BC19924893414E59. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -541,7 +541,7 @@ The terminal is a real shell: commands can change any accessible saved files, in
 
 ## Local CP controls
 
-Open Main menu → File → CP review and search → CP connection and reviewed insights. On Windows with the configured local CP setup, **Copy local credential** copies the existing credential to the clipboard. Paste it into the password field. **Start local CP** runs the existing startup helper, uses `http://127.0.0.1:5277`, and copies the same credential. It can also be used when that local service is already running. Then explicitly choose **Connect / check capabilities**. Neither helper connects automatically nor sends a document. On Windows, Copy local credential remains available while idle and checks the local helper when clicked; a missing helper shows its expected path. Start local CP requires its local launcher. Both buttons are disabled while a request is running; manual endpoint/credential entry remains available for another service.
+Open Main menu → File → CP review and search → CP connection and reviewed insights. On Windows with the configured local CP setup, **Copy local credential** copies the existing credential to the clipboard. Paste it into the password field. **Start local CP** runs the existing startup helper, uses `http://127.0.0.1:5277`, and copies the same credential. It can also be used when that local service is already running. Then explicitly choose **Connect / check capabilities**. Neither helper connects automatically nor sends a document. On Windows, Copy local credential and Start local CP remain available while idle and check their local helpers when clicked; a missing helper shows its expected path. Both buttons are disabled while a request is running; manual endpoint/credential entry remains available for another service.
 
 The local helpers are installed in `%LOCALAPPDATA%\Axiom\CpConnection`. They start the normal CP Development API, including its Development services/data, using installed Ollama models. They do not add automatic Windows startup. The endpoint is accessible only from this computer. Axiom runs only the two fixed helper launchers in that folder; a trusted local setup is required. **Help** in the connection screen opens its bundled topic; F1 does the same. Disconnect clears the Axiom session credential, not the reusable local setup.
 
