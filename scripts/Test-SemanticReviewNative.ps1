@@ -1,10 +1,11 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$AppPath, [Parameter(Mandatory)][string]$BackendPath, [Parameter(Mandatory)][string]$OutputDirectory)
+param([Parameter(Mandatory)][string]$AppPath, [Parameter(Mandatory)][string]$BackendPath, [Parameter(Mandatory)][string]$OutputDirectory, [string]$InsightsModel = 'phi3:mini')
 $ErrorActionPreference = 'Stop'
 $backend = [IO.Path]::GetFullPath($BackendPath)
 $output = [IO.Path]::GetFullPath($OutputDirectory)
 if (Test-Path -LiteralPath $output) { throw 'Choose a fresh semantic probe evidence directory.' }
 if (@(Get-NetTCPConnection -LocalPort 5288 -State Listen -ErrorAction SilentlyContinue).Count) { throw 'Probe port 5288 is occupied; no existing service was replaced.' }
+if ($InsightsModel -notin @((Invoke-RestMethod 'http://localhost:11434/api/tags').models.name)) { throw 'The requested insight model is not installed; no model was downloaded.' }
 $credential = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
 $credentialHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($credential)))
 $environment = @{
@@ -15,7 +16,7 @@ $environment = @{
     DocumentAnalysis__TimeoutSeconds = '120'
     LlmClient__Provider = 'Ollama'
     LlmClient__Endpoint = 'http://localhost:11434'
-    LlmClient__DefaultModel = 'phi3:mini'
+    LlmClient__DefaultModel = $InsightsModel
     LlmClient__Timeout = '120'
     Embedding__OllamaBaseUrl = 'http://localhost:11434'
     Embedding__EmbeddingModel = 'nomic-embed-text:latest'
@@ -30,7 +31,7 @@ try {
         if ($server.HasExited) { throw 'Isolated correction backend exited during startup.' }
         try {
             $caps = Invoke-RestMethod 'http://127.0.0.1:5288/api/document-analysis/capabilities' -Headers @{'X-Document-Analysis-Key'=$credential} -TimeoutSec 3
-            if ($caps.protocolVersion -eq 1 -and -not $caps.simulated) { $ready = $true; break }
+            if ($caps.protocolVersion -eq 1 -and -not $caps.simulated -and $caps.insightsModel -eq $InsightsModel) { $ready = $true; break }
         } catch { Start-Sleep -Milliseconds 250 }
     }
     if (-not $ready) { throw 'Isolated correction backend did not become ready.' }
