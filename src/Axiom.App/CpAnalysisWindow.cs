@@ -21,7 +21,7 @@ internal sealed class CpAnalysisWindow : Window
         MinWidth = 540;
         MinHeight = 480;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var endpoint = new TextBox { Name = "CpEndpoint", Text = getClient()?.Endpoint.AbsoluteUri ?? (LocalCpSetup.Available(true) ? "http://127.0.0.1:5277" : "http://localhost:5273"), PlaceholderText = "CP Development endpoint" };
+        var endpoint = new TextBox { Name = "CpEndpoint", Text = getClient()?.Endpoint.AbsoluteUri ?? (OperatingSystem.IsWindows() ? "http://127.0.0.1:5277" : "http://localhost:5273"), PlaceholderText = "CP Development endpoint" };
         var credential = new TextBox { Name = "CpCredential", PasswordChar = '●', PlaceholderText = "Dedicated analysis credential (session only)" };
         var connect = new Button { Name = "CpConnect", Content = "Connect / check capabilities" };
         var disconnect = new Button { Content = "Disconnect" };

@@ -9,8 +9,6 @@ internal static class LocalCpSetup
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Axiom", "CpConnection",
         start ? "Start-Axiom-Cp.cmd" : "Copy-Axiom-Cp-Credential.cmd");
 
-    internal static bool Available(bool start) => OperatingSystem.IsWindows() && File.Exists(HelperPath(start));
-
     internal static Task RunAsync(bool start, CancellationToken cancellationToken)
         => RunHelperAsync(HelperPath(start), cancellationToken);
 
