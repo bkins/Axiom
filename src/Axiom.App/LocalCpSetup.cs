@@ -19,12 +19,15 @@ internal static class LocalCpSetup
         Process? helper;
         try
         {
-            // File.Exists collapses access/detection failures into false. Let Windows
-            // resolve the fixed launcher and report its actual launch error instead.
+            // A CMD file is not an executable. Use the fixed Windows command host
+            // instead of relying on ShellExecute's file association and caller context.
             helper = Process.Start(new ProcessStartInfo
             {
-                FileName        = helperPath
-              , UseShellExecute = true
+                FileName        = Path.Combine(Environment.SystemDirectory, "cmd.exe")
+              , Arguments       = "/d /v:off /s /c \"\"" + helperPath + "\"\""
+              , WorkingDirectory = Environment.SystemDirectory
+              , UseShellExecute = false
+              , CreateNoWindow  = true
               , WindowStyle     = ProcessWindowStyle.Hidden
             });
         }
@@ -36,6 +39,6 @@ internal static class LocalCpSetup
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromMinutes(3));
         await process.WaitForExitAsync(timeout.Token);
-        if (process.ExitCode != 0) throw new InvalidOperationException("The local CP helper failed. Check the local setup and try again.");
+        if (process.ExitCode != 0) throw new InvalidOperationException($"The local CP helper at {helperPath} exited with code {process.ExitCode}. Check the local setup or use its external launcher.");
     }
 }
