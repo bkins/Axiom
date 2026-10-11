@@ -9,8 +9,10 @@ namespace Axiom.App.Tests;
 
 public sealed class CpAnalysisWindowTests
 {
-    [AvaloniaFact]
-    public void Failed_Copy_Leaves_Credential_Source_And_Connection_Untouched_And_Allows_Retry()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Failed_Local_Helper_Leaves_Credential_Source_And_Connection_Untouched_And_Allows_Retry(bool start)
     {
         var changes = 0;
         var attempts = 0;
@@ -20,20 +22,21 @@ public sealed class CpAnalysisWindowTests
                 : Task.CompletedTask);
         window.Show();
         var controls = window.GetLogicalDescendants().ToArray();
-        var copy = controls.OfType<Button>().Single(button => button.Name == "CpCopyLocalCredential");
+        var helper = controls.OfType<Button>().Single(button => button.Name == (start ? "CpStartLocal" : "CpCopyLocalCredential"));
         var credential = controls.OfType<TextBox>().Single(control => control.Name == "CpCredential");
         var endpoint = controls.OfType<TextBox>().Single(control => control.Name == "CpEndpoint");
         var status = controls.OfType<TextBlock>().Single(control => control.Name == "CpConnectionStatus");
         credential.Text = "user-entered-credential";
         var originalEndpoint = endpoint.Text;
-        copy.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        helper.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Assert.Contains("fixture path", status.Text);
-        Assert.True(copy.IsEffectivelyEnabled);
-        copy.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-        Assert.StartsWith("Local credential copied", status.Text);
+        Assert.Equal(originalEndpoint, endpoint.Text);
+        Assert.True(helper.IsEffectivelyEnabled);
+        helper.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.StartsWith(start ? "Local CP is running" : "Local credential copied", status.Text);
         Assert.Equal(2, attempts);
         Assert.Equal(0, changes);
-        Assert.Equal(originalEndpoint, endpoint.Text);
+        Assert.Equal(start ? "http://127.0.0.1:5277" : originalEndpoint, endpoint.Text);
         Assert.Equal("user-entered-credential", credential.Text);
         Assert.Equal("Reviewed source", controls.OfType<TextBox>().Single(control => control.Name == "CpSnapshotReview").Text);
         Assert.False(controls.OfType<Button>().Single(button => button.Name == "CpSubmit").IsEnabled);
