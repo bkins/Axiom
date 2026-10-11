@@ -13,6 +13,7 @@ internal static class Program
         if (args.FirstOrDefault() == "--external-opening-probe" && args.Length == 2) ExternalOpeningProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--cp-help-probe" && args.Length == 2) CpHelpProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--semantic-review-probe" && args.Length == 2) SemanticReviewProbe.Configure(args[1]);
+        if (args.FirstOrDefault() == "--semantic-layout-probe" && args.Length == 2) SemanticLayoutProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--discovery-terminal-probe" && args.Length == 2) DiscoveryTerminalProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--daily-authoring-probe" && args.Length == 2) DailyAuthoringProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--preview-resilience-probe" && args.Length is 2 or 3) PreviewResilienceProbe.Configure(args[1], args.Length == 3 ? args[2] : null);

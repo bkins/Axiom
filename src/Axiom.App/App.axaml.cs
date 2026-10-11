@@ -67,6 +67,11 @@ public partial class App : Application
                 var window = (MainWindow)desktop.MainWindow;
                 window.Opened += async (_, _) => await SemanticReviewProbe.StartAsync(window);
             }
+            if (SemanticLayoutProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await SemanticLayoutProbe.StartAsync(window);
+            }
             if (WorkspaceNavigationProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;
