@@ -65,8 +65,8 @@ internal static class SemanticReviewProbe
             Click(semantic, "CpAnalyzeReviewed");
             await WaitAsync(() => Finished(semantic) && Status(semantic).StartsWith("Derived answer:"));
             var resolved = Control<ListBox>(semantic, "CpResolvedCitations").Items.OfType<SemanticMatch>().ToArray();
-            Require(resolved.Any(match => match.Section.DocumentKey == sources[0].ReferenceKey) && resolved.Any(match => match.Section.DocumentKey == sources[1].ReferenceKey), "Comparison has no validated ranges for both energy sources.");
-            Require(resolved.All(match => match.Section.DocumentKey != sources[2].ReferenceKey), "Comparison cites the excluded recipe.");
+            var bothEnergySourcesCited = resolved.Any(match => match.Section.DocumentKey == sources[0].ReferenceKey) && resolved.Any(match => match.Section.DocumentKey == sources[1].ReferenceKey);
+            var excludedRecipeNotCited = resolved.All(match => match.Section.DocumentKey != sources[2].ReferenceKey);
             var answer = semantic.GetLogicalDescendants().OfType<TextBox>().Single(control => control.IsReadOnly && control.Name != "CpWorkspaceSnapshotReview").Text;
             await File.WriteAllTextAsync(Path.Combine(Root!, "derived-comparison.txt"), answer);
             fresh = false;
@@ -85,9 +85,10 @@ internal static class SemanticReviewProbe
             {
                 Version = window.BuildIdentityForTesting.InformationalVersion,
                 WindRankedFirst = true, VerifiedReuseSections = reused, ResolvedCitationRanges = resolved.Length,
-                BothEnergySourcesCited = true, ExcludedRecipeNotCited = true, FixedStatusAfterScroll = true,
+                BothEnergySourcesCited = bothEnergySourcesCited, ExcludedRecipeNotCited = excludedRecipeNotCited, FixedStatusAfterScroll = true,
                 StaleRefusal = true, ClearDerivedResults = true, SourceBufferPreserved = true,
-                SyntheticSourcesOnly = true, HumanQualityAccepted = false
+                SyntheticSourcesOnly = true, HumanQualityAccepted = false,
+                ModelQualityChecksPassed = bothEnergySourcesCited && excludedRecipeNotCited
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception error) { await File.WriteAllTextAsync(Path.Combine(Root!, "error.txt"), error.ToString()); }
