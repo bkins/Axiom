@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: EDD81A5C14F5B5CE2EB655A58CE567F2D8E2E536F5B8A532BC19924893414E59. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 98E7837491852B1D0D0AE6AF1D4CF33243CAF293085224A9E59114F1102111C7. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -607,3 +607,5 @@ Store leftover food in the refrigerator.
 ### Record the result
 
 Pass the workflow when selection/review, completed embedding build, useful semantic matches, source navigation, cross-document review and stale-source refusal work as described. Record the running Axiom build, provider/model, the query and anything confusing. A network success proves connectivity; it does not establish useful rankings or grounded answers. Ordinary Discovery remains literal search over saved workspace Markdown and needs no CP connection.
+
+The semantic screen keeps **Operation status** and its main action buttons below the scrolling review/results area. Check this status after Build, Search, Analyze, Clear or Cancel. It reports source-change refusals, completion and reused sections. A refused request leaves earlier derived results visible; they are not fresh results from that request. An answer with no validated citation ranges is explicitly marked unverified and cannot provide cited-source navigation. Valid citation locations still require you to check whether the source supports each claim.

@@ -3,6 +3,16 @@ namespace Axiom.Core.Tests;
 public sealed class AnalysisCitationPolicyTests
 {
     [Fact]
+    public void Unissued_Aliases_And_Extra_Citation_Fields_Never_Become_Navigation_Targets()
+    {
+        var source = AnalysisSnapshot.Capture("buffer-1-Solar.md", "Solar panels\nBatteries");
+        var insight = new AnalysisInsight("[[documents|S1|L1-L2]] [[S1|L1]] [[buffer-1-Solar.md|L99]]", "Ollama", "fixture", "provider_response_model", DateTimeOffset.UtcNow, [source]);
+
+        Assert.Empty(AnalysisCitationPolicy.Resolve(insight));
+        Assert.Single(AnalysisCitationPolicy.Resolve(insight with { Text = "[[buffer-1-Solar.md|L1-L2]]" }));
+    }
+
+    [Fact]
     public void Resolves_Only_Existing_Hash_Verified_Bounded_Source_Ranges()
     {
         var source = AnalysisSnapshot.Capture("saved:Café:abc", "# 🌲\r\nFact Friday\r\nOther fact");
