@@ -14,6 +14,50 @@ public partial class MainWindow
     private readonly SemaphoreSlim _recoveryGate = new(1, 1);
     private readonly SemaphoreSlim _tabSelectionGate = new(1, 1);
     private DocumentTab _activeTab = null!;
+    private readonly List<DocumentTab> _recentTabs = [];
+    private DocumentTab[]? _tabCycle;
+    private int _tabCycleIndex;
+    private Task _tabCycleOperation = Task.CompletedTask;
+
+    private Task QueueTabCycleAsync(int? direction)
+    {
+        var previous = _tabCycleOperation;
+        return _tabCycleOperation = RunAsync();
+
+        async Task RunAsync()
+        {
+            await previous;
+            if (direction is { } step) await CycleRecentTabAsync(step);
+            else EndTabCycle();
+        }
+    }
+
+    private void RememberActiveTab()
+    {
+        _recentTabs.RemoveAll(tab => !_tabs.Contains(tab) || tab == _activeTab);
+        _recentTabs.Insert(0, _activeTab);
+    }
+
+    private void EndTabCycle()
+    {
+        _tabCycle = null;
+        RememberActiveTab();
+    }
+
+    private async Task CycleRecentTabAsync(int direction)
+    {
+        if (_tabs.Count < 2) return;
+        if (_tabCycle is null)
+        {
+            RememberActiveTab();
+            _tabCycle = _recentTabs.Concat(_tabs).Distinct().ToArray();
+            _tabCycleIndex = 0;
+        }
+        var cycle = _tabCycle;
+        _tabCycleIndex = (_tabCycleIndex + direction + cycle.Length) % cycle.Length;
+        await SelectTabAsync(cycle[_tabCycleIndex], cycling: true);
+        Editor.Focus();
+    }
     private async Task<CommandResult> CycleDocumentTabAsync(int direction)
     {
         if (_tabs.Count < 2) return new(CommandOutcome.Unavailable, "Open another document tab first.");
@@ -79,7 +123,7 @@ public partial class MainWindow
             await SelectTabAsync(tab);
     }
 
-    private async Task SelectTabAsync(DocumentTab tab)
+    private async Task SelectTabAsync(DocumentTab tab, bool cycling = false)
     {
         await _tabSelectionGate.WaitAsync();
         try
@@ -107,7 +151,8 @@ public partial class MainWindow
                 catch (Exception exception) { _log.Error("preview.tab.capture.failed", exception, previous.Session.Path); }
             }
             CaptureEditorState(previous);
-            ActivateTab(tab, "Selected document; working buffers retained.");
+            if (!cycling) _tabCycle = null;
+            ActivateTab(tab, "Selected document; working buffers retained.", rememberRecent: !cycling || _tabCycle is null);
         }
         finally { _tabSelectionGate.Release(); }
     }
@@ -128,13 +173,14 @@ public partial class MainWindow
         tab.Structure = _structure;
     }
 
-    private void ActivateTab(DocumentTab tab, string status)
+    private void ActivateTab(DocumentTab tab, string status, bool rememberRecent = true)
     {
         _previewLinkToken = null;
         _previewLinkStructure = null;
         _pendingHeadingFragment = null;
         _loading = true;
         _activeTab = tab;
+        if (rememberRecent) RememberActiveTab();
         _session = tab.Session;
         _structure = tab.Structure;
         Editor.Document = tab.Document;
@@ -220,6 +266,8 @@ public partial class MainWindow
         UpdateNavigationCommands();
         _selectingTab = true;
         _tabs.Clear();
+        _tabCycle = null;
+        _recentTabs.Clear();
         var tab = AddTab(_documents.NewDocument());
         _selectingTab = false;
         _initialPlaceholder = true;
@@ -267,6 +315,7 @@ public partial class MainWindow
         {
             _selectingTab = true;
             _tabs.Remove(tab);
+            _tabCycle = null;
             _selectingTab = false;
         }
         finally { _recoveryGate.Release(); }

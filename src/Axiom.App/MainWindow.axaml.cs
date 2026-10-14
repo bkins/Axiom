@@ -110,6 +110,7 @@ public partial class MainWindow : Window
         InitializeBacklinks();
         InitializeWorkspaceRefresh();
         AddHandler(KeyUpEvent, Window_OnKeyUp, RoutingStrategies.Tunnel);
+        Deactivated += async (_, _) => await QueueTabCycleAsync(null);
 
         DocumentTabs.ItemsSource = _tabs;
         FileTree.ItemsSource = _workspaceTree;
@@ -1318,6 +1319,14 @@ public partial class MainWindow : Window
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
+        // Consume before any await so focus traversal cannot steal subsequent presses.
+        if (e.Key == Key.Tab && e.KeyModifiers is KeyModifiers.Control or (KeyModifiers.Control | KeyModifiers.Shift))
+        {
+            e.Handled = true;
+            if (!_sessionTransitionRunning && !_navigationRunning && !_metadataApplying)
+                await QueueTabCycleAsync(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
+            return;
+        }
         if (e.Key == Key.Escape && _viewMode != WorkbenchViewMode.Standard)
         {
             e.Handled = true; ExitViewMode(); return;
@@ -1387,11 +1396,6 @@ public partial class MainWindow : Window
         if (e.Key == Key.W && e.KeyModifiers == KeyModifiers.Control)
         {
             await ExecuteCommandAsync("document.close");
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Tab && e.KeyModifiers is KeyModifiers.Control or (KeyModifiers.Control | KeyModifiers.Shift))
-        {
-            await ExecuteCommandAsync(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "navigation.previousTab" : "navigation.nextTab");
             e.Handled = true;
         }
     }

@@ -50,8 +50,10 @@ public partial class MainWindow
         return true;
     }
 
-    private void Window_OnKeyUp(object? sender, KeyEventArgs eventArgs)
+    private async void Window_OnKeyUp(object? sender, KeyEventArgs eventArgs)
     {
+        if (eventArgs.Key is Key.LeftCtrl or Key.RightCtrl)
+            await QueueTabCycleAsync(null);
         if (eventArgs.Key is not (Key.LeftAlt or Key.RightAlt)) return;
         if (_altPressedAlone)
         {

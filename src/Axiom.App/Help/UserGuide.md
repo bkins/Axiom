@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 98E7837491852B1D0D0AE6AF1D4CF33243CAF293085224A9E59114F1102111C7. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 101B3FA4B82360899F35ABBEF601CA4252FCE17989C44BB0CF692653E203B1F3. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -294,7 +294,7 @@ Choose Tools > Install for Current User from a verified package, then Register f
 
 Opening a workspace file, pin, or search result keeps your other documents open. Selecting its tab preserves each document's edits, undo history, caret/selection and editor position. Opening the same file again selects its existing tab. Tabs with the same filename show relative paths; untitled documents have distinct numbers. An asterisk marks unsaved edits, and Conflict or Missing labels identify inactive files needing attention.
 
-Use Ctrl+Tab / Ctrl+Shift+Tab to cycle tabs. Choose File → Close Tab, press Ctrl+W, or use the tab's × button to close it. Save/Discard/Cancel applies to that tab. Workspace switching, application close and version restart resolve all affected dirty tabs; cancellation or failed Save keeps the transition from proceeding. Save As refuses another tab's already-open path.
+Press and release Ctrl+Tab to toggle between the two most recently active tabs. Hold Ctrl and press Tab repeatedly to cycle through all open tabs in recent-use order; Ctrl+Shift+Tab cycles backwards. The order stays fixed while Ctrl is held, and releasing Ctrl makes the selected tab most recent. Clicking a tab also updates recent-use order. Switching tabs retains unsaved text, Undo, caret and selection. Choose File → Close Tab, press Ctrl+W, or use the tab's × button to close it. Save/Discard/Cancel applies to that tab. Workspace switching, application close and version restart resolve all affected dirty tabs; cancellation or failed Save keeps the transition from proceeding. Save As refuses another tab's already-open path.
 
 Recovery protects saved and untitled dirty tabs independently. Startup offers each protected draft; Later preserves that draft for another launch. Restoring a draft for an already-open clean file reuses that tab. No recovery choice silently writes Markdown.
 
