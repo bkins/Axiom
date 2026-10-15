@@ -8,6 +8,7 @@ param(
     [string]$Channel = 'candidate',
     [string]$ReleaseNotes = 'Implementation candidate; human release acceptance remains pending.',
     [string]$LocalCpBackendPath,
+    [ValidateRange(1024,65535)][int]$LocalCpPort = 5289,
     [string]$LocalCpCredentialPath = (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Axiom\CpSemanticQwenReview\credential.dpapi')
 )
 
@@ -54,7 +55,7 @@ if ($LocalCpBackendPath) {
     New-Item -ItemType Directory -Path $setupFolder -Force | Out-Null
     $setup = Join-Path $setupFolder 'Start-local-CP.ps1'
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-SemanticQwenReview.ps1') -Destination $setup -Force
-    [ordered]@{ Endpoint='http://127.0.0.1:5289'; CredentialPath=[IO.Path]::GetFullPath($LocalCpCredentialPath); SetupScript='CpSetup/Start-local-CP.ps1'; SetupSha256=(Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash; BackendPath=$backend; BackendSha256=(Get-FileHash -LiteralPath $backend -Algorithm SHA256).Hash; Model='qwen2.5:7b' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $outputPath 'cp-local-profile.json') -Encoding utf8
+    [ordered]@{ Endpoint="http://127.0.0.1:$LocalCpPort"; CredentialPath=[IO.Path]::GetFullPath($LocalCpCredentialPath); SetupScript='CpSetup/Start-local-CP.ps1'; SetupSha256=(Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash; BackendPath=$backend; BackendSha256=(Get-FileHash -LiteralPath $backend -Algorithm SHA256).Hash; Model='qwen2.5:7b' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $outputPath 'cp-local-profile.json') -Encoding utf8
 }
 $schemaSource = Get-Content -LiteralPath (Join-Path $repoRoot 'src\Axiom.Infrastructure\SqliteStateStore.cs') -Raw
 $schemaMatch = [regex]::Match($schemaSource, 'CurrentSchemaVersion\s*=\s*(\d+)')

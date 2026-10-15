@@ -49,6 +49,19 @@ internal static class TurnkeyCpProbe
             Require(await File.ReadAllTextAsync(path)==saved,"Apply saved the file");
             actions.Close(); await operation;
             main.UndoEditorForTesting(); Require(main.EditorTextForTesting==original,"One Undo did not restore pre-Apply text");
+            var large = "# Larger document\n\n" + string.Join("\n\n", Enumerable.Range(1, 70).Select(index => $"Section {index}: Keep every original word, number and punctuation in this paragraph unchanged.")) + "\n\nThe unique sentence contains teh mistake.\n";
+            main.FindControl<AvaloniaEdit.TextEditor>("Editor")!.Document.Text = large;
+            operation = main.ExecuteCommandAsync("document.cpEdits");
+            await Wait(() => main.OwnedWindows.OfType<CpDocumentActionWindow>().Any());
+            actions = main.OwnedWindows.OfType<CpDocumentActionWindow>().Single();
+            Control<TextBox>(actions,"CpEditRequest").Text = "Correct only teh to the in the sentence The unique sentence contains teh mistake. Preserve everything else exactly.";
+            Click(actions,"CpActionSuggest");
+            await Wait(() => Control<Button>(actions,"CpActionPreview").IsEnabled, actions);
+            Require(Control<TextBox>(actions,"CpActionOutput").Text == large.Replace("teh mistake", "the mistake"), "Large document proposal changed unrelated text");
+            Require(main.EditorTextForTesting == large && await File.ReadAllTextAsync(path) == saved, "Large suggestion changed source or disk");
+            await File.WriteAllTextAsync(Path.Combine(Root!,"large-proposal.md"), Control<TextBox>(actions,"CpActionOutput").Text);
+            actions.Close(); await operation;
+            main.FindControl<AvaloniaEdit.TextEditor>("Editor")!.Document.Text = original;
             operation=main.ExecuteCommandAsync("workspace.cpAnalysis");
             await Wait(()=>main.OwnedWindows.OfType<CpWorkspaceAnalysisWindow>().Any());
             var search=main.OwnedWindows.OfType<CpWorkspaceAnalysisWindow>().Single();
@@ -57,7 +70,7 @@ internal static class TurnkeyCpProbe
             await Wait(()=>Control<ListBox>(search,"CpSemanticResults").ItemCount>0);
             search.Close(null); await operation;
             Require(main.EditorTextForTesting==original && await File.ReadAllTextAsync(path)==saved,"Search changed source or disk");
-            await File.WriteAllTextAsync(Path.Combine(Root!,"result.json"),JsonSerializer.Serialize(new {Version=main.BuildIdentityForTesting.InformationalVersion,AutomaticProtectedCredentialConnection=true,AnalyzeCurrentUnsavedBuffer=true,NoClipboardOrManualEndpoint=true,ProposalPreviewBeforeApply=true,ActualApplyAndSingleUndo=true,DiskUnchanged=true,SearchWithoutBuildStep=true,SyntheticSourcesOnly=true,HumanEditQualityAccepted=false},new JsonSerializerOptions{WriteIndented=true}));
+            await File.WriteAllTextAsync(Path.Combine(Root!,"result.json"),JsonSerializer.Serialize(new {Version=main.BuildIdentityForTesting.InformationalVersion,AutomaticProtectedCredentialConnection=true,AnalyzeCurrentUnsavedBuffer=true,NoClipboardOrManualEndpoint=true,ProposalPreviewBeforeApply=true,ActualApplyAndSingleUndo=true,LargeDocumentSmallEditsPreserveUnchangedText=true,DiskUnchanged=true,SearchWithoutBuildStep=true,SyntheticSourcesOnly=true,HumanEditQualityAccepted=false},new JsonSerializerOptions{WriteIndented=true}));
         }
         catch(Exception error){await File.WriteAllTextAsync(Path.Combine(Root!,"error.txt"),error.ToString());}
         finally{foreach(var child in main.OwnedWindows.ToArray())child.Close();main.Close();}

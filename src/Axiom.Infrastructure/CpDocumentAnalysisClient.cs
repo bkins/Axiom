@@ -39,10 +39,16 @@ public sealed class CpDocumentAnalysisClient : IDisposable
     }
 
     public async Task<AnalysisInsight> GetInsightsAsync(IReadOnlyList<AnalysisSnapshot> snapshots, string? question, CancellationToken cancellationToken = default)
+        => await GetTextAsync("insights", snapshots, question, cancellationToken);
+
+    public async Task<AnalysisInsight> GetEditPatchesAsync(AnalysisSnapshot snapshot, string? request, CancellationToken cancellationToken = default)
+        => await GetTextAsync("edits", [snapshot], request, cancellationToken);
+
+    private async Task<AnalysisInsight> GetTextAsync(string operation, IReadOnlyList<AnalysisSnapshot> snapshots, string? question, CancellationToken cancellationToken)
     {
         var sources = Validate(snapshots, question);
         var requestId = Guid.NewGuid().ToString("N");
-        using var request = Request("insights", sources, question, requestId);
+        using var request = Request(operation, sources, question, requestId);
         using var json = await SendAsync(request, cancellationToken);
         var root = json.RootElement;
         Verify(root, sources, requestId);
@@ -106,7 +112,14 @@ public sealed class CpDocumentAnalysisClient : IDisposable
         {
             using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException($"CP document analysis returned HTTP {(int)response.StatusCode}. Check connection, dedicated credential, capability and retry availability.");
+                throw new InvalidOperationException((int)response.StatusCode switch
+                {
+                    401 => "CP could not authenticate this connection. Close this screen and retry in a fresh Axiom session. Source is unchanged. (HTTP 401)",
+                    404 => "This CP backend does not support the requested action. Use the current review build and configured backend. (HTTP 404)",
+                    429 => "CP is still finishing another request. Wait briefly, then retry. Source is unchanged. (HTTP 429)",
+                    504 => "CP took too long to respond. Try a smaller, more specific request. Source is unchanged. (HTTP 504)",
+                    _ => $"CP could not complete this action (HTTP {(int)response.StatusCode}). Source is unchanged; retry."
+                });
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var buffer = new MemoryStream();
             var bytes = new byte[8192];

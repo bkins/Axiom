@@ -29,6 +29,11 @@ internal sealed class CpDocumentActionWindow : Window
         AnalysisSnapshot? proposedFrom = null;
         string? proposal = null;
         bool reviewed = false;
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        string stage = "";
+        var progressTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        progressTimer.Tick += (_, _) => status.Text = $"{stage} ({(int)elapsed.Elapsed.TotalSeconds}s elapsed; local processing can take up to two minutes.)";
+        void Progress(string message) { stage = message; status.Text = message; }
         void Busy(bool busy)
         {
             analyze.IsEnabled = suggest.IsEnabled = question.IsEnabled = editRequest.IsEnabled = !busy;
@@ -39,20 +44,22 @@ internal sealed class CpDocumentActionWindow : Window
         async Task RunAsync(bool editing)
         {
             running = new(); Busy(true);
+            elapsed.Restart(); Progress("Preparing this document…"); progressTimer.Start();
             proposal = null; proposedFrom = null; reviewed = false; output.Text = "";
             try
             {
                 var snapshot = capture();
                 var request = editing ? editRequest.Text : question.Text;
                 if (string.IsNullOrWhiteSpace(snapshot.Text)) throw new InvalidOperationException("This document is empty.");
-                var client = await connect(message => status.Text = message, running.Token);
+                var client = await connect(Progress, running.Token);
                 if (!current(snapshot)) throw new InvalidOperationException("The document changed during setup. Click the action again to use its current text.");
-                status.Text = editing ? "Requesting a proposed Markdown revision…" : "Analyzing this document…";
-                var prompt = editing ? "Propose a complete replacement Markdown document for this request: " + request + "\nPreserve facts and any axiom:documentId marker exactly. Return ONLY the complete replacement inside one markdown code fence. Use a fence longer than any fence inside the document. Do not include commentary or invented citations." : request;
-                var result = await client.GetInsightsAsync([snapshot], prompt, running.Token);
+                Progress(editing ? "Preparing suggested edits…" : "Analyzing this document…");
+                var result = editing ? await client.GetEditPatchesAsync(snapshot, request, running.Token) : await client.GetInsightsAsync([snapshot], request, running.Token);
+                progressTimer.Stop();
                 if (editing)
                 {
-                    proposal = MarkdownEditProposal.Parse(snapshot.Text, result.Text);
+                    proposal = MarkdownEditPatches.Parse(snapshot.Text, result.Text);
+                    if (proposal == snapshot.Text) { proposal = null; status.Text = "No changes suggested for this request. Source is unchanged."; return; }
                     proposedFrom = snapshot; output.Text = proposal;
                     status.Text = current(snapshot) ? "Proposal ready. Preview changes, then explicitly Apply. Source is unchanged." : "Proposal is stale; source changed. Request a fresh proposal before applying.";
                 }
@@ -60,7 +67,7 @@ internal sealed class CpDocumentActionWindow : Window
             }
             catch (OperationCanceledException) { status.Text = "Cancelled. Source is unchanged."; }
             catch (Exception error) { status.Text = error is InvalidOperationException or ArgumentException ? error.Message : "CP is unavailable. Source and offline work are unchanged; retry or use Advanced connection."; }
-            finally { running.Dispose(); running = null; Busy(false); }
+            finally { progressTimer.Stop(); running.Dispose(); running = null; Busy(false); }
         }
         analyze.Click += async (_, _) => await RunAsync(false);
         if (analyzeOnOpen) Opened += async (_, _) => await RunAsync(false);
@@ -81,7 +88,7 @@ internal sealed class CpDocumentActionWindow : Window
         };
         cancel.Click += (_, _) => running?.Cancel();
         close.Click += (_, _) => Close();
-        Closed += (_, _) => running?.Cancel();
+        Closed += (_, _) => { progressTimer.Stop(); running?.Cancel(); };
         Content = new ScrollViewer { Content = new StackPanel { Margin = new Thickness(18), Spacing = 10, Children = { status, question, new WrapPanel { Children = { analyze } }, editRequest, new WrapPanel { Children = { suggest, preview, accept, cancel } }, output, close } } };
     }
 }

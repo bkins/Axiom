@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 8186B3C0756AC2BC82DC2F89A7D9927D56EFFADEFEE3E69838D00C21103A8D74. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 80B71BDCC3F1A84447BA8BD3AA8FF6DAB49A545E92441C7D3E5F88C8FB2C138A. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -465,7 +465,7 @@ Export Cancel, workspace-loading Cancel and reference-index Cancel can interrupt
 
 ## CP connection and reviewed analysis
 
-Configured Windows builds connect and initialize local CP automatically. Choose **File → CP review and search → Analyze this document** to analyze the active text, including unsaved edits, immediately. Opening the action panel alone for **Suggest edits** sends nothing: describe the requested change and choose Suggest edits. Preview the diff, then explicitly Apply to the unsaved buffer; Undo reverses the application and Save remains your choice. A changed source or changed document identity prevents applying an old proposal. Generated facts and edits require your judgment.
+Configured Windows builds connect and initialize local CP automatically. Choose **File → CP review and search → Analyze this document** to analyze the active text, including unsaved edits, immediately. Opening the action panel alone for **Suggest edits** sends nothing: describe the requested change and choose Suggest edits. Suggestions propose a few focused changes per request, keeping all other text unchanged. Ask for another pass if needed. Progress shows elapsed time while local CP works; an authentication failure or timeout leaves a visible error and permits retry. Preview the diff, then explicitly Apply to the unsaved buffer; Undo reverses the application and Save remains your choice. A changed source or changed document identity prevents applying an old proposal. Generated facts and edits require your judgment.
 
 Use **Advanced connection** only for a different service or troubleshooting. Its **Connect local CP automatically** button starts/checks the configured API and reads the existing Windows-protected credential internally. Normal Analyze/Search use does not require the external review launcher, a port number, clipboard copy or password entry. Setup/model progress, cancellation and retry are shown beside the action. No document is sent during connection checks; an explicit Analyze/Suggest/Search action submits only its selected snapshots. Opening another document never submits it automatically.
 
