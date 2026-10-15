@@ -32,6 +32,8 @@ public partial class MainWindow
         _initialPlaceholder = false;
         await LoadSessionAsync(_documents.NewAxiomDocument(), folder is null ? "New unsaved Axiom document" : $"New unsaved Axiom document — Save defaults to {folder}");
         _activeTab.SuggestedSaveFolder = folder;
+        ExitViewMode();
+        ApplyReadingMode(false);
         Editor.CaretOffset = Editor.Document.TextLength;
         Editor.TextArea.Focus();
     }

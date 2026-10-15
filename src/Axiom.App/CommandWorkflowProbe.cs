@@ -56,7 +56,7 @@ internal static class CommandWorkflowProbe
             var configure = window.ExecuteCommandAsync("application.shortcuts");
             if (configure.IsCompleted) throw new IOException("Shortcut command returned before showing its window: " + (await configure));
             var settings = await WaitWindowAsync("Keyboard shortcuts");
-            var newBinding = settings.GetLogicalDescendants().OfType<TextBox>().Single(input => Avalonia.Automation.AutomationProperties.GetName(input) == "New unsaved document shortcut");
+            var newBinding = settings.GetLogicalDescendants().OfType<TextBox>().Single(input => Avalonia.Automation.AutomationProperties.GetName(input) == "New Markdown document shortcut");
             newBinding.Text = "Ctrl+S";
             Click(settings, "Apply");
             Require(Windows().Contains(settings) && settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("conflicts", StringComparison.Ordinal) == true), "Conflicting shortcut was accepted.");

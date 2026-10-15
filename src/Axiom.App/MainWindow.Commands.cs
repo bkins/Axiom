@@ -75,7 +75,7 @@ public partial class MainWindow
         RegisterCommand("document.checkpoint", "Checkpoint saved document", null, true, (_, _) => CheckpointDocumentAsync(),
             context => new(context.DocumentPath is not null && !_session.IsDirty && _session.Conflict is null,
                 context.DocumentPath is null || _session.IsDirty || _session.Conflict is not null ? "Save the document and resolve conflicts first." : null));
-        RegisterCommand("document.new", "New unsaved document", "Ctrl+N", false, async (context, _) =>
+        RegisterCommand("document.new", "New Markdown document", "Ctrl+N", false, async (context, _) =>
         {
             if (!await ResolvePendingMetadataAsync()) return new(CommandOutcome.Cancelled, "New document cancelled.");
             await NewDocumentInSelectedFolderAsync(context.ExplorerRelativePath is null ? null : ExplorerCommandNode(context));

@@ -11,6 +11,7 @@ internal static class Program
     public static int Main(string[] args)
     {
         if (args.FirstOrDefault() == "--external-opening-probe" && args.Length == 2) ExternalOpeningProbe.Configure(args[1]);
+        if (args.FirstOrDefault() == "--creation-probe" && args.Length == 2) CreationProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--cp-help-probe" && args.Length == 2) CpHelpProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--semantic-review-probe" && args.Length == 2) SemanticReviewProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--turnkey-cp-probe" && args.Length == 2) TurnkeyCpProbe.Configure(args[1]);

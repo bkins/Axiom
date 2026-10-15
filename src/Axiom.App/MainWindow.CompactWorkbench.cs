@@ -92,7 +92,7 @@ public partial class MainWindow
             });
         }
         var actions = new MenuFlyout();
-        foreach (var id in new[] { "workspace.open", "workspace.catalog", "workspace.refresh", "workspace.createDocument", "workspace.manage.createfolder", "workspace.bulkEnroll", "help.workspace" })
+        foreach (var id in new[] { "document.new", "workspace.create", "workspace.open", "workspace.catalog", "workspace.refresh", "workspace.createDocument", "workspace.manage.createfolder", "workspace.bulkEnroll", "help.workspace" })
         {
             var command = _commands.Commands.Single(command => command.Id == id);
             var item = new MenuItem { Header = command.Title };

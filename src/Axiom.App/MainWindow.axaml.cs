@@ -1270,8 +1270,9 @@ public partial class MainWindow : Window
         EditorEmptyState.IsVisible = string.IsNullOrEmpty(Editor.Text);
         WorkspaceEmptyState.IsVisible = _workspaceTree.Count == 0;
         WorkspaceEmptyState.Text = _folder is null
-            ? "Open a workspace to browse Markdown documents."
+            ? "Create a Markdown document on its own, or create/open a workspace folder."
             : "This workspace contains no .md or .markdown documents.";
+        WorkspaceStartActions.IsVisible = _folder is null;
     }
 
     private void UpdatePinButton()

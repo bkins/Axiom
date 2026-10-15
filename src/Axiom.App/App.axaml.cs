@@ -72,6 +72,11 @@ public partial class App : Application
                 var window = (MainWindow)desktop.MainWindow;
                 window.Opened += async (_, _) => await TurnkeyCpProbe.StartAsync(window);
             }
+            if (CreationProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await CreationProbe.StartAsync(window);
+            }
             if (SemanticLayoutProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

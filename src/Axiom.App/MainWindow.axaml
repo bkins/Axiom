@@ -61,6 +61,8 @@
           <Button x:Name="FileCommandsButton" AutomationProperties.Name="File commands" ToolTip.Tip="File commands: Alt+F; Alt or F10 focuses this button">File…
             <Button.Flyout>
               <MenuFlyout>
+                <MenuItem Header="New Markdown Document    Ctrl+N" AutomationProperties.Name="New Markdown document" Click="New_OnClick" />
+                <MenuItem Header="New Workspace…" AutomationProperties.Name="Create new workspace" Click="NewWorkspace_OnClick" />
                 <MenuItem Header="Workspaces and navigation">
                   <MenuItem Header="Open Workspace…" AutomationProperties.Name="Open workspace" ToolTip.Tip="Open an existing Markdown workspace" Click="OpenFolder_OnClick" />
                   <MenuItem Header="Remembered Workspaces…" AutomationProperties.Name="Remembered workspaces" Click="WorkspaceCatalog_OnClick" />
@@ -248,6 +250,11 @@
                   <Separator Margin="0,6,0,0" />
                 </StackPanel>
                 <TextBlock x:Name="WorkspaceEmptyState" Margin="4" Opacity="0.7" Text="Open a workspace to browse Markdown documents." TextWrapping="Wrap" />
+                <StackPanel x:Name="WorkspaceStartActions" Spacing="6" Margin="4,8">
+                  <Button Content="New Markdown document" Click="New_OnClick" />
+                  <Button Content="New Workspace…" Click="NewWorkspace_OnClick" />
+                  <Button Content="Open Workspace…" Click="OpenFolder_OnClick" />
+                </StackPanel>
                 <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" ContextRequested="Explorer_OnContextRequested" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
                   <TreeView.DataTemplates>
                     <TreeDataTemplate DataType="app:WorkspaceExplorerNode" ItemsSource="{Binding Children}">

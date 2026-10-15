@@ -68,6 +68,7 @@ public partial class MainWindow
         RegisterCommand("application.diagnostics", "Inspect diagnostics", null, false, (_, _) => ShowDiagnosticsAsync());
         RegisterCommand("application.maintenance", "Inspect state and export verified backup", null, true, (_, _) => ShowMaintenanceAsync());
         RegisterCommand("workspace.open", "Open Markdown workspace", null, false, (_, _) => OpenWorkspacePickerAsync());
+        RegisterCommand("workspace.create", "Create new workspace", null, true, (_, _) => ShowNewWorkspaceAsync());
         RegisterCommand("workspace.catalog", "Choose or forget remembered workspace", null, true, (_, _) => ShowWorkspaceCatalogAsync());
         RegisterCommand("document.recent", "Open recent document", null, false, (_, _) => ShowRecentDocumentsAsync());
         RegisterCommand("document.removeSelectedPin", "Remove selected workspace pin", null, true, (_, _) => RemoveSelectedPinAsync(),

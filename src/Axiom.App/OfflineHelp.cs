@@ -58,6 +58,7 @@ internal static class OfflineHelp
       , "navigation.nextTab" or "navigation.previousTab" => "Work with document tabs"
       , "workspace.open" or "workspace.catalog" or "workspace.cancelLoading" or "workspace.refresh" or "help.workspace" => "Workspace loading, reading mode, and Help"
       , "workspace.createDocument" => "Templates and named creation"
+      , "workspace.create" or "document.new" => "Create documents and workspaces"
       , "workspace.importMarkdown" or "workspace.importImage" or "editor.pasteImage" or "editor.insertImage" => "Drop files and import assets"
       , "workspace.filter" or "workspace.copyFile" or "workspace.pasteFile" or "workspace.copyPath" or "workspace.showInExplorer" or "workspace.showFolderInExplorer" => "Workspace navigation and safe moves"
       , "application.about" => "Identify the running build"

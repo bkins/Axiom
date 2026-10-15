@@ -1,9 +1,15 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 80B71BDCC3F1A84447BA8BD3AA8FF6DAB49A545E92441C7D3E5F88C8FB2C138A. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 8B2B1197192A6E9DD785DD1C2753F4B47E45E2175D6720B614918820F537B6CD. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
 Current feature guidance for the Windows application. Help describes available behavior and its limits; release acceptance and historical build evidence are maintained separately in Operations. Use Help topics or Search Help text to find a feature. This guide is bundled offline with each build.
 
+
+## Create documents and workspaces
+
+**New Markdown document** (Ctrl+N or the plus toolbar button) opens a new unsaved document whether or not a workspace is open. It brings the editor into view even when you were reading another file. Type normally, then use Save or Save As to choose any `.md` location. A workspace is optional; creating a draft does not create a file until you Save. Existing tabs and their unsaved text stay open. If a workspace is active, the selected folder is the initial Save location; you can choose a different folder.
+
+Choose **File → New Workspace…**, or **New Workspace…** in the empty Workspace Files panel. Enter a name and a location, use Browse if needed, then **Create Workspace**. Axiom creates an empty folder and opens and remembers it as a workspace. Existing folders are opened through Open Workspace; a name that already exists is refused. Unsaved-document and pending-metadata choices still apply when switching. If you cancel that switch after creating the folder, the folder remains created and your current workspace/documents remain active; the status explains this. Cancelling the creation form before Create makes no folder. Use New Markdown document to start writing inside the new workspace.
 
 ## Find Help for every feature
 
