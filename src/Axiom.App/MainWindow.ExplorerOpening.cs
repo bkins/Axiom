@@ -14,6 +14,7 @@ public partial class MainWindow
     private async void FileTree_OnPointerReleased(object? sender, PointerReleasedEventArgs args)
     {
         _explorerDragPress = null;
+        if (_workspaceBatchRunning || args.KeyModifiers != KeyModifiers.None || SelectedWorkspaceItems().Length > 1) return;
         if (_suppressExplorerOpen) { _suppressExplorerOpen = false; return; }
         if (args.InitialPressMouseButton != MouseButton.Left || args.Source is not Control control || _folder is null) return;
         var item = control as TreeViewItem ?? control.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
@@ -24,6 +25,8 @@ public partial class MainWindow
 
     private async void FileTree_OnKeyDown(object? sender, KeyEventArgs args)
     {
+        if (args.Key == Key.Enter && args.KeyModifiers == KeyModifiers.None && SelectedWorkspaceItems().Length > 1)
+        { args.Handled = true; await RunSelectedItemsAsync("Open"); return; }
         if (args.Key != Key.Enter || args.KeyModifiers != KeyModifiers.None || _folder is null || FileTree.SelectedItem is not WorkspaceExplorerNode node) return;
         args.Handled = true;
         await OpenExplorerNodeAsync(node);

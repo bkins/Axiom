@@ -34,6 +34,8 @@ public partial class MainWindow
 
     private void InitializeExplorerCommands()
     {
+        FileTree.SelectionChanged += (_, _) => UpdateSelectionCount();
+        FileTree.AddHandler(KeyDownEvent, WorkspaceSelectionKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         RegisterCommand("workspace.copyPath", "Copy workspace item path", null, false, async (context, _) =>
         {
             if (Clipboard is null || ExplorerCommandPath(context) is not { } path) return new(CommandOutcome.Unavailable, "Select a saved workspace item first.");
@@ -105,7 +107,18 @@ public partial class MainWindow
         var item = control as TreeViewItem ?? control?.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
         var node = item?.DataContext as WorkspaceExplorerNode ?? FileTree.SelectedItem as WorkspaceExplorerNode;
         if (node is null || node.IsGroup || node.IsPlaceholder) return;
-        FileTree.SelectedItem = node;
+        if (!FileTree.SelectedItems.Contains(node)) FileTree.SelectedItem = node;
+        if (SelectedWorkspaceItems().Length > 1)
+        {
+            var menu = new ContextMenu();
+            foreach (var action in new[] { "Open", "Move", "Recycle" })
+            {
+                var entry = new MenuItem { Header = action + " selected…" };
+                entry.Click += async (_, _) => await RunSelectedItemsAsync(action);
+                menu.Items.Add(entry);
+            }
+            menu.Open(item ?? (Control)FileTree); args.Handled = true; return;
+        }
         var context = CaptureCommandContext() with { ExplorerRelativePath = node.RelativePath, ExplorerIsFolder = !node.IsDocument && node.Heading is null };
         ShowWorkspaceContextMenu(item ?? (Control)FileTree, context, false);
         args.Handled = true;

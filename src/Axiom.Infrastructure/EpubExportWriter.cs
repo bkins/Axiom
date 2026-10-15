@@ -110,6 +110,7 @@ internal sealed class EpubExportWriter(ExportSnapshot snapshot, List<string> war
         if (run.Code) text = new XElement(Html + "code", text);
         if (run.Bold) text = new XElement(Html + "strong", text);
         if (run.Italic) text = new XElement(Html + "em", text);
+        if (run.Strike) text = new XElement(Html + "del", text);
         if (run.Link is not null)
         {
             var validFragment = run.Link.StartsWith('#') && _fragments.Contains(Uri.UnescapeDataString(run.Link[1..]));

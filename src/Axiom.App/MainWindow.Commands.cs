@@ -21,7 +21,7 @@ public partial class MainWindow
     internal IReadOnlyList<AxiomCommand> RegisteredCommandsForTesting => _commands.Commands;
 
     private CommandContext CaptureCommandContext() => new(_session.DraftKey, _activeWorkspace?.WorkspaceId, _session.Path,
-        _sessionTransitionRunning || _navigationRunning || _metadataApplying, IsEditorCommandTarget(), Editor.CanUndo, Editor.CanRedo,
+        _sessionTransitionRunning || _navigationRunning || _metadataApplying || _workspaceBatchRunning, IsEditorCommandTarget(), Editor.CanUndo, Editor.CanRedo,
         _mutationBlocked, true)
     {
         ExplorerRelativePath = (FileTree.SelectedItem as WorkspaceExplorerNode) is { IsGroup: false, IsPlaceholder: false } node ? node.RelativePath : null

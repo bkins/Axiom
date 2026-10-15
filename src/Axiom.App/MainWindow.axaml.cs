@@ -214,7 +214,7 @@ public partial class MainWindow : Window
     }
     private async void FileTree_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (FileTree.SelectedItem is WorkspaceExplorerNode selected) await OpenExplorerNodeAsync(selected);
+        if (!_workspaceBatchRunning && SelectedWorkspaceItems().Length <= 1 && FileTree.SelectedItem is WorkspaceExplorerNode selected) await OpenExplorerNodeAsync(selected);
     }
 
     private async void Pin_OnClick(object? sender, RoutedEventArgs e) => await ExecuteCommandAsync("document.pin");

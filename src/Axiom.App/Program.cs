@@ -10,6 +10,9 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.FirstOrDefault() == "--restore-state") return StateRestoreHelper.Run(args);
+        if (args.FirstOrDefault() == "--workspace-safety-probe" && args.Length == 2) WorkspaceSafetyProbe.Configure(args[1]);
+        if (args.FirstOrDefault() == "--state-restore-probe" && args.Length == 2) StateRestoreProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--external-opening-probe" && args.Length == 2) ExternalOpeningProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--creation-probe" && args.Length == 2) CreationProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--cp-help-probe" && args.Length == 2) CpHelpProbe.Configure(args[1]);

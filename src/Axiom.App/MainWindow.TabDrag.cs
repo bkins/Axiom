@@ -14,6 +14,7 @@ public partial class MainWindow
     private DocumentTab? _tabDragSource;
     private Point _tabDragOrigin;
     private string? _tabDragToken;
+    private string? _tabDragRoot;
     private ListBoxItem? _tabDropTarget;
 
     private static ListBoxItem? TabContainer(object? source) => source is Control control
@@ -37,11 +38,12 @@ public partial class MainWindow
             var distance = args.GetPosition(DocumentTabs) - _tabDragOrigin;
             if (Math.Abs(distance.X) < 6 && Math.Abs(distance.Y) < 6) return;
             _tabDragToken = Guid.NewGuid().ToString("N");
+            _tabDragRoot = _folder;
             var transfer = new DataTransfer();
             var item = new DataTransferItem(); item.Set(TabMoveFormat, _tabDragToken); transfer.Add(item);
             try { await DragDrop.DoDragDropAsync(press, transfer, DragDropEffects.Move); }
             catch (Exception exception) { ReportError("tabs.drag.failed", exception, null); }
-            finally { _tabDragToken = null; _tabDragPress = null; _tabDragSource = null; ClearTabDropTarget(); }
+            finally { _tabDragToken = null; _tabDragPress = null; _tabDragSource = null; ClearTabDropTarget(); StopExplorerDragScroll(); ClearExplorerDropTarget(); }
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
         DragDrop.SetAllowDrop(DocumentTabs, true);
         DocumentTabs.AddHandler(DragDrop.DragOverEvent, (_, args) =>

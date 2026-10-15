@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Markdig;
 
 namespace Axiom.Core;
 
@@ -19,7 +20,8 @@ public enum MarkdownEditKind
     HardBreak,
     Table,
     HorizontalRule,
-    Callout
+    Callout,
+    Strikethrough
 }
 
 public sealed record MarkdownEditResult(
@@ -46,6 +48,7 @@ public sealed partial class MarkdownEditService
         {
             MarkdownEditKind.Bold => ApplyInline(text, selectionStart, selectionLength, "**", "bold text"),
             MarkdownEditKind.Italic => ApplyInline(text, selectionStart, selectionLength, "*", "italic text"),
+            MarkdownEditKind.Strikethrough => IsInCode(text, selectionStart, selectionLength) ? Unchanged(text, selectionStart, selectionLength) : ApplyInline(text, selectionStart, selectionLength, "~~", "completed text"),
             MarkdownEditKind.InlineCode => ApplyInline(text, selectionStart, selectionLength, "`", "code"),
             MarkdownEditKind.Link => ApplyLink(text, selectionStart, selectionLength),
             MarkdownEditKind.FencedCode => ApplyFence(text, selectionStart, selectionLength),
@@ -53,6 +56,13 @@ public sealed partial class MarkdownEditService
             MarkdownEditKind.Table or MarkdownEditKind.HorizontalRule or MarkdownEditKind.Callout => ApplyTemplate(text, selectionStart, selectionLength, kind),
             _ => ApplyBlock(text, selectionStart, selectionLength, kind)
         };
+    }
+
+    private static bool IsInCode(string text, int start, int length)
+    {
+        var syntax = Markdown.Parse(text, new MarkdownPipelineBuilder().UsePreciseSourceLocation().Build());
+        return Markdig.Syntax.MarkdownObjectExtensions.Descendants<Markdig.Syntax.CodeBlock>(syntax).Any(code => start <= code.Span.End && start + length >= code.Span.Start)
+            || Markdig.Syntax.MarkdownObjectExtensions.Descendants<Markdig.Syntax.Inlines.CodeInline>(syntax).Any(code => start <= code.Span.End && start + length >= code.Span.Start);
     }
 
     private static MarkdownEditResult ApplyInline(

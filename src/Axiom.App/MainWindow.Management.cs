@@ -17,6 +17,7 @@ public partial class MainWindow
         try
         {
             var results = await new WorkspaceFileOperations(ManagementState, log: _log).ReconcilePendingAsync();
+            await new ReviewedWorkspaceMove(ManagementState).RecoverAsync();
             if (results.Count > 0) UpdateChrome(string.Join("; ", results));
             _mutationBlocked = (await ManagementState.GetPendingMutationsAsync()).Count > 0;
             if (await _workspaces.GetActiveAsync() is { } active)

@@ -126,6 +126,7 @@ internal sealed class WordExportWriter
         if (value.Code) properties.Append(new RunFonts { Ascii = "Consolas", HighAnsi = "Consolas" });
         if (value.Bold) properties.Append(new Bold());
         if (value.Italic) properties.Append(new Italic());
+        if (value.Strike) properties.Append(new Strike());
         var run = new Run(properties);
         if (value.Image is { } source && ExportImageReader.Read(source, _snapshot, _warnings) is { } image)
         {

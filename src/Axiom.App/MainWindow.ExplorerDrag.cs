@@ -36,7 +36,7 @@ public partial class MainWindow
         FileTree.AddHandler(DragDrop.DragLeaveEvent, (_, _) => { StopExplorerDragScroll(); ClearExplorerDropTarget(); });
         _explorerScrollTimer.Tick += (_, _) =>
         {
-            if (_explorerDragToken is null || _folder != _explorerDragRoot || _mutationBlocked || _sessionTransitionRunning || _navigationRunning || _explorerScrollViewer is null)
+            if ((_explorerDragToken is null || _folder != _explorerDragRoot) && (_tabDragToken is null || _folder != _tabDragRoot) || _mutationBlocked || _sessionTransitionRunning || _navigationRunning || _explorerScrollViewer is null)
             { StopExplorerDragScroll(); return; }
             var maximum = Math.Max(0, _explorerScrollViewer.Extent.Height - _explorerScrollViewer.Viewport.Height);
             _explorerScrollViewer.Offset = new Vector(_explorerScrollViewer.Offset.X, Math.Clamp(_explorerScrollViewer.Offset.Y + _explorerScrollDirection * 16, 0, maximum));
@@ -47,6 +47,7 @@ public partial class MainWindow
     private void Explorer_OnPointerPressed(object? sender, PointerPressedEventArgs args)
     {
         _explorerDragPress = null;
+        if (_workspaceBatchRunning || args.KeyModifiers != KeyModifiers.None || SelectedWorkspaceItems().Length > 1) return;
         _suppressExplorerOpen = false;
         if (!args.GetCurrentPoint(FileTree).Properties.IsLeftButtonPressed || _folder is null || _mutationBlocked || _sessionTransitionRunning || _navigationRunning) return;
         var item = ExplorerItem(args.Source);
@@ -77,7 +78,8 @@ public partial class MainWindow
 
     private WorkspaceExplorerNode? ExplorerDropFolder(DragEventArgs args)
     {
-        if (_explorerDragToken is null || args.DataTransfer.TryGetValue(ExplorerMoveFormat) != _explorerDragToken || _folder != _explorerDragRoot) return null;
+        var tabMove = args.DataTransfer.Contains(TabMoveFormat) && _tabDragToken is not null && args.DataTransfer.TryGetValue(TabMoveFormat) == _tabDragToken && _tabDragSource?.Session.Path is not null && _folder == _tabDragRoot;
+        if (!tabMove && (_explorerDragToken is null || args.DataTransfer.TryGetValue(ExplorerMoveFormat) != _explorerDragToken || _folder != _explorerDragRoot)) return null;
         var item = ExplorerItem(args.Source);
         if (item is null) return new WorkspaceExplorerNode("Workspace root", "");
         return item.DataContext as WorkspaceExplorerNode is { IsDocument: false, Heading: null, IsGroup: false, IsPlaceholder: false } folder ? folder : null;
@@ -85,11 +87,11 @@ public partial class MainWindow
 
     private void Explorer_DragOver(object? sender, DragEventArgs args)
     {
-        if (!args.DataTransfer.Contains(ExplorerMoveFormat)) return;
+        if (!args.DataTransfer.Contains(ExplorerMoveFormat) && !args.DataTransfer.Contains(TabMoveFormat)) return;
         args.Handled = true;
         ClearExplorerDropTarget();
         _explorerScrollViewer = FileTree.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
-        if (_explorerScrollViewer is { } scroll && _explorerDragToken is not null && _folder == _explorerDragRoot)
+        if (_explorerScrollViewer is { } scroll && (_explorerDragToken is not null && _folder == _explorerDragRoot || _tabDragToken is not null && _folder == _tabDragRoot))
         {
             var position = args.GetPosition(scroll);
             _explorerScrollDirection = position.X < 0 || position.X > scroll.Bounds.Width ? 0 : position.Y < 32 ? -1 : position.Y > scroll.Bounds.Height - 32 ? 1 : 0;
@@ -97,8 +99,9 @@ public partial class MainWindow
             else _explorerScrollTimer.Start();
         }
         var folder = ExplorerDropFolder(args);
-        var valid = folder is not null && !_mutationBlocked && !_sessionTransitionRunning && !_navigationRunning && _explorerDragNode is { } node &&
-            !WorkspacePathBoundary.Contains(Path.Combine(_folder!, node.RelativePath), Path.Combine(_folder!, folder.RelativePath), includeRoot: true);
+        var source = args.DataTransfer.Contains(TabMoveFormat) ? _tabDragSource?.Session.Path : _explorerDragNode is { } node ? Path.Combine(_folder!, node.RelativePath) : null;
+        var valid = folder is not null && source is not null && !_mutationBlocked && !_sessionTransitionRunning && !_navigationRunning &&
+            !WorkspacePathBoundary.Contains(source, Path.Combine(_folder!, folder.RelativePath), includeRoot: true);
         args.DragEffects = valid ? DragDropEffects.Move : DragDropEffects.None;
         if (!valid) return;
         _explorerDropTarget = ExplorerItem(args.Source);
@@ -108,12 +111,18 @@ public partial class MainWindow
 
     private void Explorer_Drop(object? sender, DragEventArgs args)
     {
-        if (!args.DataTransfer.Contains(ExplorerMoveFormat)) return;
+        if (!args.DataTransfer.Contains(ExplorerMoveFormat) && !args.DataTransfer.Contains(TabMoveFormat)) return;
         args.Handled = true;
         var folder = ExplorerDropFolder(args);
         var node = _explorerDragNode;
         StopExplorerDragScroll();
         ClearExplorerDropTarget();
+        if (args.DataTransfer.Contains(TabMoveFormat))
+        {
+            if (folder is not null && _folder is not null && _tabDragSource?.Session.Path is { } source && !_mutationBlocked && !_sessionTransitionRunning && !_navigationRunning)
+                LastExplorerMove = ReviewMoveAsync(source, Path.Combine(_folder, folder.RelativePath, Path.GetFileName(source)), false, CancellationToken.None);
+            return;
+        }
         if (folder is null || node is null || _folder is null || _mutationBlocked || _sessionTransitionRunning || _navigationRunning) return;
         LastExplorerMove = PerformExplorerDropAsync(folder, node);
     }

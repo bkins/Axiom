@@ -12,7 +12,7 @@ internal sealed class ChoiceDialog : Window
         MinHeight = 190;
         MaxHeight = 580;
         SizeToContent = SizeToContent.Height;
-        CanResize = false;
+        CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
         foreach (var choice in choices)

@@ -53,28 +53,28 @@ public sealed class MarkdownExportService
         return new("paragraph", runs, children);
     }
 
-    private static IEnumerable<ExportRun> ReadRuns(ContainerInline? container, bool bold = false, bool italic = false, string? link = null)
+    private static IEnumerable<ExportRun> ReadRuns(ContainerInline? container, bool bold = false, bool italic = false, string? link = null, bool strike = false)
     {
         if (container is null) yield break;
         foreach (var inline in container)
         {
             switch (inline)
             {
-                case LiteralInline literal: yield return new(literal.Content.ToString(), bold, italic, Link: link); break;
-                case HtmlEntityInline entity: yield return new(entity.Transcoded.ToString(), bold, italic, Link: link); break;
-                case CodeInline code: yield return new(code.Content, bold, italic, true, link); break;
-                case LineBreakInline: yield return new("\n", bold, italic, Link: link); break;
+                case LiteralInline literal: yield return new(literal.Content.ToString(), bold, italic, Link: link, Strike: strike); break;
+                case HtmlEntityInline entity: yield return new(entity.Transcoded.ToString(), bold, italic, Link: link, Strike: strike); break;
+                case CodeInline code: yield return new(code.Content, bold, italic, true, link, Strike: strike); break;
+                case LineBreakInline: yield return new("\n", bold, italic, Link: link, Strike: strike); break;
                 case TaskList task: yield return new(task.Checked ? "☑" : "☐", bold, italic); break;
                 case LinkInline image when image.IsImage:
                     yield return new(string.Concat(ReadRuns(image).Select(run => run.Text)), Image: image.Url); break;
                 case LinkInline hyperlink:
-                    foreach (var run in ReadRuns(hyperlink, bold, italic, hyperlink.Url)) yield return run;
+                    foreach (var run in ReadRuns(hyperlink, bold, italic, hyperlink.Url, strike)) yield return run;
                     break;
                 case EmphasisInline emphasis:
-                    foreach (var run in ReadRuns(emphasis, bold || emphasis.DelimiterCount >= 2, italic || emphasis.DelimiterCount == 1, link)) yield return run;
+                    foreach (var run in ReadRuns(emphasis, bold || emphasis.DelimiterChar != '~' && emphasis.DelimiterCount >= 2, italic || emphasis.DelimiterChar != '~' && emphasis.DelimiterCount == 1, link, strike || emphasis.DelimiterChar == '~')) yield return run;
                     break;
                 case ContainerInline nested:
-                    foreach (var run in ReadRuns(nested, bold, italic, link)) yield return run;
+                    foreach (var run in ReadRuns(nested, bold, italic, link, strike)) yield return run;
                     break;
                 case AutolinkInline auto: yield return new(auto.Url, bold, italic, Link: auto.IsEmail ? "mailto:" + auto.Url : auto.Url); break;
             }

@@ -53,6 +53,7 @@ internal static class HtmlExportWriter
             if (run.Code) text = "<code>" + text + "</code>";
             if (run.Bold) text = "<strong>" + text + "</strong>";
             if (run.Italic) text = "<em>" + text + "</em>";
+            if (run.Strike) text = "<del>" + text + "</del>";
             if (run.Link is { } link)
             {
                 if (MarkdownExportService.IsSafeLink(link)) text = "<a href=\"" + WebUtility.HtmlEncode(link) + "\">" + text + "</a>";

@@ -69,11 +69,12 @@ internal static class WorkspaceNavigationProbe
             await window.ProtectIfNeededForTestingAsync();
             window.UnsavedChoiceForTesting = _ => Task.FromResult("Cancel");
             var cancelled = window.MoveExplorerItemForTestingAsync("nested", "target/nested", true);
-            await AnswerAsync(window, "Confirm folder move", "Continue");
+            await AnswerAsync(window, "Save or resolve affected documents", "OK");
             Require((await cancelled).Outcome == CommandOutcome.Cancelled && File.Exists(path) && window.EditorTextForTesting.EndsWith("Unsaved descendant"), "Dirty descendant cancellation did not retain source and buffer.");
             window.UnsavedChoiceForTesting = _ => Task.FromResult("Discard");
+            window.SetEditorTextForTesting(source);
             var moved = window.RouteExplorerDropForTestingAsync("nested", "target", true);
-            await AnswerAsync(window, "Confirm folder move", "Continue");
+            await AnswerAsync(window, "Review move and references", "Move and repair");
             await moved;
             var destination = Path.Combine(workspaceRoot, "target", "nested", "deep", "source.md");
             Require(sourceTab.Session.Path == destination && await File.ReadAllTextAsync(destination) == source, "Folder move lost the original tab/path/bytes.");

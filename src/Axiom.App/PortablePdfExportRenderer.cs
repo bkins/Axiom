@@ -263,6 +263,7 @@ internal sealed class PortablePdfExportRenderer : IStructuredPdfExportRenderer
                 var font = Font(run, size);
                 _canvas.DrawText(run.Text, x, baseline, SKTextAlign.Left, font, _ink);
                 var width = font.MeasureText(run.Text);
+                if (run.Strike) _canvas.DrawLine(x, baseline - size * 0.3f, x + width, baseline - size * 0.3f, _ink);
                 if (run.Link is not null && MarkdownExportService.IsSafeLink(run.Link)
                     && Uri.TryCreate(run.Link, UriKind.Absolute, out _))
                     _canvas.DrawUrlAnnotation(SKRect.Create(x, baseline - size, width, size * 1.5f), run.Link);

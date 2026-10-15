@@ -18,6 +18,7 @@ public sealed class MarkdownStructureService
         var builder = new MarkdownPipelineBuilder()
         .UsePipeTables()
         .UseTaskLists()
+        .UseEmphasisExtras(Markdig.Extensions.EmphasisExtras.EmphasisExtraOptions.Strikethrough)
         .UseAlertBlocks((renderer, kind) => CalloutTitle.Write(renderer, kind.ToString(), kind.ToString()))
         .UsePreciseSourceLocation()
         .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)

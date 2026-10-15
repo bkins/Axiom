@@ -67,6 +67,7 @@ public partial class MainWindow
         RegisterCommand("application.about", "About Axiom", null, false, (_, _) => ShowAboutAsync());
         RegisterCommand("application.diagnostics", "Inspect diagnostics", null, false, (_, _) => ShowDiagnosticsAsync());
         RegisterCommand("application.maintenance", "Inspect state and export verified backup", null, true, (_, _) => ShowMaintenanceAsync());
+        RegisterCommand("application.restoreState", "Restore verified state backup and restart", null, true, (_, _) => RestoreStateAsync());
         RegisterCommand("workspace.open", "Open Markdown workspace", null, false, (_, _) => OpenWorkspacePickerAsync());
         RegisterCommand("workspace.create", "Create new workspace", null, true, (_, _) => ShowNewWorkspaceAsync());
         RegisterCommand("workspace.catalog", "Choose or forget remembered workspace", null, true, (_, _) => ShowWorkspaceCatalogAsync());
@@ -139,7 +140,9 @@ public partial class MainWindow
                 _ => new(extension != "pdf" || OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux(), "PDF export is unavailable on this platform."));
         foreach (var kind in new[] { DocumentMutationKind.CreateFolder, DocumentMutationKind.Rename, DocumentMutationKind.Move, DocumentMutationKind.Duplicate, DocumentMutationKind.Recycle })
             RegisterCommand("workspace.manage." + kind.ToString().ToLowerInvariant(), kind + " workspace document", null, true,
-                (context, cancellation) => ManageDocumentAsync(kind, cancellation, ExplorerCommandNode(context), kind == DocumentMutationKind.Move ? _requestedMoveDestination : null),
+                (context, cancellation) => kind is DocumentMutationKind.Move or DocumentMutationKind.Rename
+                    ? MoveCommandAsync(context, kind == DocumentMutationKind.Rename, cancellation)
+                    : ManageDocumentAsync(kind, cancellation, ExplorerCommandNode(context)),
                 context => new(_activeWorkspace is not null && context.WorkspaceId == _activeWorkspace.WorkspaceId && (kind == DocumentMutationKind.CreateFolder ||
                     context.ExplorerIsFolder && kind is DocumentMutationKind.Move or DocumentMutationKind.Rename ||
                     !context.ExplorerIsFolder && (context.ExplorerRelativePath is not null || context.DocumentPath is not null)),

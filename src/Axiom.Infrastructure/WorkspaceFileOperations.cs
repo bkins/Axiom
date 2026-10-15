@@ -170,14 +170,15 @@ public sealed partial class WorkspaceFileOperations(IDocumentMutationStore state
                 results.Add(await ReconcileFolderMoveAsync(intent, cancellationToken));
                 continue;
             }
-            ValidateAncestors(intent.RootPath, intent.SourcePath ?? intent.DestinationPath!, requireParent: false);
+            if (intent.Kind == DocumentMutationKind.ExternalMove) ReviewedWorkspaceMove.ValidateSource(intent.SourcePath!);
+            else ValidateAncestors(intent.RootPath, intent.SourcePath ?? intent.DestinationPath!, requireParent: false);
             if (intent.DestinationPath is not null) ValidateAncestors(intent.RootPath, intent.DestinationPath, requireParent: false);
             var applied = intent.Kind == DocumentMutationKind.Recycle
                 ? !File.Exists(intent.SourcePath)
                 : intent.Kind == DocumentMutationKind.CreateFolder
                     ? Directory.Exists(intent.DestinationPath)
                     : File.Exists(intent.DestinationPath) && Hash(await File.ReadAllBytesAsync(intent.DestinationPath!, cancellationToken)) == intent.ExpectedHash;
-            if (intent.Kind is DocumentMutationKind.Move or DocumentMutationKind.Rename && File.Exists(intent.SourcePath)) applied = false;
+            if (intent.Kind is DocumentMutationKind.Move or DocumentMutationKind.Rename or DocumentMutationKind.ExternalMove && File.Exists(intent.SourcePath)) applied = false;
             if (!applied && intent.SourcePath is not null && !File.Exists(intent.SourcePath))
             {
                 results.Add($"Needs inspection: {intent.Kind}, {intent.SourcePath}. No file operation was repeated.");
@@ -268,7 +269,7 @@ public sealed partial class WorkspaceFileOperations(IDocumentMutationStore state
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
-    private static async Task ReplaceReviewedAsync(string path, byte[] original, byte[] output, CancellationToken cancellationToken)
+    internal static async Task ReplaceReviewedAsync(string path, byte[] original, byte[] output, CancellationToken cancellationToken)
     {
         var temporary = Path.Combine(Path.GetDirectoryName(path)!, $".axiom-{Guid.NewGuid():N}.tmp");
         try

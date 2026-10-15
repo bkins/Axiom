@@ -44,7 +44,8 @@ public partial class MainWindow
         async Task<string> InspectAsync()
         {
             var state = await service.InspectAsync();
-            return $"Database: {_operationalPaths.DatabasePath}\nIntegrity: {state.Integrity}\nSchema: {state.SchemaVersion}\nWorkspaces: {state.Workspaces}\nProtected drafts: {state.Drafts}\nIdentity paths: {state.Identities}\nPending file operations: {state.PendingOperations}\n\nInspection and backup do not change Markdown. Reset, repair, and live restore are not available.";
+            var receipt = Path.Combine(_operationalPaths.Root, "State", "last-restore.txt");
+            return $"Database: {_operationalPaths.DatabasePath}\nIntegrity: {state.Integrity}\nSchema: {state.SchemaVersion}\nWorkspaces: {state.Workspaces}\nProtected drafts: {state.Drafts}\nIdentity paths: {state.Identities}\nPending file operations: {state.PendingOperations}\n\nInspection and backup do not change Markdown. Use Advanced Tools → Restore State Backup to review a backup and restore after Axiom closes.\n" + (File.Exists(receipt) ? await File.ReadAllTextAsync(receipt) : "");
         }
         async Task<string> ExportAsync()
         {

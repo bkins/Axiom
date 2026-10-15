@@ -5,4 +5,5 @@ public sealed record ExportRun(string Text
                             , bool Italic = false
                             , bool Code = false
                             , string? Link = null
-                            , string? Image = null);
+                            , string? Image = null
+                            , bool Strike = false);

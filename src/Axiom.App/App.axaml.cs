@@ -87,6 +87,17 @@ public partial class App : Application
                 var window = (MainWindow)desktop.MainWindow;
                 window.Opened += async (_, _) => await WorkspaceNavigationProbe.StartAsync(window);
             }
+            if (WorkspaceSafetyProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await WorkspaceSafetyProbe.StartAsync(window);
+            }
+            if (StateRestoreProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.RecoveryChoiceForTesting = _ => Task.FromResult("Later");
+                window.Opened += async (_, _) => await StateRestoreProbe.StartAsync(window);
+            }
             if (UsageReliabilityProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

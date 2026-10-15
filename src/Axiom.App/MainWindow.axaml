@@ -128,6 +128,7 @@
               <MenuFlyout>
                 <MenuItem Header="Bold    Ctrl+B" Tag="Bold" AutomationProperties.Name="Bold Markdown" Click="Format_OnClick" />
                 <MenuItem Header="Italic    Ctrl+I" Tag="Italic" AutomationProperties.Name="Italic Markdown" Click="Format_OnClick" />
+                <MenuItem Header="Strikethrough" Tag="Strikethrough" AutomationProperties.Name="Strikethrough Markdown" Click="Format_OnClick" />
                 <MenuItem Header="Inline code" Tag="InlineCode" AutomationProperties.Name="Inline code Markdown" Click="Format_OnClick" />
                 <MenuItem Header="Link    Ctrl+K" Tag="Link" AutomationProperties.Name="Markdown link" Click="Format_OnClick" />
                 <Separator />
@@ -162,6 +163,7 @@
               <MenuFlyout>
                 <MenuItem Header="Diagnostics…" Click="Diagnostics_OnClick" />
                 <MenuItem Header="State Maintenance…" Click="Maintenance_OnClick" />
+                <MenuItem Header="Restore State Backup…" Click="RestoreState_OnClick" />
                 <MenuItem Header="Install Portable Update…" Click="InstallUpdate_OnClick" />
                 <MenuItem Header="Install for Current User…" Click="InstallCurrentUser_OnClick" />
                 <MenuItem Header="Check Trusted Update…" Click="CheckTrustedUpdate_OnClick" />
@@ -243,7 +245,7 @@
                   <StackPanel IsVisible="False" Spacing="4">
                   <Button x:Name="BulkEnrollmentButton" Content="Enroll multiple files…" Margin="0,0,0,6"
                           AutomationProperties.Name="Bulk enroll workspace documents"
-                          ToolTip.Tip="Choose multiple files in a separate review window; the explorer selects one document"
+                          ToolTip.Tip="Review multiple files for document enrollment"
                           Click="BulkEnroll_OnClick" />
                   <Button Content="Workspace Help" Click="WorkspaceHelp_OnClick" />
                   </StackPanel>
@@ -255,7 +257,15 @@
                   <Button Content="New Workspace…" Click="NewWorkspace_OnClick" />
                   <Button Content="Open Workspace…" Click="OpenFolder_OnClick" />
                 </StackPanel>
-                <TreeView x:Name="FileTree" AutomationProperties.Name="Markdown files" ContextRequested="Explorer_OnContextRequested" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
+                <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="4">
+                  <TextBlock x:Name="WorkspaceSelectionCount" Text="0 selected — Ctrl/Shift selects multiple" TextWrapping="Wrap" />
+                  <WrapPanel>
+                    <Button Content="Open selected" Click="WorkspaceBatchOpen_OnClick" />
+                    <Button Content="Move selected…" Click="WorkspaceBatchMove_OnClick" />
+                    <Button Content="Recycle selected…" Click="WorkspaceBatchRecycle_OnClick" />
+                  </WrapPanel>
+                </StackPanel>
+                <TreeView x:Name="FileTree" SelectionMode="Multiple" AutomationProperties.Name="Markdown files" ContextRequested="Explorer_OnContextRequested" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">
                   <TreeView.DataTemplates>
                     <TreeDataTemplate DataType="app:WorkspaceExplorerNode" ItemsSource="{Binding Children}">
                       <Grid ColumnDefinitions="32,*" Margin="0,3"><TextBlock Text="{Binding Icon}" FontWeight="SemiBold" Opacity="0.75" /><TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Description}" /></Grid>

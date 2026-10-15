@@ -49,12 +49,13 @@ internal sealed class OpenDocumentExportWriter(ExportSnapshot snapshot, List<str
     private static XElement Styles()
     {
         var styles = new XElement(Office + "automatic-styles");
-        for (var bits = 0; bits < 8; bits++)
+        for (var bits = 0; bits < 16; bits++)
         {
             var properties = new XElement(Style + "text-properties");
             if ((bits & 1) != 0) properties.Add(new XAttribute(Formatting + "font-weight", "bold"));
             if ((bits & 2) != 0) properties.Add(new XAttribute(Formatting + "font-style", "italic"));
             if ((bits & 4) != 0) properties.Add(new XAttribute(Formatting + "font-family", "monospace"));
+            if ((bits & 8) != 0) properties.Add(new XAttribute(Style + "text-line-through-style", "solid"));
             styles.Add(new XElement(Style + "style", new XAttribute(Style + "name", "Run" + bits), new XAttribute(Style + "family", "text"), properties));
         }
         foreach (var ordered in new[] { false, true })
@@ -133,7 +134,7 @@ internal sealed class OpenDocumentExportWriter(ExportSnapshot snapshot, List<str
                     , new XAttribute(Link + "show", "embed"), new XAttribute(Link + "actuate", "onLoad"))
                 , new XElement(Svg + "desc", run.Text));
         }
-        var bits = (run.Bold ? 1 : 0) | (run.Italic ? 2 : 0) | (run.Code ? 4 : 0);
+        var bits = (run.Bold ? 1 : 0) | (run.Italic ? 2 : 0) | (run.Code ? 4 : 0) | (run.Strike ? 8 : 0);
         object text = new XElement(Text + "span", new XAttribute(Text + "style-name", "Run" + bits), Whitespace(run.Text));
         if (run.Link is not null)
         {
