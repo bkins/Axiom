@@ -87,8 +87,9 @@ public partial class MainWindow
             if (!await VerifyFreshAsync([snapshot])) return new(CommandOutcome.Unavailable, "Saved source changed; review it again.");
             await OpenDocumentAsync(savedPath);
             if (_session.Path != savedPath || !snapshot.Matches(Editor.Text ?? "")) return new(CommandOutcome.Unavailable, "Opened source differs from reviewed snapshot.");
-            Editor.Select(selected.Section.Offset, selected.Section.Length);
             SetNavigationPosition(selected.Section.Offset);
+            Editor.Select(selected.Section.Offset, selected.Section.Length);
+            CaptureEditorState(_activeTab);
             Editor.TextArea.Focus();
             return new(CommandOutcome.Completed, "Opened reviewed saved source section without edits.");
         }
@@ -96,8 +97,9 @@ public partial class MainWindow
         if (!Fresh(new[] { target.Snapshot })) return new(CommandOutcome.Unavailable, "Source changed; reopen reviewed analysis.");
         await SelectTabAsync(target.Tab);
         if (_activeTab != target.Tab) return new(CommandOutcome.Cancelled, "Source navigation cancelled.");
-        Editor.Select(selected.Section.Offset, selected.Section.Length);
         SetNavigationPosition(selected.Section.Offset);
+        Editor.Select(selected.Section.Offset, selected.Section.Length);
+        CaptureEditorState(_activeTab);
         Editor.TextArea.Focus();
         return new(CommandOutcome.Completed, "Opened semantic source section; no relationship or source edits.");
     }

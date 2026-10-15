@@ -81,18 +81,51 @@ internal static class SemanticReviewProbe
             Require(Control<ListBox>(semantic, "CpSemanticResults").ItemCount == 0 && !Control<Button>(semantic, "CpSemanticSearch").IsEnabled, "Clear retained searchable results.");
             Require(window.EditorTextForTesting == originalBuffer, "Probe changed editor source.");
             semantic.Close(null); await dialog;
+            await CheckSourceNavigationAsync(window, client, sources);
             await File.WriteAllTextAsync(Path.Combine(Root!, "result.json"), JsonSerializer.Serialize(new
             {
                 Version = window.BuildIdentityForTesting.InformationalVersion,
                 WindRankedFirst = true, VerifiedReuseSections = reused, ResolvedCitationRanges = resolved.Length,
                 BothEnergySourcesCited = bothEnergySourcesCited, ExcludedRecipeNotCited = excludedRecipeNotCited, FixedStatusAfterScroll = true,
                 StaleRefusal = true, ClearDerivedResults = true, SourceBufferPreserved = true,
+                ActualCitedSourceNavigationAndHighlight = true, UnsavedCitedSourceAndDiskPreserved = true,
                 SyntheticSourcesOnly = true, HumanQualityAccepted = false,
                 ModelQualityChecksPassed = bothEnergySourcesCited && excludedRecipeNotCited
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception error) { await File.WriteAllTextAsync(Path.Combine(Root!, "error.txt"), error.ToString()); }
         finally { semantic?.Close(null); window.Close(); }
+    }
+
+    private static async Task CheckSourceNavigationAsync(MainWindow window, CpDocumentAnalysisClient client, AnalysisSnapshot[] sources)
+    {
+        var workspace = Path.Combine(Root!, "navigation-workspace");
+        Directory.CreateDirectory(workspace);
+        var paths = new[] { "Solar.md", "Wind.md", "Lunch.md" }.Select(name => Path.Combine(workspace, name)).ToArray();
+        for (var index = 0; index < paths.Length; index++) await File.WriteAllTextAsync(paths[index], sources[index].Text);
+        await window.SwitchWorkspaceAsync(workspace);
+        await window.OpenDocumentAsync(paths[0]);
+        window.SetEditorTextForTesting(sources[0].Text + "\nUnsaved navigation draft.");
+        await window.OpenDocumentAsync(paths[1]);
+        await window.OpenDocumentAsync(paths[2]);
+        typeof(MainWindow).GetField("_cpAnalysisClient", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(window, client);
+        var operation = window.ExecuteCommandAsync("workspace.cpAnalysis");
+        await WaitAsync(() => window.OwnedWindows.OfType<CpWorkspaceAnalysisWindow>().Any());
+        var review = window.OwnedWindows.OfType<CpWorkspaceAnalysisWindow>().Single();
+        foreach (var selector in review.GetLogicalDescendants().OfType<CheckBox>().Where(control => control.Tag is AnalysisSnapshot)) selector.IsChecked = true;
+        Control<TextBox>(review, "CpSemanticQuery").Text = "Compare how the two energy documents generate electricity and handle surplus power. Cite the reviewed sources and exclude the recipe.";
+        Click(review, "CpAnalyzeReviewed");
+        await WaitAsync(() => Finished(review) && Control<ListBox>(review, "CpResolvedCitations").ItemCount > 0);
+        var citations = Control<ListBox>(review, "CpResolvedCitations");
+        var match = citations.Items.OfType<SemanticMatch>().First(item => item.Section.DocumentKey.EndsWith("Solar.md", StringComparison.Ordinal));
+        citations.SelectedItem = match;
+        var snapshot = review.GetLogicalDescendants().OfType<CheckBox>().Select(control => control.Tag).OfType<AnalysisSnapshot>().Single(source => source.ReferenceKey == match.Section.DocumentKey);
+        var expected = snapshot.Text.Substring(match.Section.Offset, match.Section.Length);
+        review.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, "Open selected cited source range")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await operation;
+        Require(window.PathContextForTesting == paths[0] && window.EditorSelectedTextForTesting == expected, "Cited source navigation did not retain the exact highlighted range.");
+        Require(window.EditorTextForTesting == sources[0].Text + "\nUnsaved navigation draft.", "Citation navigation changed the unsaved source.");
+        for (var index = 0; index < paths.Length; index++) Require(await File.ReadAllTextAsync(paths[index]) == sources[index].Text, "Citation navigation saved or changed a source file.");
     }
 
     private static T Control<T>(Window window, string name) where T : Control => window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
