@@ -27,8 +27,11 @@ internal static class LocalCpConnection
         {
             using var quick = CancellationTokenSource.CreateLinkedTokenSource(token);
             quick.CancelAfter(TimeSpan.FromSeconds(3));
-            try { Validate(await client.GetCapabilitiesAsync(quick.Token), profile.Model); return client; }
+            Axiom.Core.AnalysisCapabilities? ready = null;
+            try { ready = await client.GetCapabilitiesAsync(quick.Token); }
+            catch (InvalidOperationException error) when (!error.Message.StartsWith("CP is unavailable", StringComparison.Ordinal)) { throw; }
             catch (Exception exception) when (!token.IsCancellationRequested && exception is OperationCanceledException or HttpRequestException or InvalidOperationException) { }
+            if (ready is not null) { Validate(ready, profile.Model); return client; }
             progress("Starting local CP and checking models…");
             var script = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, profile.SetupScript));
             if (!script.StartsWith(AppContext.BaseDirectory, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("The local setup path leaves this package.");
@@ -63,6 +66,16 @@ internal static class LocalCpConnection
             throw new InvalidOperationException("Local CP did not become ready. Retry; source is unchanged.");
         }
         catch { client.Dispose(); throw; }
+    }
+
+    internal static bool IsConfiguredEndpoint(Uri endpoint)
+    {
+        try
+        {
+            var profile=JsonSerializer.Deserialize<LocalCpProfile>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"cp-local-profile.json")),new JsonSerializerOptions{PropertyNameCaseInsensitive=true});
+            return profile is not null && new Uri(profile.Endpoint.TrimEnd('/')+"/")==endpoint;
+        }
+        catch(Exception error) when(error is IOException or JsonException or ArgumentException){return false;}
     }
 
     private static async Task EnsureOllamaAsync(Action<string> progress, CancellationToken token)

@@ -14,8 +14,10 @@ public partial class MainWindow
         await _cpConnectionGate.WaitAsync(token);
         try
         {
-            if (_cpAnalysisClient is not null) return _cpAnalysisClient;
-            _cpAnalysisClient = await LocalCpConnection.ConnectAsync(progress, token);
+            if (_cpAnalysisClient is not null && !LocalCpConnection.IsConfiguredEndpoint(_cpAnalysisClient.Endpoint)) return _cpAnalysisClient;
+            var connected = await LocalCpConnection.ConnectAsync(progress, token);
+            _cpAnalysisClient?.Dispose();
+            _cpAnalysisClient = connected;
             progress("CP ready. No document has been submitted yet.");
             ApplyDiscoveryLayout();
             return _cpAnalysisClient;
