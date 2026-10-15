@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.ComponentModel;
+using System.Text;
 
 namespace Axiom.App;
 
@@ -42,9 +43,24 @@ internal static class LocalCpSetup
         timeout.CancelAfter(TimeSpan.FromMinutes(3));
         // Drain both pipes concurrently so a failing helper cannot block on output.
         // Successful clipboard-helper output is deliberately discarded.
-        var standardError = process.StandardError.ReadToEndAsync(timeout.Token);
-        var standardOutput = process.StandardOutput.ReadToEndAsync(timeout.Token);
-        await process.WaitForExitAsync(timeout.Token);
+        using var drainCancellation = new CancellationTokenSource();
+        var standardError = DrainAsync(process.StandardError, drainCancellation.Token, capture: true);
+        var standardOutput = DrainAsync(process.StandardOutput, drainCancellation.Token, capture: false);
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("The local CP helper did not finish within three minutes. The API may already be running. Try Connect / check capabilities, or retry Start local CP. No document was submitted.");
+        }
+        finally
+        {
+            // A server started by the helper can inherit these handles. Its lifetime
+            // must not hold the completed helper operation open waiting for EOF.
+            drainCancellation.Cancel();
+            await Task.WhenAll(standardError, standardOutput);
+        }
         var error = (await standardError).Trim();
         await standardOutput;
         if (process.ExitCode != 0)
@@ -58,5 +74,19 @@ internal static class LocalCpSetup
             var detail = commandFailure ? " Command host: " + error[..Math.Min(error.Length, 1024)] : " No recognized command-host diagnostic was returned.";
             throw new InvalidOperationException($"The local CP helper at {helperPath} exited with code {process.ExitCode}.{detail} Check the local setup or use its external launcher.");
         }
+    }
+
+    private static async Task<string> DrainAsync(StreamReader reader, CancellationToken cancellationToken, bool capture)
+    {
+        var text = new StringBuilder();
+        var buffer = new char[1024];
+        try
+        {
+            int count;
+            while ((count = await reader.ReadAsync(buffer.AsMemory(), cancellationToken)) != 0)
+                if (capture && text.Length < 4096) text.Append(buffer, 0, Math.Min(count, 4096 - text.Length));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        return text.ToString();
     }
 }

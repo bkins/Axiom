@@ -6,6 +6,40 @@ namespace Axiom.App.Tests;
 public sealed class LocalCpSetupTests
 {
     [Fact]
+    public async Task Successful_Helper_Does_Not_Wait_For_Background_Server_Pipe_Handles()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var root = Path.Combine(Path.GetTempPath(), "axiom-helper-child-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var script = Path.Combine(root, "server.ps1");
+            await File.WriteAllTextAsync(script, """
+                $child = Start-Process -FilePath "$env:SystemRoot\System32\ping.exe" -ArgumentList '127.0.0.1 -n 45' -WindowStyle Hidden -RedirectStandardOutput (Join-Path $PSScriptRoot 'child.log') -RedirectStandardError (Join-Path $PSScriptRoot 'child.err') -PassThru
+                [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'child.pid'), [string]$child.Id)
+                """, TestContext.Current.CancellationToken);
+            var helper = Path.Combine(root, "Start-Axiom-Cp.cmd");
+            await File.WriteAllTextAsync(helper, "@echo off\r\n\"%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -NonInteractive -File \"%~dp0server.ps1\"\r\nexit /b %errorlevel%\r\n", TestContext.Current.CancellationToken);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(15));
+            await LocalCpSetup.RunHelperAsync(helper, deadline.Token);
+            using var child = System.Diagnostics.Process.GetProcessById(int.Parse(await File.ReadAllTextAsync(Path.Combine(root, "child.pid"), TestContext.Current.CancellationToken)));
+            Assert.False(child.HasExited);
+        }
+        finally
+        {
+            var pidPath = Path.Combine(root, "child.pid");
+            if (File.Exists(pidPath))
+            {
+                using var child = System.Diagnostics.Process.GetProcessById(int.Parse(await File.ReadAllTextAsync(pidPath, CancellationToken.None)));
+                if (!child.HasExited) child.Kill();
+                await child.WaitForExitAsync(CancellationToken.None);
+            }
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public async Task Missing_Helper_Reports_Command_Failure_And_Path()
     {
         if (!OperatingSystem.IsWindows()) return;
