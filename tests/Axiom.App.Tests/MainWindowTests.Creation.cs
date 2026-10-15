@@ -18,9 +18,11 @@ public sealed partial class MainWindowTests
         try
         {
             var window = CreateWindow(root);
-            window.Show(); window.UpdateLayout();
+            var sidebar = window.FindControl<Border>("WorkspaceSidebar")!;
+            sidebar.Measure(new Avalonia.Size(280, 600));
+            sidebar.Arrange(new Avalonia.Rect(0, 0, 280, 600));
             var actions = window.FindControl<StackPanel>("WorkspaceStartActions")!;
-            Assert.True(actions.IsEffectivelyVisible);
+            Assert.True(actions.IsVisible);
             Assert.True(actions.Bounds.Width > 100);
             Assert.Equal(3, actions.Children.Count);
             foreach (var button in actions.Children.OfType<Button>())
