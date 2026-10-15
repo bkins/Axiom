@@ -249,8 +249,8 @@
                   </StackPanel>
                   <Separator Margin="0,6,0,0" />
                 </StackPanel>
-                <TextBlock x:Name="WorkspaceEmptyState" Margin="4" Opacity="0.7" Text="Open a workspace to browse Markdown documents." TextWrapping="Wrap" />
-                <StackPanel x:Name="WorkspaceStartActions" Spacing="6" Margin="4,8">
+                <TextBlock x:Name="WorkspaceEmptyState" DockPanel.Dock="Top" Margin="4" Opacity="0.7" Text="Open a workspace to browse Markdown documents." TextWrapping="Wrap" />
+                <StackPanel x:Name="WorkspaceStartActions" DockPanel.Dock="Top" Spacing="6" Margin="4,8">
                   <Button Content="New Markdown document" Click="New_OnClick" />
                   <Button Content="New Workspace…" Click="NewWorkspace_OnClick" />
                   <Button Content="Open Workspace…" Click="OpenFolder_OnClick" />

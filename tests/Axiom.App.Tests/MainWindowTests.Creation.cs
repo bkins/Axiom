@@ -12,6 +12,28 @@ namespace Axiom.App.Tests;
 public sealed partial class MainWindowTests
 {
     [AvaloniaFact]
+    public void Workspace_Free_Start_Actions_Have_Visible_Clickable_Bounds()
+    {
+        var root = CreateTabWorkspace();
+        try
+        {
+            var window = CreateWindow(root);
+            window.Show(); window.UpdateLayout();
+            var actions = window.FindControl<StackPanel>("WorkspaceStartActions")!;
+            Assert.True(actions.IsEffectivelyVisible);
+            Assert.True(actions.Bounds.Width > 100);
+            Assert.Equal(3, actions.Children.Count);
+            foreach (var button in actions.Children.OfType<Button>())
+            {
+                Assert.True(button.Bounds.Width > 0);
+                Assert.True(button.Bounds.Height > 0);
+            }
+            window.Close();
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [AvaloniaFact]
     public async Task New_Document_Without_Workspace_Shows_Editor_And_Preserves_Existing_Draft()
     {
         var root = CreateTabWorkspace();
