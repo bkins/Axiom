@@ -78,7 +78,7 @@ internal static class SemanticReviewProbe
             var body = Control<ScrollViewer>(semantic, "CpSemanticScrollBody");
             Require(!body.GetLogicalDescendants().Contains(status) && status.IsEffectivelyVisible, "Status is inside scrolling content.");
             Click(semantic, "CpClearDerived");
-            Require(Control<ListBox>(semantic, "CpSemanticResults").ItemCount == 0 && !Control<Button>(semantic, "CpSemanticSearch").IsEnabled, "Clear retained searchable results.");
+            Require(Control<ListBox>(semantic, "CpSemanticResults").ItemCount == 0, "Clear retained derived results.");
             Require(window.EditorTextForTesting == originalBuffer, "Probe changed editor source.");
             semantic.Close(null); await dialog;
             await CheckSourceNavigationAsync(window, client, sources);

@@ -7,14 +7,45 @@ namespace Axiom.App;
 public partial class MainWindow
 {
     private CpDocumentAnalysisClient? _cpAnalysisClient;
+    private readonly SemaphoreSlim _cpConnectionGate = new(1, 1);
+
+    private async Task<CpDocumentAnalysisClient> EnsureCpConnectionAsync(Action<string> progress, CancellationToken token)
+    {
+        await _cpConnectionGate.WaitAsync(token);
+        try
+        {
+            if (_cpAnalysisClient is not null) return _cpAnalysisClient;
+            _cpAnalysisClient = await LocalCpConnection.ConnectAsync(progress, token);
+            progress("CP ready. No document has been submitted yet.");
+            ApplyDiscoveryLayout();
+            return _cpAnalysisClient;
+        }
+        finally { _cpConnectionGate.Release(); }
+    }
+
+    private async Task<CommandResult> ShowCpDocumentActionsAsync(bool analyzeOnOpen = true)
+    {
+        var draft = _session.DraftKey;
+        AnalysisSnapshot Capture() => AnalysisSnapshot.Capture("current-document", Editor.Text ?? "");
+        bool Current(AnalysisSnapshot snapshot) => _session.DraftKey == draft && _session.Conflict is null && snapshot.Matches(Editor.Text ?? "");
+        void Apply(AnalysisSnapshot snapshot, string text)
+        {
+            if (!Current(snapshot)) throw new InvalidOperationException("Source changed. Proposal was not applied.");
+            Editor.Document.BeginUpdate();
+            try { Editor.Document.Replace(0, Editor.Document.TextLength, text); }
+            finally { Editor.Document.EndUpdate(); }
+            CaptureEditorState(_activeTab);
+        }
+        await new CpDocumentActionWindow(Capture, Current, EnsureCpConnectionAsync, Apply, analyzeOnOpen).ShowDialog(this);
+        return new(CommandOutcome.Completed, "CP document actions closed; Save remains your choice.");
+    }
 
     private async void CpWorkspaceAnalysis_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs)
         => await ExecuteCommandAsync("workspace.cpAnalysis");
 
     private async Task<CommandResult> ShowCpWorkspaceAnalysisAsync()
     {
-        if (_cpAnalysisClient is null) return new(CommandOutcome.Unavailable, "Connect through CP connection and reviewed insights first.");
-        var sourceTabs = _tabs.Where(tab => tab == _activeTab || tab.Session.Path is { } path && _activeWorkspace is not null && WorkspacePathBoundary.Contains(_activeWorkspace.RootPath, path)).Take(16).ToArray();
+        var sourceTabs = _tabs.Where(tab => tab == _activeTab || tab.Session.Path is { } path && _activeWorkspace is not null && WorkspacePathBoundary.Contains(_activeWorkspace.RootPath, path)).OrderBy(tab => tab == _activeTab ? 0 : 1).Take(16).ToArray();
         var entries = sourceTabs.Select((tab, index) =>
         {
             var label = new string(Path.GetFileName(tab.Session.Path ?? "unsaved").Select(character => character is '|' or '[' or ']' || char.IsControl(character) ? '_' : character).ToArray());
@@ -79,7 +110,7 @@ public partial class MainWindow
             return true;
         }
         var selected = await new CpWorkspaceAnalysisWindow(_cpAnalysisClient, entries.Select(entry => entry.Snapshot).ToArray(), Fresh, _recovery as ISemanticDocumentResultStore, classifications,
-                                                         workspaceRoot is null ? null : LoadSavedAsync, VerifyFreshAsync, _appearance).ShowDialog<SemanticMatch?>(this);
+                                                         workspaceRoot is null ? null : LoadSavedAsync, VerifyFreshAsync, _appearance, EnsureCpConnectionAsync).ShowDialog<SemanticMatch?>(this);
         if (selected is null) return new(CommandOutcome.Completed, "Reviewed analysis closed; source retained.");
         if (savedPaths.TryGetValue(selected.Section.DocumentKey, out var savedPath))
         {
@@ -106,6 +137,10 @@ public partial class MainWindow
 
     private async void CpAnalysis_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs)
         => await ExecuteCommandAsync("document.cpAnalysis");
+    private async void CpConnection_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs)
+        => await ExecuteCommandAsync("document.cpConnection");
+    private async void CpEdits_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs)
+        => await ExecuteCommandAsync("document.cpEdits");
 
     private async Task<CommandResult> ShowCpAnalysisAsync()
     {
@@ -114,8 +149,8 @@ public partial class MainWindow
         var window = new CpAnalysisWindow(snapshot
                                        , () => _session.DraftKey == draftKey && snapshot.Matches(Editor.Text ?? "")
                                        , () => _cpAnalysisClient
-                                       , candidate => { _cpAnalysisClient?.Dispose(); _cpAnalysisClient = candidate; ApplyDiscoveryLayout(); }
-                                       , _appearance);
+                                       , candidate => { if (!ReferenceEquals(_cpAnalysisClient, candidate)) _cpAnalysisClient?.Dispose(); _cpAnalysisClient = candidate; ApplyDiscoveryLayout(); }
+                                       , _appearance, autoConnect: EnsureCpConnectionAsync);
         await window.ShowDialog(this);
         return new(CommandOutcome.Completed, "CP analysis screen closed; source preserved.");
     }

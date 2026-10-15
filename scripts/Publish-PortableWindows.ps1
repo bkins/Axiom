@@ -6,7 +6,9 @@ param(
     [string]$OutputDirectory,
     [string]$TestStateName,
     [string]$Channel = 'candidate',
-    [string]$ReleaseNotes = 'Implementation candidate; human release acceptance remains pending.'
+    [string]$ReleaseNotes = 'Implementation candidate; human release acceptance remains pending.',
+    [string]$LocalCpBackendPath,
+    [string]$LocalCpCredentialPath = (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Axiom\CpSemanticQwenReview\credential.dpapi')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,6 +47,15 @@ dotnet publish (Join-Path $repoRoot 'src\Axiom.App\Axiom.App.csproj') `
 if ($LASTEXITCODE -ne 0) { throw 'Portable publish failed.' }
 $testLauncher = "@echo off`r`nset `"AXIOM_STATE_ROOT=%LOCALAPPDATA%\$TestStateName`"`r`nstart `"Axiom $resolvedVersion test`" `"%~dp0Axiom.App.exe`"`r`n"
 Set-Content -LiteralPath (Join-Path $outputPath 'Test-Axiom.cmd') -Value $testLauncher -Encoding ascii
+if ($LocalCpBackendPath) {
+    $backend = [IO.Path]::GetFullPath($LocalCpBackendPath)
+    if (!(Test-Path -LiteralPath $backend) -or !(Test-Path -LiteralPath $LocalCpCredentialPath)) { throw 'Configured CP backend or protected credential is missing.' }
+    $setupFolder = Join-Path $outputPath 'CpSetup'
+    New-Item -ItemType Directory -Path $setupFolder -Force | Out-Null
+    $setup = Join-Path $setupFolder 'Start-local-CP.ps1'
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-SemanticQwenReview.ps1') -Destination $setup -Force
+    [ordered]@{ Endpoint='http://127.0.0.1:5289'; CredentialPath=[IO.Path]::GetFullPath($LocalCpCredentialPath); SetupScript='CpSetup/Start-local-CP.ps1'; SetupSha256=(Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash; BackendPath=$backend; BackendSha256=(Get-FileHash -LiteralPath $backend -Algorithm SHA256).Hash; Model='qwen2.5:7b' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $outputPath 'cp-local-profile.json') -Encoding utf8
+}
 $schemaSource = Get-Content -LiteralPath (Join-Path $repoRoot 'src\Axiom.Infrastructure\SqliteStateStore.cs') -Raw
 $schemaMatch = [regex]::Match($schemaSource, 'CurrentSchemaVersion\s*=\s*(\d+)')
 if (-not $schemaMatch.Success) { throw 'Could not read authoritative state schema version.' }

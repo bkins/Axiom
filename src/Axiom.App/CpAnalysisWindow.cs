@@ -13,7 +13,8 @@ internal sealed class CpAnalysisWindow : Window
                              , Func<CpDocumentAnalysisClient?> getClient
                              , Action<CpDocumentAnalysisClient?> setClient
                              , AppearancePreference appearance = AppearancePreference.System
-                             , Func<bool, CancellationToken, Task>? runLocalHelper = null )
+                             , Func<bool, CancellationToken, Task>? runLocalHelper = null
+                             , Func<Action<string>, CancellationToken, Task<CpDocumentAnalysisClient>>? autoConnect = null )
     {
         Title = "CP connection and reviewed document analysis";
         Width = 820;
@@ -24,6 +25,7 @@ internal sealed class CpAnalysisWindow : Window
         var endpoint = new TextBox { Name = "CpEndpoint", Text = getClient()?.Endpoint.AbsoluteUri ?? (OperatingSystem.IsWindows() ? "http://127.0.0.1:5277" : "http://localhost:5273"), PlaceholderText = "CP Development endpoint" };
         var credential = new TextBox { Name = "CpCredential", PasswordChar = '●', PlaceholderText = "Dedicated analysis credential (session only)" };
         var connect = new Button { Name = "CpConnect", Content = "Connect / check capabilities" };
+        var automatic = new Button { Name = "CpConnectAutomatic", Content = "Connect local CP automatically", IsVisible = autoConnect is not null };
         var disconnect = new Button { Content = "Disconnect" };
         var canRunLocalHelpers = runLocalHelper is not null || OperatingSystem.IsWindows();
         var copyCredential = new Button { Name = "CpCopyLocalCredential", Content = "Copy local credential", IsEnabled = canRunLocalHelpers };
@@ -41,7 +43,7 @@ internal sealed class CpAnalysisWindow : Window
             && new Uri(proposed.AbsoluteUri.TrimEnd('/') + "/").Equals(client.Endpoint);
         void Busy(bool busy)
         {
-            connect.IsEnabled = disconnect.IsEnabled = !busy;
+            automatic.IsEnabled = connect.IsEnabled = disconnect.IsEnabled = !busy;
             endpoint.IsEnabled = credential.IsEnabled = question.IsEnabled = !busy;
             submit.IsEnabled = !busy && ConnectedEndpointMatches();
             cancel.IsEnabled = busy;
@@ -60,6 +62,12 @@ internal sealed class CpAnalysisWindow : Window
             catch (Exception exception) { status.Text = exception is InvalidOperationException or ArgumentException ? exception.Message : "CP returned an invalid or unavailable response."; }
             finally { requestCancellation.Dispose(); requestCancellation = null; Busy(false); }
         }
+        automatic.Click += async (_, _) => await RunAsync(async cancellationToken =>
+        {
+            var client = await autoConnect!(message => status.Text = message, cancellationToken);
+            setClient(client); endpoint.Text = client.Endpoint.AbsoluteUri; credential.Text = "";
+            status.Text = "Connected to configured local CP. No document was submitted; close this screen and use Analyze or Search.";
+        });
         connect.Click += async (_, _) => await RunAsync(async cancellationToken =>
         {
             var candidate = new CpDocumentAnalysisClient(new Uri(endpoint.Text ?? ""), credential.Text ?? "");
@@ -105,7 +113,7 @@ internal sealed class CpAnalysisWindow : Window
           , Children =
             {
                 new TextBlock { Text = "Connection (credential retained in memory only)", FontWeight = Avalonia.Media.FontWeight.Bold }
-              , endpoint, credential
+              , automatic, endpoint, credential
               , new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { connect, disconnect } }
               , new WrapPanel { Children = { copyCredential, startLocal, help } }
               , status

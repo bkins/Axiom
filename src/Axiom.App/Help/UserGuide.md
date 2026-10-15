@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 101B3FA4B82360899F35ABBEF601CA4252FCE17989C44BB0CF692653E203B1F3. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 8186B3C0756AC2BC82DC2F89A7D9927D56EFFADEFEE3E69838D00C21103A8D74. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -465,6 +465,10 @@ Export Cancel, workspace-loading Cancel and reference-index Cancel can interrupt
 
 ## CP connection and reviewed analysis
 
+Configured Windows builds connect and initialize local CP automatically. Choose **File → CP review and search → Analyze this document** to analyze the active text, including unsaved edits, immediately. Opening the action panel alone for **Suggest edits** sends nothing: describe the requested change and choose Suggest edits. Preview the diff, then explicitly Apply to the unsaved buffer; Undo reverses the application and Save remains your choice. A changed source or changed document identity prevents applying an old proposal. Generated facts and edits require your judgment.
+
+Use **Advanced connection** only for a different service or troubleshooting. Its **Connect local CP automatically** button starts/checks the configured API and reads the existing Windows-protected credential internally. Normal Analyze/Search use does not require the external review launcher, a port number, clipboard copy or password entry. Setup/model progress, cancellation and retry are shown beside the action. No document is sent during connection checks; an explicit Analyze/Suggest/Search action submits only its selected snapshots. Opening another document never submits it automatically.
+
 File → CP connection and reviewed insights opens the optional Development connection screen. Choose an HTTPS CP endpoint, or an explicitly selected loopback HTTP Development endpoint. Enter the dedicated document-analysis credential: it stays in session memory, clears from the entry box after connection, and is discarded on Disconnect or application exit. This is a separate credential from CP health/Admin access. Capability checks send no document text. The server must include the Development document-analysis routes and be enabled with its dedicated credential hash; the normal CP API endpoint alone is insufficient. A 404 means the analysis route is missing, 401 means the dedicated credential was rejected, and 503 can mean analysis is disabled. See Local CP controls and Semantic search: step-by-step test in these Help topics for connection and review instructions. Unavailable CP leaves offline editing, literal search, recovery and exports available.
 
 Review the exact current buffer, including any unsaved text and document marker, before choosing Submit reviewed snapshot for insights. The question and that snapshot are sent explicitly; no automatic workspace upload, source save or document edits occur. Cancel request stops waiting and propagates cancellation to CP. Derived text appears separately with source-hash freshness, time and provider/model provenance. Model-generated claims and citations require review; a returned model identifier does not attest an immutable model revision.
@@ -541,11 +545,13 @@ The terminal is a real shell: commands can change any accessible saved files, in
 
 ## Local CP controls
 
-Open Main menu → File → CP review and search → CP connection and reviewed insights. On Windows with the configured local CP setup, **Copy local credential** copies the existing credential to the clipboard. Paste it into the password field. **Start local CP** runs the existing startup helper, uses `http://127.0.0.1:5277`, and copies the same credential. It can also be used when that local service is already running. Then explicitly choose **Connect / check capabilities**. Neither helper connects automatically nor sends a document. On Windows, Copy local credential and Start local CP remain available while idle and check their local helpers when clicked; a missing helper shows its expected path. Both buttons are disabled while a request is running; manual endpoint/credential entry remains available for another service.
+For advanced/manual connection, open Main menu → File → CP review and search → Advanced connection. On Windows with the configured local CP setup, **Copy local credential** copies the existing credential to the clipboard. Paste it into the password field. **Start local CP** runs the existing startup helper, uses `http://127.0.0.1:5277`, and copies the same credential. It can also be used when that local service is already running. Then explicitly choose **Connect / check capabilities**. Neither helper connects automatically nor sends a document. On Windows, Copy local credential and Start local CP remain available while idle and check their local helpers when clicked; a missing helper shows its expected path. Both buttons are disabled while a request is running; manual endpoint/credential entry remains available for another service.
 
 The local helpers are installed in `%LOCALAPPDATA%\Axiom\CpConnection`. They start the normal CP Development API, including its Development services/data, using installed Ollama models. They do not add automatic Windows startup. The endpoint is accessible only from this computer. Axiom runs only the two fixed helper launchers in that folder; a trusted local setup is required. **Help** in the connection screen opens its bundled topic; F1 does the same. Disconnect clears the Axiom session credential, not the reusable local setup.
 
 ## Semantic search: step-by-step test
+
+For everyday use, open CP search, type a query and choose **Search selected documents**. The current document is selected initially; other open or saved documents are included only when you select them. Connection and index preparation/reuse happen within the Search action. You can still choose Build reviewed semantic index separately for diagnostics, but it is not a prerequisite. Clear discards derived results; the next Search prepares what it needs. The detailed walkthrough below is for inspecting behavior and quality, not a required startup process.
 
 Semantic search finds source passages by meaning. It uses embeddings to rank the documents you explicitly select; it does not search every file automatically. Insights answers a question in generated prose. These are separate operations in the same review screen.
 
@@ -582,7 +588,7 @@ Store leftover food in the refrigerator.
 
 ### Connect and review the sources
 
-1. Open Main menu → File → CP review and search → CP connection and reviewed insights. If already connected, retain that session. With the configured local Windows setup, click Start local CP or Copy local credential, paste into the password field, and Connect / check capabilities at `http://127.0.0.1:5277`. Confirm embeddings are configured and catalog models are present. Close the connection screen; closing retains the session connection.
+1. For advanced/manual connection, open Main menu → File → CP review and search → Advanced connection. If already connected, retain that session. With the configured local Windows setup, click Start local CP or Copy local credential, paste into the password field, and Connect / check capabilities at `http://127.0.0.1:5277`. Confirm embeddings are configured and catalog models are present. Close the connection screen; closing retains the session connection.
 2. Open Main menu → File → CP review and search → Reviewed semantic search and cross-document analysis. **Help** or **F1** in that screen opens this walkthrough.
 3. Tick the three document checkboxes. Read the exact SOURCE/HASH/text snapshots below them. Leave the optional Type/Tag filters empty and derived-vector persistence unchecked for the first pass. Nothing has been uploaded merely by selecting documents.
 4. If a document is closed, Add saved workspace documents for review can add it from the active workspace. Added sources start unchecked; select them explicitly. Use an open document's reviewed buffer instead of adding another saved copy of it.

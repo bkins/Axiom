@@ -54,7 +54,9 @@ public partial class MainWindow
             await PersistWorkbenchAsync();
             return new(CommandOutcome.Completed, "Workbench layout reset; working buffers retained.");
         });
-        RegisterCommand("document.cpAnalysis", "CP connection and reviewed document insights", null, false, (_, _) => ShowCpAnalysisAsync());
+        RegisterCommand("document.cpAnalysis", "Analyze this document", null, false, (_, _) => ShowCpDocumentActionsAsync());
+        RegisterCommand("document.cpEdits", "Suggest edits to this document", null, false, (_, _) => ShowCpDocumentActionsAsync(false));
+        RegisterCommand("document.cpConnection", "CP connection (advanced)", null, false, (_, _) => ShowCpAnalysisAsync());
         RegisterCommand("workspace.cpAnalysis", "Reviewed semantic search and cross-document analysis", null, false, (_, _) => ShowCpWorkspaceAnalysisAsync());
         Closed += (_, _) => _cpAnalysisClient?.Dispose();
         RegisterCommand("application.install", "Install Axiom for current user", null, true, (_, _) => InstallCurrentUserAsync(),

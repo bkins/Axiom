@@ -42,8 +42,7 @@ public sealed partial class MainWindowTests
             Assert.True(editor.Document.UndoStack.CanUndo); Assert.Same(selected, results.SelectedItem); Assert.Equal("retained", query.Text);
             editor.Document.UndoStack.Undo(); Assert.DoesNotContain("draft", editor.Text);
             Assert.DoesNotContain("draft", await File.ReadAllTextAsync(path));
-            Assert.Equal(CommandOutcome.Unavailable, (await window.ExecuteCommandAsync("workspace.cpAnalysis")).Outcome);
-            Assert.Contains("CP disconnected", window.FindControl<TextBlock>("DiscoveryContext")!.Text);
+            Assert.Contains("CP connects automatically", window.FindControl<TextBlock>("DiscoveryContext")!.Text);
             await CloseWorkbenchTestAsync(window);
         }
         finally { Directory.Delete(root, true); }

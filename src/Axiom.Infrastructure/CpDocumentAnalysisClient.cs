@@ -18,7 +18,7 @@ public sealed class CpDocumentAnalysisClient : IDisposable
             throw new ArgumentException("Choose an HTTPS CP endpoint, or an explicit loopback Development HTTP endpoint.");
         if (credential.Length is < 32 or > 256 || credential.Any(char.IsControl))
             throw new ArgumentException("Enter a dedicated document-analysis credential of 32–256 characters.");
-        _http = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false })
+        _http = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false, UseProxy = !endpoint.IsLoopback })
         {
             BaseAddress = new Uri(endpoint.AbsoluteUri.TrimEnd('/') + "/")
           , Timeout = TimeSpan.FromSeconds(125)

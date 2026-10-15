@@ -105,8 +105,10 @@
                   <MenuItem Header="Export current buffer to OpenDocument Text…" Tag="odt" Click="Export_OnClick" />
                 </MenuItem>
                 <MenuItem Header="CP review and search">
-                  <MenuItem Header="CP connection and reviewed insights…" Click="CpAnalysis_OnClick" />
+                  <MenuItem Header="Analyze this document…" Click="CpAnalysis_OnClick" />
+                  <MenuItem Header="Suggest edits to this document…" Click="CpEdits_OnClick" />
                   <MenuItem Header="Reviewed semantic search and cross-document analysis…" Click="CpWorkspaceAnalysis_OnClick" />
+                  <MenuItem Header="Advanced connection…" Click="CpConnection_OnClick" />
                 </MenuItem>
               </MenuFlyout>
             </Button.Flyout>

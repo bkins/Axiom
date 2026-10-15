@@ -8,10 +8,11 @@ namespace Axiom.App;
 
 internal sealed class CpWorkspaceAnalysisWindow : Window
 {
-    internal CpWorkspaceAnalysisWindow(CpDocumentAnalysisClient client, IReadOnlyList<AnalysisSnapshot> candidates, Func<IReadOnlyList<AnalysisSnapshot>, bool> fresh, ISemanticDocumentResultStore? cache = null, IReadOnlyDictionary<string, DocumentClassification?>? classifications = null,
+    internal CpWorkspaceAnalysisWindow(CpDocumentAnalysisClient? client, IReadOnlyList<AnalysisSnapshot> candidates, Func<IReadOnlyList<AnalysisSnapshot>, bool> fresh, ISemanticDocumentResultStore? cache = null, IReadOnlyDictionary<string, DocumentClassification?>? classifications = null,
                                       Func<Task<IReadOnlyList<AnalysisSnapshot>>>? loadSaved = null,
                                       Func<IReadOnlyList<AnalysisSnapshot>, Task<bool>>? verifyFresh = null,
-                                      AppearancePreference appearance = AppearancePreference.System)
+                                      AppearancePreference appearance = AppearancePreference.System,
+                                      Func<Action<string>, CancellationToken, Task<CpDocumentAnalysisClient>>? connect = null)
     {
         Title = "Reviewed semantic search and cross-document analysis";
         Width = 880;
@@ -20,6 +21,7 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
         MinHeight = 500;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var selectors = candidates.Select(source => new CheckBox { Content = source.ReferenceKey, Tag = source }).ToList();
+        if (selectors.Count > 0) selectors[0].IsChecked = true;
         Task<bool> FreshAsync(IReadOnlyList<AnalysisSnapshot> selected) => verifyFresh?.Invoke(selected) ?? Task.FromResult(fresh(selected));
         var review = new TextBox { Name = "CpWorkspaceSnapshotReview", IsReadOnly = true, AcceptsReturn = true, MinHeight = 120, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var question = new TextBox { Name = "CpSemanticQuery", PlaceholderText = "Explicit query or cross-document question" };
@@ -29,8 +31,8 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
         var addSaved = new Button { Name = "CpAddSavedSources", Content = "Add saved workspace documents for review", IsEnabled = loadSaved is not null };
         var sourceList = new StackPanel { Spacing = 6 };
         var build = new Button { Name = "CpSemanticBuild", Content = "Build reviewed semantic index" };
-        var search = new Button { Name = "CpSemanticSearch", Content = "Semantic search", IsEnabled = false };
-        var related = new Button { Content = "Related to first selected document", IsEnabled = false };
+        var search = new Button { Name = "CpSemanticSearch", Content = "Search selected documents", IsEnabled = candidates.Count > 0 };
+        var related = new Button { Content = "Related to first selected document", IsEnabled = candidates.Count > 0 };
         var analyze = new Button { Name = "CpAnalyzeReviewed", Content = "Analyze reviewed documents" };
         var cancel = new Button { Content = "Cancel request", IsEnabled = false };
         var clear = new Button { Name = "CpClearDerived", Content = "Clear derived index/results" };
@@ -50,9 +52,10 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
         void RefreshReview()
         {
             review.Text = string.Join("\n\n", Selected().Select(source => $"SOURCE {source.ReferenceKey}\nHASH {source.SourceHash}\n{source.Text}"));
-            search.IsEnabled = related.IsEnabled = index.AppliesTo(Selected());
+            search.IsEnabled = related.IsEnabled = Selected().Length > 0;
         }
         foreach (var selector in selectors) selector.IsCheckedChanged += (_, _) => RefreshReview();
+        RefreshReview();
         async Task RunAsync(Func<AnalysisSnapshot[], CancellationToken, Task> operation)
         {
             if (loadingSaved || cancellation is not null) return;
@@ -70,6 +73,8 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
             try
             {
                 if (!await FreshAsync(selected)) throw new InvalidOperationException("Sources changed or have external conflicts. Reopen to review fresh snapshots.");
+                if (client is null) client = await (connect ?? throw new InvalidOperationException("Use Advanced connection to configure CP."))(message => status.Text = message, cancellation.Token);
+                if (!await FreshAsync(selected)) throw new InvalidOperationException("Sources changed during setup. Reopen for their current text.");
                 await operation(selected, cancellation.Token);
             }
             catch (OperationCanceledException) { status.Text = "Cancelled; source retained. A partial index is never published."; }
@@ -84,20 +89,24 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
                 foreach (var selector in selectors) selector.IsEnabled = true;
                 question.IsEnabled = true;
                 cancel.IsEnabled = false;
-                search.IsEnabled = related.IsEnabled = index.AppliesTo(Selected());
+                search.IsEnabled = related.IsEnabled = Selected().Length > 0;
             }
         }
         build.Click += async (_, _) => await RunAsync(async (selected, token) =>
         {
             status.Text = "Submitting reviewed source sections for embeddings…";
-            await index.BuildAsync(client, selected, token, persistent.IsChecked == true ? cache : null);
+            await index.BuildAsync(client!, selected, token, persistent.IsChecked == true ? cache : null);
             status.Text = $"Index built: {index.Provider}/{index.Model}; digest {index.ModelRevision ?? "unavailable (no persistent reuse)"}; reused {index.ReusedSections} sections. {(await FreshAsync(selected) ? "Hashes current." : "STALE sources.")}";
         });
         async Task QueryAsync(bool relationships) => await RunAsync(async (selected, token) =>
         {
-            if (!index.AppliesTo(selected)) throw new InvalidOperationException("Reviewed source set changed; rebuild first.");
+            if (!index.AppliesTo(selected))
+            {
+                status.Text = "Preparing search for selected documents…";
+                await index.BuildAsync(client!, selected, token, persistent.IsChecked == true ? cache : null);
+            }
             var query = relationships ? selected[0].Text[..Math.Min(selected[0].Text.Length, 8000)] : question.Text ?? "";
-            var matches = await index.SearchAsync(client, query, relationships ? selected[0].ReferenceKey : null, token);
+            var matches = await index.SearchAsync(client!, query, relationships ? selected[0].ReferenceKey : null, token);
             results.ItemsSource = matches.Where(match =>
             {
                 var classification = classifications?.GetValueOrDefault(match.Section.DocumentKey);
@@ -110,7 +119,7 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
         related.Click += async (_, _) => await QueryAsync(true);
         analyze.Click += async (_, _) => await RunAsync(async (selected, token) =>
         {
-            var result = await client.GetInsightsAsync(selected, question.Text, token);
+            var result = await client!.GetInsightsAsync(selected, question.Text, token);
             answer.Text = AnalysisCitationPolicy.Report(result);
             citations.ItemsSource = AnalysisCitationPolicy.Resolve(result).Select(section => new SemanticMatch(section, 0)).ToArray();
             var resolvedCount = AnalysisCitationPolicy.Resolve(result).Count;
@@ -118,7 +127,7 @@ internal sealed class CpWorkspaceAnalysisWindow : Window
                         + (resolvedCount == 0 ? "No validated citations: answer is unverified; cited-source navigation is unavailable. " : $"{resolvedCount} validated citation ranges; review claim support yourself. ")
                         + "No source edits.";
         });
-        clear.Click += (_, _) => { index = new(); results.ItemsSource = null; citations.ItemsSource = null; answer.Text = ""; search.IsEnabled = related.IsEnabled = false; status.Text = "Derived session index and results discarded."; };
+        clear.Click += (_, _) => { index = new(); results.ItemsSource = null; citations.ItemsSource = null; answer.Text = ""; search.IsEnabled = related.IsEnabled = Selected().Length > 0; status.Text = "Derived session index and results discarded. Search prepares a fresh index when needed."; };
         clearCache.Click += async (_, _) =>
         {
             if (cache is null) return;

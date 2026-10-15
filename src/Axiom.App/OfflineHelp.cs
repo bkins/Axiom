@@ -41,7 +41,7 @@ internal static class OfflineHelp
 
     internal static string CommandTopic(string id) => id switch
     {
-        "document.cpAnalysis" or "help.cp" => "CP connection and reviewed analysis"
+        "document.cpAnalysis" or "document.cpEdits" or "document.cpConnection" or "help.cp" => "CP connection and reviewed analysis"
       , "workspace.cpAnalysis" or "help.semantic" => "Semantic search: step-by-step test"
       , "workspace.git" => "Discovery and embedded Git terminal"
       , "document.history" or "document.checkpoint" or "workspace.historySetup" => "Document history, comparison and restore"
