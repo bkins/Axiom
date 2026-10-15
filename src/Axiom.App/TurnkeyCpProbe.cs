@@ -20,6 +20,7 @@ internal static class TurnkeyCpProbe
         try
         {
             await main.StartupCompleted;
+            main.UnsavedChoiceForTesting = _ => Task.FromResult("Discard");
             var workspace=Path.Combine(Root!,"workspace"); Directory.CreateDirectory(workspace);
             var path=Path.Combine(workspace,"Trial.md"); const string saved="# Trial\nteh small bird.\n";
             await File.WriteAllTextAsync(path,saved); await main.SwitchWorkspaceAsync(workspace); await main.OpenDocumentAsync(path);

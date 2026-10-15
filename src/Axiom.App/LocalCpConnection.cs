@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -33,32 +34,49 @@ internal static class LocalCpConnection
             if (!script.StartsWith(AppContext.BaseDirectory, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("The local setup path leaves this package.");
             Verify(script, profile.SetupSha256);
             Verify(Path.GetFullPath(profile.BackendPath), profile.BackendSha256);
-            var resultFile = Path.Combine(Path.GetTempPath(), "Axiom-cp-setup-" + Guid.NewGuid().ToString("N") + ".json");
-            try
+            if (IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(listener => listener.Port == endpoint.Port))
+                throw new InvalidOperationException("A service already owns the configured CP port but did not authenticate correctly. It was not replaced. Use Advanced connection to inspect it.");
+            await EnsureOllamaAsync(progress, token);
+            var start = new ProcessStartInfo(profile.BackendPath) { WorkingDirectory = Path.GetDirectoryName(profile.BackendPath)!, UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden };
+            var settings = new Dictionary<string,string>
             {
-                var start = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe")) { UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden };
-                foreach (var argument in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-BackendPath", profile.BackendPath, "-ResultPath", resultFile, "-CredentialPath", profile.CredentialPath, "-SkipClipboard" }) start.ArgumentList.Add(argument);
-                using var process = Process.Start(start) ?? throw new InvalidOperationException("Local CP setup could not start.");
-                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-                timeout.CancelAfter(TimeSpan.FromMinutes(3));
-                try { await process.WaitForExitAsync(timeout.Token); }
-                catch (OperationCanceledException) { if (!process.HasExited) process.Kill(); token.ThrowIfCancellationRequested(); throw new InvalidOperationException("Local CP setup timed out. Retry when the service is ready."); }
-                if (process.ExitCode != 0)
-                {
-                    var reason = "startup failed";
-                    if (File.Exists(resultFile))
-                    {
-                        using var result = JsonDocument.Parse(await File.ReadAllTextAsync(resultFile, token));
-                        if (result.RootElement.TryGetProperty("FailureCode", out var code)) reason = code.GetString() switch { "credential_rejected" => "the saved credential was rejected", "unrelated_port_owner" => "another service owns the configured port", "wrong_model" => "the service uses another model", _ => "the service did not become ready" };
-                    }
-                    throw new InvalidOperationException("Local CP could not connect: " + reason + ". No document was submitted. Use Advanced connection for details.");
-                }
-                Validate(await client.GetCapabilitiesAsync(token), profile.Model);
-                return client;
+                ["ASPNETCORE_ENVIRONMENT"]="Development", ["ASPNETCORE_URLS"]=profile.Endpoint,
+                ["DocumentAnalysis__Enabled"]="true", ["DocumentAnalysis__ClientKeySha256"]=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(credential))),
+                ["DocumentAnalysis__TimeoutSeconds"]="120", ["LlmClient__Provider"]="Ollama", ["LlmClient__Endpoint"]="http://localhost:11434",
+                ["LlmClient__DefaultModel"]=profile.Model, ["LlmClient__Timeout"]="120", ["Embedding__OllamaBaseUrl"]="http://localhost:11434", ["Embedding__EmbeddingModel"]="nomic-embed-text:latest"
+            };
+            foreach(var setting in settings) start.Environment[setting.Key]=setting.Value;
+            start.Environment.TryGetValue("NO_PROXY",out var bypass);
+            start.Environment["NO_PROXY"]=(bypass??"")+",localhost,127.0.0.1";
+            start.Environment["no_proxy"]=start.Environment["NO_PROXY"];
+            using var process=Process.Start(start)??throw new InvalidOperationException("Local CP could not start.");
+            var deadline=DateTime.UtcNow.AddMinutes(2);
+            while(DateTime.UtcNow<deadline)
+            {
+                token.ThrowIfCancellationRequested();
+                if(process.HasExited)throw new InvalidOperationException("Local CP exited during initialization. No document was submitted.");
+                using var attempt=CancellationTokenSource.CreateLinkedTokenSource(token); attempt.CancelAfter(TimeSpan.FromSeconds(3));
+                try{Validate(await client.GetCapabilitiesAsync(attempt.Token),profile.Model);return client;}
+                catch(Exception error) when(!token.IsCancellationRequested && error is InvalidOperationException or OperationCanceledException or HttpRequestException){}
+                await Task.Delay(250,token);
             }
-            finally { if (File.Exists(resultFile)) File.Delete(resultFile); }
+            throw new InvalidOperationException("Local CP did not become ready. Retry; source is unchanged.");
         }
         catch { client.Dispose(); throw; }
+    }
+
+    private static async Task EnsureOllamaAsync(Action<string> progress, CancellationToken token)
+    {
+        using var http=new HttpClient(new HttpClientHandler{UseProxy=false}){Timeout=TimeSpan.FromSeconds(3)};
+        async Task<bool> Ready(){try{using var response=await http.GetAsync("http://127.0.0.1:11434/api/tags",token);return response.IsSuccessStatusCode;}catch(HttpRequestException){return false;}catch(OperationCanceledException)when(!token.IsCancellationRequested){return false;}}
+        if(await Ready())return;
+        if(IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(listener=>listener.Port==11434))throw new InvalidOperationException("The local model service is unavailable; its port was left unchanged.");
+        var executable=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","Ollama","ollama.exe");
+        if(!File.Exists(executable))throw new InvalidOperationException("Install/configure Ollama before using local CP. No model was downloaded.");
+        progress("Starting the installed local model service…");
+        using var process=Process.Start(new ProcessStartInfo(executable,"serve"){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden});
+        for(var attempt=0;attempt<40;attempt++){if(await Ready())return;await Task.Delay(250,token);}
+        throw new InvalidOperationException("The local model service did not become ready. Retry; source is unchanged.");
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -72,7 +90,7 @@ internal static class LocalCpConnection
     }
     private static void Validate(Axiom.Core.AnalysisCapabilities capabilities, string model)
     {
-        if (capabilities.Simulated || !capabilities.InsightsConfigured || !capabilities.EmbeddingsConfigured || capabilities.InsightsModel != model)
+        if (capabilities.Simulated || !capabilities.InsightsConfigured || !capabilities.EmbeddingsConfigured || capabilities.InsightsModel != model || capabilities.Availability != "catalog_model_present")
             throw new InvalidOperationException("The configured CP models are not ready. No document was submitted.");
     }
     private static void Verify(string path, string expected)
