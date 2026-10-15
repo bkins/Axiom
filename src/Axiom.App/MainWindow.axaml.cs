@@ -472,8 +472,6 @@ public partial class MainWindow : Window
             {
                 if (_folder is not null && IsWithinFolder(session.Path, _folder))
                     await LoadFolderAsync(_folder);
-                else if (_activeWorkspace is null && Path.GetDirectoryName(session.Path) is { } savedFolder)
-                    await LoadFolderAsync(savedFolder);
             }
             return true;
         }

@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 8B2B1197192A6E9DD785DD1C2753F4B47E45E2175D6720B614918820F537B6CD. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: AA84B2DEA14C06F0DD20818D84A7601082714FB72ED71461F259FFC6076141EA. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -7,7 +7,7 @@ Current feature guidance for the Windows application. Help describes available b
 
 ## Create documents and workspaces
 
-**New Markdown document** (Ctrl+N or the plus toolbar button) opens a new unsaved document whether or not a workspace is open. It brings the editor into view even when you were reading another file. Type normally, then use Save or Save As to choose any `.md` location. A workspace is optional; creating a draft does not create a file until you Save. Existing tabs and their unsaved text stay open. If a workspace is active, the selected folder is the initial Save location; you can choose a different folder.
+**New Markdown document** (Ctrl+N or the plus toolbar button) opens a new unsaved document whether or not a workspace is open. It brings the editor into view even when you were reading another file. Type normally, then use Save or Save As to choose any `.md` location. A workspace is optional; creating a draft does not create a file until you Save. Saving a standalone document does not automatically make its folder a workspace. Existing tabs and their unsaved text stay open. If a workspace is active, the selected folder is the initial Save location; you can choose a different folder.
 
 Choose **File → New Workspace…**, or **New Workspace…** in the empty Workspace Files panel. Enter a name and a location, use Browse if needed, then **Create Workspace**. Axiom creates an empty folder and opens and remembers it as a workspace. Existing folders are opened through Open Workspace; a name that already exists is refused. Unsaved-document and pending-metadata choices still apply when switching. If you cancel that switch after creating the folder, the folder remains created and your current workspace/documents remain active; the status explains this. Cancelling the creation form before Create makes no folder. Use New Markdown document to start writing inside the new workspace.
 
