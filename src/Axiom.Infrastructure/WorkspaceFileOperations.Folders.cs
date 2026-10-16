@@ -67,7 +67,7 @@ public sealed partial class WorkspaceFileOperations
         return $"Reconciled folder move: {(applied ? "filesystem change present" : "source retained")}: {intent.DestinationPath}";
     }
 
-    private static async Task<string> HashFolderAsync(string root, CancellationToken cancellationToken)
+    internal static async Task<string> HashFolderAsync(string root, CancellationToken cancellationToken)
     {
         if (!Directory.Exists(root)) throw new DirectoryNotFoundException("The source folder is missing.");
         var entries = new List<string>();

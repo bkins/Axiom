@@ -165,6 +165,16 @@ public sealed partial class WorkspaceFileOperations(IDocumentMutationStore state
         var results = new List<string>();
         foreach (var intent in await state.GetPendingMutationsAsync(cancellationToken))
         {
+            if (intent.Kind == DocumentMutationKind.CopyFolder)
+            {
+                ValidateAncestors(intent.RootPath, intent.DestinationPath!, false);
+                var copied = Directory.Exists(intent.DestinationPath) && await HashFolderAsync(intent.DestinationPath!, cancellationToken) == intent.ExpectedHash;
+                if (Directory.Exists(intent.DestinationPath) && !copied || File.Exists(intent.DestinationPath))
+                { results.Add("Needs inspection: copied folder changed. " + intent.DestinationPath); continue; }
+                await state.ReconcileMutationAsync(intent, copied, cancellationToken);
+                results.Add("Reconciled folder copy: " + (copied ? "verified copy present" : "no copy published"));
+                continue;
+            }
             if (intent.Kind == DocumentMutationKind.MoveFolder)
             {
                 results.Add(await ReconcileFolderMoveAsync(intent, cancellationToken));

@@ -36,6 +36,9 @@ public partial class MainWindow
     {
         FileTree.SelectionChanged += (_, _) => UpdateSelectionCount();
         FileTree.AddHandler(KeyDownEvent, WorkspaceSelectionKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        foreach (var (id, title, action) in new[] { ("rename", "Rename selected workspace items", "Rename"), ("copy", "Copy selected workspace folder", "Copy folder"), ("export", "Export selected workspace documents", "Export") })
+            RegisterCommand("workspace.batch." + id, title, null, true, (_, _) => RunNextWorkspaceToolAsync(action),
+                _ => new(_activeWorkspace is not null && SelectedWorkspaceItems().Length > 0 && (id != "copy" || SelectedWorkspaceItems() is [{ IsDocument: false }]), "Select workspace items; folder copy requires exactly one folder."));
         RegisterCommand("workspace.copyPath", "Copy workspace item path", null, false, async (context, _) =>
         {
             if (Clipboard is null || ExplorerCommandPath(context) is not { } path) return new(CommandOutcome.Unavailable, "Select a saved workspace item first.");
@@ -117,6 +120,11 @@ public partial class MainWindow
                 entry.Click += async (_, _) => await RunSelectedItemsAsync(action);
                 menu.Items.Add(entry);
             }
+            foreach (var action in new[] { "Rename", "Export" })
+            {
+                var entry = new MenuItem { Header = action + " selected…" };
+                entry.Click += async (_, _) => await ExecuteCommandAsync("workspace.batch." + action.ToLowerInvariant()); menu.Items.Add(entry);
+            }
             menu.Open(item ?? (Control)FileTree); args.Handled = true; return;
         }
         var context = CaptureCommandContext() with { ExplorerRelativePath = node.RelativePath, ExplorerIsFolder = !node.IsDocument && node.Heading is null };
@@ -146,7 +154,7 @@ public partial class MainWindow
     private ContextMenu BuildWorkspaceContextMenu(CommandContext context, bool tab)
     {
         var ids = tab ? new[] { "document.close", "document.tabLeft", "document.tabRight", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.pinItem", "workspace.copyFile", "workspace.copyPath", "workspace.showInExplorer" }
-            : new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.manage.recycle", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.copyPath", "workspace.showInExplorer", "workspace.showFolderInExplorer" };
+            : new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.manage.recycle", "workspace.batch.copy", "workspace.batch.rename", "workspace.batch.export", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.copyPath", "workspace.showInExplorer", "workspace.showFolderInExplorer" };
         var menu = new ContextMenu();
         foreach (var id in ids)
         {

@@ -263,6 +263,9 @@
                     <Button Content="Open selected" Click="WorkspaceBatchOpen_OnClick" />
                     <Button Content="Move selected…" Click="WorkspaceBatchMove_OnClick" />
                     <Button Content="Recycle selected…" Click="WorkspaceBatchRecycle_OnClick" />
+                    <Button Content="Rename selected…" Click="WorkspaceRenameSelected_OnClick" />
+                    <Button Content="Copy folder…" Click="WorkspaceCopyFolder_OnClick" />
+                    <Button Content="Export selected…" Click="WorkspaceExportSelected_OnClick" />
                   </WrapPanel>
                 </StackPanel>
                 <TreeView x:Name="FileTree" SelectionMode="Multiple" AutomationProperties.Name="Markdown files" ContextRequested="Explorer_OnContextRequested" DoubleTapped="FileTree_OnDoubleTapped" PointerReleased="FileTree_OnPointerReleased" KeyDown="FileTree_OnKeyDown">

@@ -67,6 +67,17 @@ public sealed partial class SqliteStateStore
         command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
         if (applied)
         {
+            if (intent.Kind == DocumentMutationKind.CopyFolder)
+            {
+                foreach (var path in (await new FileDocumentStore().ListMarkdownFilesAsync(intent.DestinationPath!, cancellationToken)).Files)
+                {
+                    if (DocumentIdCodec.Find(MarkdownIdentityBytes.Decode(await File.ReadAllBytesAsync(path, cancellationToken))) is not { } copiedId) continue;
+                    await using var insert = connection.CreateCommand(); insert.Transaction = transaction;
+                    insert.CommandText = "INSERT OR IGNORE INTO DocumentMetadata(DocumentId,FilePath,LastSeenUtc) VALUES($id,$path,$now);";
+                    insert.Parameters.AddWithValue("$id", copiedId.ToString("D")); insert.Parameters.AddWithValue("$path", path); insert.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+                    await insert.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
             if (intent.Kind is DocumentMutationKind.MoveFolder or DocumentMutationKind.Move or DocumentMutationKind.Rename or DocumentMutationKind.ExternalMove)
                 await RebindFolderStateAsync(connection, transaction, intent, cancellationToken);
             if (intent.Kind is DocumentMutationKind.Move or DocumentMutationKind.Rename or DocumentMutationKind.Recycle or DocumentMutationKind.ExternalMove)

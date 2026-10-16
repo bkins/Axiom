@@ -12,6 +12,7 @@ internal static class Program
     {
         if (args.FirstOrDefault() == "--restore-state") return StateRestoreHelper.Run(args);
         if (args.FirstOrDefault() == "--workspace-safety-probe" && args.Length == 2) WorkspaceSafetyProbe.Configure(args[1]);
+        if (args.FirstOrDefault() == "--workspace-tools-probe" && args.Length == 2) WorkspaceToolsProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--state-restore-probe" && args.Length == 2) StateRestoreProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--external-opening-probe" && args.Length == 2) ExternalOpeningProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--creation-probe" && args.Length == 2) CreationProbe.Configure(args[1]);

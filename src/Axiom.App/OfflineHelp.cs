@@ -75,6 +75,7 @@ internal static class OfflineHelp
       , _ when id.StartsWith("metadata.", StringComparison.Ordinal) => "Document metadata and classification"
       , _ when id.StartsWith("relationship.", StringComparison.Ordinal) => "Explicit relationships"
       , _ when id.StartsWith("workspace.manage.", StringComparison.Ordinal) => "Manage documents and collections"
+      , _ when id.StartsWith("workspace.batch.", StringComparison.Ordinal) => "Workspace batch rename, folder copy and export"
       , _ when id.StartsWith("view.mode.", StringComparison.Ordinal) || id.StartsWith("view.appearance.", StringComparison.Ordinal) => "Toolbar and viewing modes"
       , _ when id.StartsWith("document.moveTab", StringComparison.Ordinal) => "Daily authoring: tab order, column selection and document details"
       , _ when id.StartsWith("document.", StringComparison.Ordinal) || id.StartsWith("editor.", StringComparison.Ordinal) => "Open and edit"

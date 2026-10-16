@@ -99,7 +99,7 @@ public partial class MainWindow
             }
             if (await ChoiceDialog.ShowAsync(this, action + " selected workspace items", string.Join("\n", nodes.Select(node => node.RelativePath)) +
                 (destination is null ? "" : "\nDestination: " + destination) +
-                "\n\nFolders include descendants; selected descendants are counted once. Items run in order and stop on cancellation or failure; earlier successful items remain completed. Moves each show their link-repair preview. Recycled files use Axiom recovery; recycled folders retain a verified ZIP under state Backups and can be restored through Windows Recycle Bin. Batch rename, folder copy and bulk export are unavailable.", "Continue", "Cancel") != "Continue")
+                "\n\nFolders include descendants; selected descendants are counted once. Items run in order and stop on cancellation or failure; earlier successful items remain completed. Moves each show their link-repair preview. Recycled files use Axiom recovery; recycled folders retain a verified ZIP under state Backups and can be restored through Windows Recycle Bin. Rename selected, Copy folder and Export selected have separate previews.", "Continue", "Cancel") != "Continue")
                 return new(CommandOutcome.Cancelled, "Batch cancelled.");
             var operations = new WorkspaceFileOperations(ManagementState, log: _log);
             foreach (var node in nodes)

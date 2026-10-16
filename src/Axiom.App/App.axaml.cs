@@ -92,6 +92,11 @@ public partial class App : Application
                 var window = (MainWindow)desktop.MainWindow;
                 window.Opened += async (_, _) => await WorkspaceSafetyProbe.StartAsync(window);
             }
+            if (WorkspaceToolsProbe.Root is not null)
+            {
+                var window = (MainWindow)desktop.MainWindow;
+                window.Opened += async (_, _) => await WorkspaceToolsProbe.StartAsync(window);
+            }
             if (StateRestoreProbe.Root is not null)
             {
                 var window = (MainWindow)desktop.MainWindow;

@@ -14,10 +14,10 @@ internal sealed class ChoiceDialog : Window
         SizeToContent = SizeToContent.Height;
         CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        var buttons = new WrapPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         foreach (var choice in choices)
         {
-            var button = new Button { Content = choice, MinWidth = 92 };
+            var button = new Button { Content = choice, MinWidth = 92, Margin = new Avalonia.Thickness(4) };
             button.Click += (_, _) => Close(choice);
             buttons.Children.Add(button);
         }

@@ -14,4 +14,5 @@ public enum DocumentMutationKind
   , Restore
   , MoveFolder
   , ExternalMove
+  , CopyFolder
 }
