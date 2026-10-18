@@ -122,8 +122,9 @@ public partial class MainWindow
                                 , bool mutatesFiles
                                 , Func<CommandContext, CancellationToken, Task<CommandResult>> execute
                                 , Func<CommandContext, CommandAvailability>? availability = null
-                                , bool isCancellationControl = false) =>
-        _commands.Register(new(id, title, shortcut, mutatesFiles, availability ?? (_ => CommandAvailability.Available), execute, isCancellationControl));
+                                , bool isCancellationControl = false
+                                , bool hiddenFromPalette = false) =>
+        _commands.Register(new(id, title, shortcut, mutatesFiles, availability ?? (_ => CommandAvailability.Available), execute, isCancellationControl, hiddenFromPalette));
 
     internal async Task<CommandResult> ExecuteCommandAsync(string id, CancellationToken cancellationToken = default)
         => await ExecuteCommandInContextAsync(id, CaptureCommandContext(), cancellationToken);

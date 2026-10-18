@@ -13,9 +13,12 @@ public sealed class SingleInstanceCoordinator : IDisposable
     private readonly CancellationTokenSource _shutdown = new();
     private Task? _listener;
     private bool _disposed;
+    private readonly string? _buildIdentity;
+    private sealed record ActivationRequest(string? Document, string? BuildIdentity);
 
-    public SingleInstanceCoordinator(string stateRoot)
+    public SingleInstanceCoordinator(string stateRoot, string? buildIdentity = null)
     {
+        _buildIdentity = buildIdentity;
         var canonical = Path.GetFullPath(stateRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         if (OperatingSystem.IsWindows()) canonical = canonical.ToUpperInvariant();
         var identity = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Environment.UserName + "|" + canonical)));
@@ -50,7 +53,19 @@ public sealed class SingleInstanceCoordinator : IDisposable
                 if (length is < 1 or > 32_768) continue;
                 var bytes = new byte[length];
                 await pipe.ReadExactlyAsync(bytes, timeout.Token);
-                var path = JsonSerializer.Deserialize<string>(bytes);
+                string? path;
+                if (_buildIdentity is null) path = JsonSerializer.Deserialize<string>(bytes);
+                else
+                {
+                    var request = JsonSerializer.Deserialize<ActivationRequest>(bytes);
+                    if (request?.BuildIdentity != _buildIdentity)
+                    {
+                        await pipe.WriteAsync(new byte[] { 2 }, timeout.Token);
+                        await pipe.FlushAsync(timeout.Token);
+                        continue;
+                    }
+                    path = request.Document;
+                }
                 if (path is not null && (!Path.IsPathFullyQualified(path) ||
                     Path.GetExtension(path).ToLowerInvariant() is not (".md" or ".markdown"))) continue;
                 activate(path);
@@ -73,7 +88,8 @@ public sealed class SingleInstanceCoordinator : IDisposable
             await using var pipe = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut,
                 PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
             await pipe.ConnectAsync(timeout.Token);
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(document);
+            var bytes = _buildIdentity is null ? JsonSerializer.SerializeToUtf8Bytes(document)
+                : JsonSerializer.SerializeToUtf8Bytes(new ActivationRequest(document, _buildIdentity));
             if (bytes.Length > 32_768) return false;
             await pipe.WriteAsync(BitConverter.GetBytes(bytes.Length), timeout.Token);
             await pipe.WriteAsync(bytes, timeout.Token);

@@ -134,6 +134,12 @@ public partial class MainWindow : Window
         };
         Preview.NavigationStarted += (_, args) =>
         {
+            if (args.Request is { Scheme: "axiom-task" } task)
+            {
+                args.Cancel = true;
+                Dispatcher.UIThread.Post(() => HandlePreviewTask(task));
+                return;
+            }
             if (args.Request is { Scheme: "axiom-view" } view)
             {
                 args.Cancel = true;
@@ -902,8 +908,10 @@ public partial class MainWindow : Window
         var normalized = Math.Clamp(ratio, 0, 1).ToString("R", CultureInfo.InvariantCulture);
         return $$"""
             (() => {
+              const taskFocus = document.activeElement?.matches?.('a.task-toggle') ? document.activeElement.dataset.taskOffset : null;
               const parsed = new DOMParser().parseFromString({{encodedHtml}}, 'text/html');
               document.documentElement.replaceWith(document.adoptNode(parsed.documentElement));
+              if (taskFocus !== null) [...document.querySelectorAll('a.task-toggle')].find(item => item.dataset.taskOffset === taskFocus)?.focus({preventScroll:true});
               const restore = () => {
                 if (document.documentElement.dataset.linkToken !== {{encodedToken}}) return;
                 const root = document.scrollingElement || document.documentElement;

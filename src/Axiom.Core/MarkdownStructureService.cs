@@ -132,6 +132,7 @@ public sealed class MarkdownStructureService
         if (linkToken is null) { renderer.Render(document.Syntax); return writer.ToString(); }
         renderer.ObjectRenderers.Remove(renderer.ObjectRenderers.FindExact<LinkInlineRenderer>()!);
         renderer.ObjectRenderers.Insert(0, new PreviewLinkRenderer(document, linkToken));
+        renderer.ObjectRenderers.Insert(0, new PreviewTaskRenderer(document, linkToken));
         foreach (var block in document.Syntax)
         {
             if (block is LinkReferenceDefinitionGroup || block.Span.Start < 0) continue;

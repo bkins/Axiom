@@ -42,6 +42,21 @@ internal static class NativeProbeInput
         }
         finally { SetCursorPos(previous.X,previous.Y); }
     }
+    internal static async Task ClickOwnedWebViewAsync(Control control, Point point)
+    {
+        var position = control.PointToScreen(point);
+        var target = WindowFromPoint(new NativeScreenPoint { X = position.X, Y = position.Y });
+        var owner = (TopLevel.GetTopLevel(control) as Window)?.TryGetPlatformHandle()?.Handle ?? 0;
+        if (owner == 0 || target == 0 || GetAncestor(target, 2) != owner)
+            throw new IOException("Native WebView probe refuses a pointer target outside its own window.");
+        GetCursorPos(out var previous);
+        try
+        {
+            SetCursorPos(position.X, position.Y);
+            mouse_event(2, 0, 0, 0, 0); await Task.Delay(60); mouse_event(4, 0, 0, 0, 0); await Task.Delay(160);
+        }
+        finally { SetCursorPos(previous.X, previous.Y); }
+    }
     internal static void Type(Window window, string text)
     {
         GetWindowThreadProcessId(GetForegroundWindow(),out var process);

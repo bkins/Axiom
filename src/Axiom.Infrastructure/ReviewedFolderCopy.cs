@@ -47,13 +47,21 @@ public sealed class ReviewedFolderCopy(SqliteStateStore state)
     {
         var current = await ReviewAsync(review.Workspace, Path.GetRelativePath(review.Workspace.RootPath, review.Source), Path.GetRelativePath(review.Workspace.RootPath, review.Destination), token);
         if (current.SourceHash != review.SourceHash || current.Files.Count != review.Files.Count || current.Files.Zip(review.Files).Any(pair => pair.First.Relative != pair.Second.Relative || !pair.First.Before.SequenceEqual(pair.Second.Before))) throw new IOException("Source changed since copy review. Nothing was copied.");
+        await PublishSnapshotAsync(review, token);
+    }
+
+    internal async Task PublishSnapshotAsync(FolderCopyReview review, CancellationToken token = default)
+    {
+        WorkspaceMutationPolicy.Resolve(review.Workspace.RootPath, Path.GetRelativePath(review.Workspace.RootPath, review.Destination), false);
+        WorkspaceFileOperations.ValidateAncestors(review.Workspace.RootPath, review.Destination);
+        if (File.Exists(review.Destination) || Directory.Exists(review.Destination)) throw new IOException("The destination already exists. Nothing was pasted.");
         var operation = Guid.NewGuid();
         var staging = review.Destination + ".axiom-copy-" + operation.ToString("N");
         var published = false; DocumentMutationIntent? intent = null;
         Directory.CreateDirectory(staging);
         try
         {
-            foreach (var directory in review.Directories) Directory.CreateDirectory(Path.Combine(staging, directory));
+            foreach (var directory in review.Directories) Directory.CreateDirectory(WorkspaceMutationPolicy.Resolve(staging, directory, false));
             foreach (var file in review.Files)
             {
                 token.ThrowIfCancellationRequested();

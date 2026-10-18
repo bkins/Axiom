@@ -24,7 +24,7 @@ public partial class MainWindow
             CommandResult result;
             if (action == "Rename")
             {
-                var template = await TextEntryDialog.ShowAsync(this, "Rename selected items", "Use {name} for the original name and {n} for a path-sorted sequence number. Markdown extensions are kept. Example: Notes-{n}-{name}. Destinations and link repairs are reviewed before changes.", "{name}-{n}");
+                var template = await TextEntryDialog.ShowAsync(this, "Rename", "Use {name} for the original name and {n} for a path-sorted sequence number. Markdown extensions are kept. Example: Notes-{n}-{name}. Destinations and link repairs are reviewed before changes.", "{name}-{n}");
                 result = template is null ? new(CommandOutcome.Cancelled, "Rename cancelled.") : await RenameWorkspaceSelectionAsync(nodes, template);
             }
             else if (action == "Copy folder")
@@ -35,9 +35,9 @@ public partial class MainWindow
             }
             else
             {
-                var format = await ChoiceDialog.ShowAsync(this, "Bulk export format", "Open documents use captured current buffers, including unsaved edits. Other selected documents use saved content. Source Markdown is never saved. Folder selections include Markdown descendants; paths are preserved in one new output folder.", "HTML", "DOCX", "TXT", "PDF", "EPUB", "ODT", "Cancel");
+                var format = await ChoiceDialog.ShowAsync(this, "Export format", "Open documents use captured current buffers, including unsaved edits. Other selected documents use saved content. Source Markdown is never saved. Folder selections include Markdown descendants; paths are preserved in one new output folder.", "HTML", "DOCX", "TXT", "PDF", "EPUB", "ODT", "Cancel");
                 if (format == "Cancel") return new(CommandOutcome.Cancelled, "Export cancelled.");
-                var parent = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Choose parent for new export folder", AllowMultiple = false });
+                var parent = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Export to folder", AllowMultiple = false });
                 if (parent.FirstOrDefault()?.TryGetLocalPath() is not { } folder) return new(CommandOutcome.Cancelled, "Export cancelled.");
                 var name = await TextEntryDialog.ShowAsync(this, "New export folder", "Enter a new folder name. Existing folders are never merged or overwritten.", "Axiom exports");
                 if (name is null) return new(CommandOutcome.Cancelled, "Export cancelled.");
@@ -47,7 +47,7 @@ public partial class MainWindow
             UpdateChrome(result.Message); return result;
         }
         catch (Exception error)
-        { await ChoiceDialog.ShowAsync(this, "Workspace tool stopped", error.Message, "OK"); return new(CommandOutcome.Failed, error.Message, error); }
+        { await ChoiceDialog.ShowAsync(this, "Action stopped", error.Message, "OK"); return new(CommandOutcome.Failed, error.Message, error); }
         finally
         { _workspaceBatchRunning = false; _mutationBlocked = new ReviewedWorkspaceMove(ManagementState).Pending || (await ManagementState.GetPendingMutationsAsync()).Count > 0; }
     }
@@ -56,7 +56,7 @@ public partial class MainWindow
     {
         var workspace = _activeWorkspace!;
         var plan = WorkspaceRenamePlan.Create(workspace.RootPath, nodes.Select(node => (node.RelativePath, !node.IsDocument)), template, path => File.Exists(path) || Directory.Exists(path));
-        if (await ChoiceDialog.ShowAsync(this, "Review batch rename", string.Join("\n", plan.Select(item => Path.GetRelativePath(workspace.RootPath, item.Source) + " → " + Path.GetFileName(item.Destination))) + "\n\nEach item has a separate move/link-repair review. Cancellation or failure stops later items; earlier successful renames remain completed. Source order is stable and extensions are retained.", "Continue", "Cancel") != "Continue") return new(CommandOutcome.Cancelled, "Rename cancelled.");
+        if (await ChoiceDialog.ShowAsync(this, "Rename files", string.Join("\n", plan.Select(item => Path.GetRelativePath(workspace.RootPath, item.Source) + " → " + Path.GetFileName(item.Destination))) + "\n\nEach item has a separate move/link-repair review. Cancellation or failure stops later items; earlier successful renames remain completed. Source order is stable and extensions are retained.", "Continue", "Cancel") != "Continue") return new(CommandOutcome.Cancelled, "Rename cancelled.");
         var completed = 0;
         foreach (var item in plan)
         {
@@ -99,7 +99,7 @@ public partial class MainWindow
         }
         var service = new WorkspaceBatchExport(PdfExportServiceFactory.Create(_operationalPaths.Root), _operationalPaths.Root);
         var review = service.Review(workspace.RootPath, snapshots, destination, extension);
-        if (await ChoiceDialog.ShowAsync(this, "Review selected export", "Output: " + destination + "\n" + string.Join("\n", review.Items.Select(item => Path.GetRelativePath(workspace.RootPath, item.Snapshot.SourcePath!) + " → " + item.RelativeOutput)) + "\n\nCaptured open buffers are included without saving. Publish the new folder only after all exports succeed.", "Export", "Cancel") != "Export") return new(CommandOutcome.Cancelled, "Export cancelled.");
+        if (await ChoiceDialog.ShowAsync(this, "Export files", "Output: " + destination + "\n" + string.Join("\n", review.Items.Select(item => Path.GetRelativePath(workspace.RootPath, item.Snapshot.SourcePath!) + " → " + item.RelativeOutput)) + "\n\nCaptured open buffers are included without saving. Publish the new folder only after all exports succeed.", "Export", "Cancel") != "Export") return new(CommandOutcome.Cancelled, "Export cancelled.");
         using var cancel = new CancellationTokenSource();
         _exportRunning = true; ExportProgressPanel.IsVisible = true; ExportCancelRequested = () => cancel.Cancel();
         try

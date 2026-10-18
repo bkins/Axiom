@@ -6,4 +6,5 @@ public sealed record AxiomCommand(string Id
                                 , bool MutatesFiles
                                 , Func<CommandContext, CommandAvailability> Availability
                                 , Func<CommandContext, CancellationToken, Task<CommandResult>> Execute
-                                , bool IsCancellationControl = false);
+                                , bool IsCancellationControl = false
+                                , bool HiddenFromPalette = false);

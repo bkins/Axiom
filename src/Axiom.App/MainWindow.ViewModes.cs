@@ -104,6 +104,9 @@ public partial class MainWindow
         await Preview.InvokeScript("""
             (() => { if (window.__axiomViewKeys) return; window.__axiomViewKeys = true;
                 window.addEventListener('keydown', event => {
+                    if (event.key === ' ' && !event.ctrlKey && !event.altKey && !event.metaKey && event.target.closest?.('a.task-toggle')) {
+                        event.preventDefault(); event.target.closest('a.task-toggle').click(); return;
+                    }
                     if (event.ctrlKey || event.altKey || event.metaKey || !['Escape','F11'].includes(event.key)) return;
                     const token = document.documentElement.dataset.linkToken;
                     if (!token) return;

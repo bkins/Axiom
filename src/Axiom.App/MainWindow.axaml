@@ -61,44 +61,43 @@
           <Button x:Name="FileCommandsButton" AutomationProperties.Name="File commands" ToolTip.Tip="File commands: Alt+F; Alt or F10 focuses this button">File…
             <Button.Flyout>
               <MenuFlyout>
-                <MenuItem Header="New Markdown Document    Ctrl+N" AutomationProperties.Name="New file" Click="New_OnClick" />
+                <MenuItem Header="New file    Ctrl+N" AutomationProperties.Name="New file" Click="New_OnClick" />
                 <MenuItem Header="New Workspace…" AutomationProperties.Name="Create new workspace" Click="NewWorkspace_OnClick" />
                 <MenuItem Header="Workspaces and navigation">
                   <MenuItem Header="Open Workspace…" AutomationProperties.Name="Open workspace" ToolTip.Tip="Open an existing Markdown workspace" Click="OpenFolder_OnClick" />
                   <MenuItem Header="Remembered Workspaces…" AutomationProperties.Name="Remembered workspaces" Click="WorkspaceCatalog_OnClick" />
-                  <MenuItem Header="Recent Documents…" Click="RecentDocuments_OnClick" />
+                  <MenuItem Header="Recent files…" Click="RecentDocuments_OnClick" />
                   <MenuItem Header="Command Palette…    Ctrl+Shift+P" Click="CommandPalette_OnClick" />
                   <MenuItem Header="Keyboard Shortcuts…" Click="ShortcutSettings_OnClick" />
                   <MenuItem Header="Refresh Workspace    F5" Click="RefreshWorkspace_OnClick" />
                 </MenuItem>
                 <MenuItem Header="History and recovery">
-                  <MenuItem Header="Document History…" Click="DocumentHistory_OnClick" />
+                  <MenuItem Header="History…" Click="DocumentHistory_OnClick" />
                   <MenuItem Header="Workspace Git…" Click="WorkspaceGit_OnClick" />
-                  <MenuItem Header="Recover Deleted Documents…" Click="DeletedDocuments_OnClick" />
-                  <MenuItem Header="Checkpoint Saved Document…" Click="HistoryCheckpoint_OnClick" />
+                  <MenuItem Header="Recover files…" Click="DeletedDocuments_OnClick" />
+                  <MenuItem Header="Checkpoint…" Click="HistoryCheckpoint_OnClick" />
                   <MenuItem Header="Set Up Git History…" Click="HistorySetup_OnClick" />
                 </MenuItem>
                 <MenuItem Header="Create and organize">
                   <MenuItem Header="New file from template…" Click="CreateFromTemplate_OnClick" />
                   <MenuItem Header="Import file…" Click="CopyIntoWorkspace_OnClick" />
-                  <MenuItem Header="Import Image into Workspace…" Click="ImportImage_OnClick" />
+                  <MenuItem Header="Import image…" Click="ImportImage_OnClick" />
                   <MenuItem Header="New Folder…" Tag="CreateFolder" Click="ManageDocument_OnClick" />
                   <MenuItem Header="Rename…" Tag="Rename" Click="ManageDocument_OnClick" />
                   <MenuItem Header="Move…" Tag="Move" Click="ManageDocument_OnClick" />
                   <MenuItem Header="Duplicate…" Tag="Duplicate" Click="ManageDocument_OnClick" />
                   <MenuItem Header="Recycle…" Tag="Recycle" Click="ManageDocument_OnClick" />
-                  <MenuItem Header="Bulk Make Axiom Documents…" Click="BulkEnroll_OnClick" />
+                  <MenuItem Header="Enroll files…" Click="BulkEnroll_OnClick" />
                 </MenuItem>
-                <MenuItem Header="Document">
-                  <MenuItem Header="Document Structure…" Click="DocumentStructure_OnClick" />
-                  <MenuItem Header="New" AutomationProperties.Name="New document" ToolTip.Tip="Create a new unsaved Markdown document" Click="New_OnClick" />
+                <MenuItem Header="File tools">
+                  <MenuItem Header="Structure…" Click="DocumentStructure_OnClick" />
                   <MenuItem Header="Close Tab    Ctrl+W" AutomationProperties.Name="Close current document tab" Click="CloseActiveTab_OnClick" />
-                  <MenuItem Header="Follow Markdown Link    Ctrl+Enter" AutomationProperties.Name="Follow Markdown link at editor caret" Click="FollowLink_OnClick" />
+                  <MenuItem Header="Follow link    Ctrl+Enter" AutomationProperties.Name="Follow Markdown link at editor caret" Click="FollowLink_OnClick" />
                   <MenuItem Header="Save" AutomationProperties.Name="Save document" ToolTip.Tip="Save the current Markdown document" Click="Save_OnClick" />
                   <MenuItem Header="Save All    Ctrl+Shift+S" AutomationProperties.Name="Save all open documents" ToolTip.Tip="Save changes in all open document tabs" Click="SaveAll_OnClick" />
                   <MenuItem Header="Save As…" AutomationProperties.Name="Save document as" ToolTip.Tip="Save to another Markdown file" Click="SaveAs_OnClick" />
                 </MenuItem>
-                <MenuItem Header="Export current buffer">
+                <MenuItem Header="Export">
                   <MenuItem Header="Word…" Tag="docx" Click="Export_OnClick" />
                   <MenuItem Header="HTML…" Tag="html" Click="Export_OnClick" />
                   <MenuItem Header="plain text…" Tag="txt" Click="Export_OnClick" />

@@ -95,7 +95,7 @@ public partial class MainWindow
         foreach (var id in new[] { "document.new", "workspace.create", "workspace.open", "workspace.catalog", "workspace.refresh", "workspace.createDocument", "workspace.manage.createfolder", "workspace.bulkEnroll", "help.workspace" })
         {
             var command = _commands.Commands.Single(command => command.Id == id);
-            var item = new MenuItem { Header = command.Title };
+            var item = new MenuItem { Header = WorkspaceActionTitle(id, CaptureCommandContext(), command.Title), Tag = id };
             item.Click += async (_, _) => await ExecuteCommandAsync(id);
             actions.Items.Add(item);
         }
@@ -103,7 +103,7 @@ public partial class MainWindow
         {
             foreach (var item in actions.Items.OfType<MenuItem>())
             {
-                var command = _commands.Commands.Single(command => command.Title == item.Header?.ToString());
+                var command = _commands.Commands.Single(command => command.Id == item.Tag?.ToString());
                 var available = _commands.GetAvailability(command.Id, CaptureCommandContext());
                 item.IsEnabled = available.Enabled;
                 ToolTip.SetTip(item, available.Reason);

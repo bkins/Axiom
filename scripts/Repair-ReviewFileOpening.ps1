@@ -21,14 +21,21 @@ $launcher = Join-Path $integration 'Open-AxiomFile.ps1'
 $quoteExe = $exe.Replace("'", "''")
 $quoteState = $state.Replace("'", "''")
 $quotePackage = $package.Replace("'", "''")
+$quoteVersion = ([string]$manifest.InformationalVersion).Replace("'", "''")
+$quoteDispatch = (Join-Path $integration 'last-open.json').Replace("'", "''")
 $body = @"
 param([Parameter(Mandatory)][string]`$Document)
 `$ErrorActionPreference = 'Stop'
 if (!(Test-Path -LiteralPath '$quoteExe' -PathType Leaf)) { throw 'The registered Axiom review build is missing. Repair the Axiom Open with registration.' }
+`$actualVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo('$quoteExe').ProductVersion
+if (`$actualVersion -ne '$quoteVersion') { throw 'The registered Axiom executable identity changed. Repair the Open with registration.' }
 `$env:AXIOM_STATE_ROOT = '$quoteState'
 `$path = [IO.Path]::GetFullPath(`$Document)
 if ([IO.Path]::GetExtension(`$path) -notin @('.md', '.markdown')) { throw 'Choose a Markdown file.' }
-Start-Process -FilePath '$quoteExe' -WorkingDirectory '$quotePackage' -ArgumentList @('"' + `$path.Replace('"', '') + '"')
+`$started = Start-Process -FilePath '$quoteExe' -WorkingDirectory '$quotePackage' -ArgumentList @('"' + `$path.Replace('"', '') + '"') -PassThru
+try {
+    [ordered]@{ Utc=[DateTime]::UtcNow.ToString('o'); Candidate='$quoteVersion'; ActualVersion=`$actualVersion; Executable='$quoteExe'; StateRoot='$quoteState'; StartedProcessId=`$started.Id } | ConvertTo-Json | Set-Content -LiteralPath '$quoteDispatch' -Encoding utf8
+} catch { }
 "@
 [IO.File]::WriteAllText($launcher, $body)
 $command = '"' + $env:SystemRoot + '\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $launcher + '" -Document "%1"'

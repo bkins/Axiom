@@ -11,6 +11,8 @@ internal static class Program
     public static int Main(string[] args)
     {
         if (args.FirstOrDefault() == "--restore-state") return StateRestoreHelper.Run(args);
+        if (args.FirstOrDefault() == "--next-ui-stories-probe" && args.Length == 2) NextUiStoriesProbe.Configure(args[1]);
+        if (args.FirstOrDefault() == "--registered-review-opening-probe" && args.Length == 2) NextUiStoriesProbe.Configure(args[1], true);
         if (args.FirstOrDefault() == "--workspace-safety-probe" && args.Length == 2) WorkspaceSafetyProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--workspace-tools-probe" && args.Length == 2) WorkspaceToolsProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--state-restore-probe" && args.Length == 2) StateRestoreProbe.Configure(args[1]);
@@ -55,11 +57,11 @@ internal static class Program
             MultiBufferRecoveryProbe.Configure(args[1], args.Length == 3 && args[2] == "--reading-mode");
         if (args.FirstOrDefault() is "--connected-documents-probe" or "--verify-connected-documents" && args.Length == 2)
             ConnectedDocumentsProbe.Configure(args[1], args[0] == "--verify-connected-documents");
-        using var instance = new SingleInstanceCoordinator(new AppDataPaths().Root);
+        using var instance = new SingleInstanceCoordinator(new AppDataPaths().Root, ApplicationBuildIdentity.FromAssembly(typeof(Program).Assembly).InformationalVersion);
         if (!instance.IsPrimary)
         {
             var forwarded = instance.ForwardAsync(StartupDocument).GetAwaiter().GetResult();
-            if (!forwarded) StartupFailure.Show("Axiom is already running with this application state. The existing instance did not respond; close it normally and retry. Your documents were not changed.");
+            if (!forwarded) StartupFailure.Show("Another Axiom build is already using this application state, or the running instance did not respond. Save and close it normally, then open the file again. The file was not sent to a different version and your documents were not changed.");
             return forwarded ? 0 : 1;
         }
         instance.Listen(App.RequestActivation);

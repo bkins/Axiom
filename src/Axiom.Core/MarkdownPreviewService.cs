@@ -82,6 +82,9 @@ public sealed partial class MarkdownPreviewService
             h3 { font-size: 1.24em; }
             p,ul,ol,blockquote,pre,table { margin-top: 0; margin-bottom: 1em; }
             li + li { margin-top: .22em; }
+            a.task-toggle { display: inline-flex; align-items: center; justify-content: center; width: 1.05em; height: 1.05em; margin-right: .35em; border: 1px solid var(--muted); border-radius: 3px; text-decoration: none; font-size: .9em; line-height: 1; vertical-align: middle; cursor: pointer; }
+            a.task-toggle[aria-checked="true"] { background: var(--accent); color: var(--page); border-color: var(--accent); }
+            a.task-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
             a { color: var(--accent); text-underline-offset: .16em; }
             a:hover { text-decoration-thickness: 2px; }
             code { font-family: "Cascadia Mono", Consolas, monospace; font-size: .92em; padding: .12em .32em; background: var(--surface); border-radius: 4px; }

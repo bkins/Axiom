@@ -109,10 +109,10 @@ public partial class MainWindow
                 };
                 suggestions.Items.Add(item);
             }
-            var ignore = new MenuItem { Header = "Ignore for this session" };
+            var ignore = new MenuItem { Header = "Ignore" };
             ignore.Click += (_, _) => { _ignoredSpelling.Add(issue.Word); ScheduleSpelling(); };
             suggestions.Items.Add(ignore);
-            var add = new MenuItem { Header = "Add to personal dictionary", IsEnabled = ManagementState is not null && _editorPreferences.PersonalWords.Length < 1000 };
+            var add = new MenuItem { Header = "Add to dictionary", IsEnabled = ManagementState is not null && _editorPreferences.PersonalWords.Length < 1000 };
             add.Click += async (_, _) =>
             {
                 try

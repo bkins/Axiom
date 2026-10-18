@@ -12,6 +12,7 @@ public partial class MainWindow
 {
     private byte[]? _copiedWorkspaceDocument;
     private string? _copiedWorkspaceName;
+    private FolderClipboardSnapshot? _copiedWorkspaceFolder;
 
     private WorkspaceExplorerNode? ExplorerCommandNode(CommandContext context)
     {
@@ -38,7 +39,7 @@ public partial class MainWindow
         FileTree.AddHandler(KeyDownEvent, WorkspaceSelectionKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         foreach (var (id, title, action) in new[] { ("rename", "Rename…", "Rename"), ("copy", "Copy folder…", "Copy folder"), ("export", "Export…", "Export") })
             RegisterCommand("workspace.batch." + id, title, null, true, (_, _) => RunNextWorkspaceToolAsync(action),
-                _ => new(_activeWorkspace is not null && SelectedWorkspaceItems().Length > 0 && (id != "copy" || SelectedWorkspaceItems() is [{ IsDocument: false }]), "Select workspace items; folder copy requires exactly one folder."));
+                _ => new(_activeWorkspace is not null && SelectedWorkspaceItems().Length > 0 && (id != "copy" || SelectedWorkspaceItems() is [{ IsDocument: false }]), "Select workspace items; folder copy requires exactly one folder."), hiddenFromPalette: id == "copy");
         RegisterCommand("workspace.copyPath", "Copy path", null, false, async (context, _) =>
         {
             if (Clipboard is null || ExplorerCommandPath(context) is not { } path) return new(CommandOutcome.Unavailable, "Select a saved workspace item first.");
@@ -72,37 +73,78 @@ public partial class MainWindow
             await RefreshPinsAsync();
             return new(CommandOutcome.Completed, "Selected file pin updated.");
         }, context => new(ExplorerCommandNode(context)?.IsDocument == true, "Select a workspace file."));
-        RegisterCommand("workspace.copyFile", "Copy", null, false, async (context, cancellation) =>
+        RegisterCommand("workspace.copyFile", "Copy", null, false, CopyWorkspaceItemAsync,
+            context => new(ExplorerCommandNode(context) is not null && SelectedWorkspaceItems().Length <= 1, "Choose one file or folder."));
+        RegisterCommand("workspace.pasteFile", "Paste", null, true, PasteWorkspaceItemAsync,
+            context => new(context.WorkspaceId == _activeWorkspace?.WorkspaceId && _activeWorkspace is not null &&
+                (_copiedWorkspaceDocument is not null || _copiedWorkspaceFolder is not null), "Copy a file or folder in Axiom first."));
+    }
+
+    private async Task<CommandResult> CopyWorkspaceItemAsync(CommandContext context, CancellationToken cancellation)
+    {
+        var path = ExplorerCommandPath(context);
+        var node = ExplorerCommandNode(context);
+        if (path is null || node is null || _activeWorkspace is null || ManagementState is null || SelectedWorkspaceItems().Length > 1)
+            return new(CommandOutcome.Unavailable, "Choose a file or folder.");
+        if (!node.IsDocument)
         {
-            var path = ExplorerCommandPath(context);
-            if (path is null || _activeWorkspace is null || ManagementState is null || ExplorerCommandNode(context)?.IsDocument != true)
-                return new(CommandOutcome.Unavailable, "Select a workspace file.");
+            var snapshot = await new WorkspaceFolderClipboard(ManagementState).CaptureAsync(_activeWorkspace, node.RelativePath, cancellation);
+            _copiedWorkspaceFolder = snapshot;
+            _copiedWorkspaceDocument = null;
+        }
+        else
+        {
             WorkspaceFileOperations.ValidateAncestors(_activeWorkspace.RootPath, path);
-            _copiedWorkspaceDocument = await new WorkspaceImportService(new WorkspaceFileOperations(ManagementState)).ReviewAsync(path, false, cancellation);
-            _copiedWorkspaceName = Path.GetFileName(path);
-            UpdateChrome("Saved file copied for Paste file in Axiom. Unsaved editor changes are not included.");
-            return new(CommandOutcome.Completed, "Saved file snapshot copied for Axiom paste.");
-        }, context => new(ExplorerCommandNode(context)?.IsDocument == true, "Select a workspace file."));
-        RegisterCommand("workspace.pasteFile", "Paste…", null, true, async (context, cancellation) =>
+            var bytes = await new WorkspaceImportService(new WorkspaceFileOperations(ManagementState)).ReviewAsync(path, false, cancellation);
+            _copiedWorkspaceDocument = bytes;
+            _copiedWorkspaceFolder = null;
+        }
+        _copiedWorkspaceName = Path.GetFileName(path);
+        UpdateChrome("Copied saved content. Unsaved edits are not included.");
+        return new(CommandOutcome.Completed, "Saved snapshot copied for Paste.");
+    }
+
+    private async Task<CommandResult> PasteWorkspaceItemAsync(CommandContext context, CancellationToken cancellation)
+    {
+        var bytes = _copiedWorkspaceDocument;
+        var snapshot = _copiedWorkspaceFolder;
+        var name = _copiedWorkspaceName;
+        if (_activeWorkspace is not { } workspace || context.WorkspaceId != workspace.WorkspaceId || ManagementState is null ||
+            name is null || bytes is null && snapshot is null || _workspaceBatchRunning)
+            return new(CommandOutcome.Unavailable, "Copy a file or folder first and finish the current operation.");
+        _workspaceBatchRunning = true;
+        try
         {
-            if (_activeWorkspace is not { } workspace || context.WorkspaceId != workspace.WorkspaceId || ManagementState is null || _copiedWorkspaceDocument is null || _copiedWorkspaceName is null)
-                return new(CommandOutcome.Unavailable, "Copy a saved file in Axiom first.");
             var node = ExplorerCommandNode(context);
             var folder = node is null ? "" : node.IsDocument ? Path.GetDirectoryName(node.RelativePath) ?? "" : node.RelativePath;
-            var relative = await TextEntryDialog.ShowAsync(this, "Paste file", "Choose a workspace-relative destination. Existing targets are never overwritten. A copied Axiom document receives a distinct identity.", Path.Combine(folder, _copiedWorkspaceName));
-            if (relative is null) return new(CommandOutcome.Cancelled, "File paste cancelled.");
-            var destination = WorkspaceMutationPolicy.Resolve(workspace.RootPath, relative);
-            if (await ChoiceDialog.ShowAsync(this, "Confirm file paste", "Create a copy of the saved snapshot at " + destination + "?", "Paste", "Cancel") != "Paste")
-                return new(CommandOutcome.Cancelled, "File paste cancelled.");
-            try
+            var relative = await TextEntryDialog.ShowAsync(this, "Paste", "Choose a new location in this workspace. Existing files and folders are not replaced.", Path.Combine(folder, name));
+            if (relative is null) return new(CommandOutcome.Cancelled, "Paste cancelled.");
+            if (snapshot is not null)
             {
-                await new WorkspaceImportService(new WorkspaceFileOperations(ManagementState, log: _log)).CopyReviewedAsync(workspace, relative, _copiedWorkspaceDocument, false, cancellation);
-                await RefreshWorkspaceTreeAsync();
-                return new(CommandOutcome.Completed, "Saved file copied; existing tabs and files retained.");
+                var service = new WorkspaceFolderClipboard(ManagementState);
+                var review = service.Review(snapshot, workspace, relative);
+                var message = $"To: {review.Destination}\n{review.Files.Count} files; {review.Directories.Count} folders.\nCopied files get fresh identities; internal links follow the copy.\n\n" + string.Join("\n", review.Warnings.Distinct());
+                if (await ChoiceDialog.ShowAsync(this, "Paste folder", message, "Paste", "Cancel") != "Paste") return new(CommandOutcome.Cancelled, "Paste cancelled.");
+                await service.ApplyAsync(review, cancellation);
             }
-            finally { _mutationBlocked = (await ManagementState.GetPendingMutationsAsync()).Count > 0; }
-        }, context => new(context.WorkspaceId == _activeWorkspace?.WorkspaceId && _activeWorkspace is not null && _copiedWorkspaceDocument is not null, "Copy a saved file in Axiom first."));
+            else
+            {
+                var destination = WorkspaceMutationPolicy.Resolve(workspace.RootPath, relative);
+                if (await ChoiceDialog.ShowAsync(this, "Paste file", "Create the saved copy at " + destination + "?", "Paste", "Cancel") != "Paste") return new(CommandOutcome.Cancelled, "Paste cancelled.");
+                await new WorkspaceImportService(new WorkspaceFileOperations(ManagementState, log: _log)).CopyReviewedAsync(workspace, relative, bytes!, false, cancellation);
+            }
+            await RefreshWorkspaceTreeAsync();
+            return new(CommandOutcome.Completed, "Pasted the saved snapshot. Originals and unsaved edits retained.");
+        }
+        finally
+        {
+            _workspaceBatchRunning = false;
+            _mutationBlocked = new ReviewedWorkspaceMove(ManagementState).Pending || (await ManagementState.GetPendingMutationsAsync()).Count > 0;
+            RefreshWorkspaceActions();
+        }
     }
+
+    internal FolderClipboardSnapshot? FolderClipboardForTesting => _copiedWorkspaceFolder;
 
     private void Explorer_OnContextRequested(object? sender, ContextRequestedEventArgs args)
     {
@@ -154,13 +196,13 @@ public partial class MainWindow
     private ContextMenu BuildWorkspaceContextMenu(CommandContext context, bool tab)
     {
         var ids = tab ? new[] { "document.close", "document.tabLeft", "document.tabRight", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.pinItem", "workspace.copyFile", "workspace.copyPath", "workspace.showInExplorer" }
-            : new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.manage.recycle", "workspace.batch.copy", "workspace.batch.export", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.copyPath", "workspace.showInExplorer" };
+            : new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.manage.recycle", "workspace.batch.export", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.copyPath", "workspace.showInExplorer" };
         var menu = new ContextMenu();
         foreach (var id in ids)
         {
             var command = _commands.Commands.Single(command => command.Id == id);
             var availability = _commands.GetAvailability(id, context);
-            if (id == "workspace.batch.copy" && !context.ExplorerIsFolder || id == "workspace.copyFile" && context.ExplorerIsFolder || id == "workspace.pinItem" && context.ExplorerIsFolder) continue;
+            if (id == "workspace.pinItem" && context.ExplorerIsFolder) continue;
             var item = new MenuItem { Header = WorkspaceActionTitle(id, context, command.Title), IsEnabled = availability.Enabled };
             if (!availability.Enabled) ToolTip.SetTip(item, availability.Reason);
             item.Click += async (_, _) => await ExecuteCommandInContextAsync(id, context);
@@ -172,6 +214,13 @@ public partial class MainWindow
     private string WorkspaceActionTitle(string id, CommandContext context, string fallback) => id switch
     {
         "document.new" => "New file…",
+        "workspace.create" => "New workspace…",
+        "workspace.open" => "Open workspace…",
+        "workspace.catalog" => "Switch workspace…",
+        "workspace.refresh" => "Refresh",
+        "workspace.createDocument" => "New from template…",
+        "workspace.bulkEnroll" => "Enroll files…",
+        "help.workspace" => "Help",
         "workspace.pinItem" => _workspacePins.Any(pin => pin.RelativePath.Equals(ExplorerCommandNode(context)?.RelativePath, WorkspacePathBoundary.Comparison)) ? "Unpin" : "Pin",
         _ => fallback
     };
@@ -226,7 +275,7 @@ public partial class MainWindow
             open.Click += async (_, _) => await RunSelectedItemsAsync("Open");
             WorkspaceContextActions.Children.Add(open);
         }
-        foreach (var id in new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.batch.copy", "workspace.batch.export" })
+        foreach (var id in new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.batch.export" })
         {
             if (!_commands.Commands.Any(command => command.Id == id) || !_commands.GetAvailability(id, context).Enabled) continue;
             var command = _commands.Commands.Single(command => command.Id == id);

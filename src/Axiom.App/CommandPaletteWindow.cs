@@ -26,7 +26,7 @@ internal sealed class CommandPaletteWindow : Window
         void Refresh()
         {
             var query = search.Text?.Trim() ?? "";
-            results.ItemsSource = commands.Commands.Where(command => command.Title.Contains(query, StringComparison.OrdinalIgnoreCase) || command.Id.Contains(query, StringComparison.OrdinalIgnoreCase))
+            results.ItemsSource = commands.Commands.Where(command => !command.HiddenFromPalette && (command.Title.Contains(query, StringComparison.OrdinalIgnoreCase) || command.Id.Contains(query, StringComparison.OrdinalIgnoreCase)))
                 .Select(command =>
                 {
                     var availability = commands.GetAvailability(command.Id, context);
