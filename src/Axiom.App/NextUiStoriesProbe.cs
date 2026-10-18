@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Axiom.Core;
@@ -121,14 +122,28 @@ internal static class NextUiStoriesProbe
 
     private static async Task CheckRegisteredOpening(MainWindow window)
     {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         var path = Path.Combine(Root!, "Opening check [literal] & sample.md");
         const string text = "# Disposable Windows opening check\n";
         await File.WriteAllTextAsync(path, text);
-        using var shell = Process.Start(new ProcessStartInfo(path) { UseShellExecute = true, ErrorDialog = false });
+        using var choice = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.md\UserChoice");
+        var program = choice?.GetValue("ProgId") as string;
+        var defaultIsAxiom = program is "Axiom.Review.Markdown" or @"Applications\Axiom.App.exe";
+        void Open()
+        {
+            if (defaultIsAxiom) { using var process = Process.Start(new ProcessStartInfo(path) { UseShellExecute = true, ErrorDialog = false }); }
+            else
+            {
+                var shell = new ShellOpen { Size=Marshal.SizeOf<ShellOpen>(), Mask=0x441, Verb="open", File=path, Class="Axiom.Review.Markdown", Show=1 };
+                if (!ShellExecuteEx(ref shell)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                if (shell.Process != 0) CloseHandle(shell.Process);
+            }
+        }
+        Open();
         await Wait(() => Task.FromResult(window.TabsForTesting.Any(tab => tab.Session.Path == path)), 600);
         Require(window.EditorTextForTesting == text, "Shell-open document was not received.");
         window.SetEditorTextForTesting(text + "Unsaved opening check");
-        using var repeat = Process.Start(new ProcessStartInfo(path) { UseShellExecute = true, ErrorDialog = false });
+        Open();
         await Task.Delay(2000);
         Require(window.TabsForTesting.Count(tab => tab.Session.Path == path) == 1 && window.EditorTextForTesting.EndsWith("Unsaved opening check", StringComparison.Ordinal), "Shell repeat changed the dirty buffer.");
         var dispatch = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Axiom", "ReviewOpenWith", "last-open.json");
@@ -137,12 +152,30 @@ internal static class NextUiStoriesProbe
         Require(await File.ReadAllTextAsync(path) == text, "Shell opening saved source.");
         await File.WriteAllTextAsync(Path.Combine(Root!, "result.json"), JsonSerializer.Serialize(new
         {
-            Version = window.BuildIdentityForTesting.InformationalVersion, ActualWindowsShellAssociation = true,
+            Version = window.BuildIdentityForTesting.InformationalVersion, ExplicitWindowsAxiomAssociation = true,
             RealRegisteredWrapper = true, ExactRunningVersion = true, LiteralSpacedDocumentArgument = true,
             RepeatRetainsDirtyBufferAndSingleTab = true, SavedSourceRetained = true,
+            DefaultDoubleClickVerified = defaultIsAxiom, SavedDefaultProgId = program,
             UsedFreshCandidateReviewState = true, DefaultChoiceModified = false, HumanAcceptance = false
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
+
+    [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+    private struct ShellOpen
+    {
+        public int Size; public uint Mask; public nint Window;
+        [MarshalAs(UnmanagedType.LPWStr)] public string? Verb;
+        [MarshalAs(UnmanagedType.LPWStr)] public string? File;
+        [MarshalAs(UnmanagedType.LPWStr)] public string? Parameters;
+        [MarshalAs(UnmanagedType.LPWStr)] public string? Directory;
+        public int Show; public nint Instance; public nint IdList;
+        [MarshalAs(UnmanagedType.LPWStr)] public string? Class;
+        public nint ClassKey; public uint HotKey; public nint Icon; public nint Process;
+    }
+    [DllImport("shell32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+    private static extern bool ShellExecuteEx(ref ShellOpen info);
+    [DllImport("kernel32.dll")]
+    private static extern bool CloseHandle(nint handle);
 
     private static async Task Wait(Func<Task<bool>> condition, int attempts = 300)
     {
