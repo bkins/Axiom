@@ -87,7 +87,17 @@ $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -En
 
 
 if ($UpdateReviewFileOpening) {
-    $integration = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Axiom/ReviewOpenWith'
+    # Packaged hosts can redirect LocalAppData into their private cache, making
+    # the apparent path invisible to Explorer. Prefer the shared stable opener.
+    $integration = Join-Path $PSScriptRoot '../tools/WindowsFileOpening'
+    if (!(Test-Path -LiteralPath (Join-Path $integration 'registration.json'))) {
+        $integration = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Axiom/ReviewOpenWith'
+    }
     if (!(Test-Path -LiteralPath (Join-Path $integration 'registration.json'))) { throw 'No existing review-file registration to update. Use an explicit first-time repair instead.' }
-    & (Join-Path $PSScriptRoot 'Repair-ReviewFileOpening.ps1') -PackagePath $outputPath -StateRoot (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) $TestStateName) -IntegrationRoot $integration
+    $openingState = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) $TestStateName
+    $packageCache = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Local'
+    if (Test-Path -LiteralPath (Join-Path $packageCache $TestStateName)) {
+        $openingState = Join-Path $packageCache $TestStateName
+    }
+    & (Join-Path $PSScriptRoot 'Repair-ReviewFileOpening.ps1') -PackagePath $outputPath -StateRoot $openingState -IntegrationRoot $integration
 }
