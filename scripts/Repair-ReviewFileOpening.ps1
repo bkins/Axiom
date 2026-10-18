@@ -38,10 +38,20 @@ try {
 } catch { }
 "@
 [IO.File]::WriteAllText($launcher, $body)
-$command = '"' + $env:SystemRoot + '\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $launcher + '" -Document "%1"'
+$nativeLauncher = Join-Path $integration 'Axiom.Open.exe'
+$compiler = Join-Path $env:SystemRoot 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+$compiledLauncher = Join-Path $integration ('Axiom.Open-' + [Guid]::NewGuid().ToString('N') + '.exe')
+& $compiler /nologo /target:winexe /reference:System.Windows.Forms.dll "/out:$compiledLauncher" (Join-Path $PSScriptRoot 'Axiom.Open.cs')
+if ($LASTEXITCODE -ne 0) { throw 'Could not build the stable Windows opening application.' }
+Move-Item -LiteralPath $compiledLauncher -Destination $nativeLauncher -Force
+$command = '"' + $nativeLauncher + '" "%1"'
 $programId = 'Axiom.Review.Markdown'
 $capabilities = 'Axiom\ReviewOpenWith\Capabilities'
 $values = @(
+    @{Key='Classes\Applications\Axiom.Open.exe'; Name='FriendlyAppName'; Value='Axiom'},
+    @{Key='Classes\Applications\Axiom.Open.exe\shell\open\command'; Name=''; Value=$command},
+    @{Key='Classes\Applications\Axiom.Open.exe\SupportedTypes'; Name='.md'; Value=''},
+    @{Key='Classes\Applications\Axiom.Open.exe\SupportedTypes'; Name='.markdown'; Value=''},
     @{Key='Classes\Applications\Axiom.App.exe'; Name='FriendlyAppName'; Value='Axiom'},
     @{Key='Classes\Applications\Axiom.App.exe\shell\open\command'; Name=''; Value=$command},
     @{Key='Classes\Applications\Axiom.App.exe\SupportedTypes'; Name='.md'; Value=''},
