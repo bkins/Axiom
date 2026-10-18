@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 99C8A70EC7E2E01FB94C712020E4F9E8330F318042F48C4F7FED02117C40AC91. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 3169CB0B9E1B513639589D2AFFA9535A15B59C2F716C1D3DD47973153CFC63BC. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -653,3 +653,9 @@ The semantic screen keeps **Operation status** and its main action buttons below
 ### Editor context menu labels
 
 Right-click in the editor for History, Clipboard, Format, Paragraph, Lists and Insert. Actions use short labels such as Cut, Copy, Paste, Bold, Italic and Strikethrough. Commands keep the selected text, availability checks and Undo behavior. This context menu edits text; it is distinct from file Copy/Paste in the workspace.
+
+### Contextual file action icons and Windows opening
+
+The contextual toolbar below the main toolbar uses icons with tooltips. Hover for the action name; keyboard and accessibility names identify the same action. Pin changes to Unpin when appropriate. Show/hide and contextual availability work as before.
+
+Windows Open with uses a stable Axiom review launcher. Preparing a new current review build updates that launcher to its exact package and isolated state; you do not need to find a new executable each time. To use double-click opening without the chooser, select Axiom as your Windows default once. Preparing builds does not change that choice or follow arbitrary historical/support builds.

@@ -7,6 +7,7 @@ param(
     [string]$TestStateName,
     [string]$Channel = 'candidate',
     [string]$ReleaseNotes = 'Implementation candidate; human release acceptance remains pending.',
+    [switch]$UpdateReviewFileOpening,
     [string]$LocalCpBackendPath,
     [ValidateRange(1024,65535)][int]$LocalCpPort = 5289,
     [string]$LocalCpCredentialPath = (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Axiom\CpSemanticQwenReview\credential.dpapi')
@@ -84,3 +85,9 @@ $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -En
     InformationalVersion = $informationalVersion
 }
 
+
+if ($UpdateReviewFileOpening) {
+    $integration = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Axiom/ReviewOpenWith'
+    if (!(Test-Path -LiteralPath (Join-Path $integration 'registration.json'))) { throw 'No existing review-file registration to update. Use an explicit first-time repair instead.' }
+    & (Join-Path $PSScriptRoot 'Repair-ReviewFileOpening.ps1') -PackagePath $outputPath -StateRoot (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) $TestStateName) -IntegrationRoot $integration
+}

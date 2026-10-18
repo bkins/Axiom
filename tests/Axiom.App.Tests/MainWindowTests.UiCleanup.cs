@@ -42,6 +42,13 @@ public sealed partial class MainWindowTests
             Assert.False(actions.IsVisible);
             window.FindControl<Button>("WorkspaceToolbarToggle")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert.True(actions.IsVisible);
+            Assert.NotEmpty(actions.Children);
+            foreach (var button in actions.Children.OfType<Button>())
+            {
+                Assert.IsType<Axiom.App.WorkbenchIcon>(button.Content);
+                Assert.False(string.IsNullOrWhiteSpace(ToolTip.GetTip(button)?.ToString()));
+                Assert.Equal(ToolTip.GetTip(button), Avalonia.Automation.AutomationProperties.GetName(button));
+            }
             await window.ShowPersistentHelpForTestingAsync(null);
             var help = window.FindControl<Border>("HelpPanelHost")!;
             var rail = window.FindControl<Border>("ToolWindowRail")!;

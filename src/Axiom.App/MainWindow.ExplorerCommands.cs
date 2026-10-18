@@ -183,6 +183,24 @@ public partial class MainWindow
         if (ManagementState is not null) await ManagementState.SetEditorPreferencesAsync(_editorPreferences, _appearance);
     }
 
+    private static Button CreateFileActionButton(string id, string title)
+    {
+        var icon = id.Split('.').Last().ToLowerInvariant() switch
+        {
+            "open" => "open", "new" => "new", "createfolder" => "folder-new",
+            "rename" => "edit", "move" => "move", "recycle" => "recycle",
+            "pinitem" => title == "Unpin" ? "unpin" : "pin",
+            "copyfile" or "copy" => "copy", "pastefile" => "paste", "export" => "export",
+            _ => "more"
+        };
+        var button = new Button { Content = CreateWorkbenchIcon(icon), Width = 32, Height = 30,
+            Margin = new Avalonia.Thickness(2), Tag = id };
+        button.Classes.Add("toolbar-icon");
+        Avalonia.Automation.AutomationProperties.SetName(button, title.TrimEnd('…'));
+        ToolTip.SetTip(button, title.TrimEnd('…'));
+        return button;
+    }
+
     private void RefreshWorkspaceActions()
     {
         WorkspaceContextActions.IsVisible = _editorPreferences.ShowWorkspaceActions;
@@ -195,7 +213,7 @@ public partial class MainWindow
         {
             foreach (var action in new[] { "Open", "Move", "Recycle", "Rename", "Export" })
             {
-                var button = new Button { Content = action, Margin = new Avalonia.Thickness(2) };
+                var button = CreateFileActionButton(action, action);
                 button.Click += async (_, _) => { if (action is "Rename" or "Export") await ExecuteCommandAsync("workspace.batch." + action.ToLowerInvariant()); else await RunSelectedItemsAsync(action); };
                 WorkspaceContextActions.Children.Add(button);
             }
@@ -204,7 +222,7 @@ public partial class MainWindow
         var context = CaptureCommandContext();
         if (SelectedWorkspaceItems().Length == 1)
         {
-            var open = new Button { Content = "Open", Margin = new Avalonia.Thickness(2) };
+            var open = CreateFileActionButton("Open", "Open");
             open.Click += async (_, _) => await RunSelectedItemsAsync("Open");
             WorkspaceContextActions.Children.Add(open);
         }
@@ -212,7 +230,7 @@ public partial class MainWindow
         {
             if (!_commands.Commands.Any(command => command.Id == id) || !_commands.GetAvailability(id, context).Enabled) continue;
             var command = _commands.Commands.Single(command => command.Id == id);
-            var button = new Button { Content = WorkspaceActionTitle(id, context, command.Title), Margin = new Avalonia.Thickness(2) };
+            var button = CreateFileActionButton(id, WorkspaceActionTitle(id, context, command.Title));
             button.Click += async (_, _) => { await ExecuteCommandInContextAsync(id, context); RefreshWorkspaceActions(); };
             WorkspaceContextActions.Children.Add(button);
         }
