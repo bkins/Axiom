@@ -41,7 +41,8 @@ try {
 $nativeLauncher = Join-Path $integration 'Axiom.Open.exe'
 $compiler = Join-Path $env:SystemRoot 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $compiledLauncher = Join-Path $integration ('Axiom.Open-' + [Guid]::NewGuid().ToString('N') + '.exe')
-& $compiler /nologo /target:winexe /reference:System.Windows.Forms.dll "/out:$compiledLauncher" (Join-Path $PSScriptRoot 'Axiom.Open.cs')
+$applicationIcon = Join-Path $PSScriptRoot '../src/Axiom.App/Assets/Axiom.ico'
+& $compiler /nologo /target:winexe /reference:System.Windows.Forms.dll "/win32icon:$applicationIcon" "/out:$compiledLauncher" (Join-Path $PSScriptRoot 'Axiom.Open.cs')
 if ($LASTEXITCODE -ne 0) { throw 'Could not build the stable Windows opening application.' }
 Move-Item -LiteralPath $compiledLauncher -Destination $nativeLauncher -Force
 $command = '"' + $nativeLauncher + '" "%1"'
