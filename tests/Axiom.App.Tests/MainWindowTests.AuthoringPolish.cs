@@ -22,9 +22,9 @@ public sealed partial class MainWindowTests
             editor.Select(0, 8);
             var menu = window.EditorContextMenuForTesting();
             var groups = menu.Items.OfType<MenuItem>().ToArray();
-            Assert.Equal(new[] { "History", "Clipboard", "Inline formatting", "Paragraphs and headings", "Lists", "Insert" }, groups.Select(group => group.Header));
+            Assert.Equal(new[] { "History", "Clipboard", "Format", "Paragraph", "Lists", "Insert" }, groups.Select(group => group.Header));
             var actions = groups.SelectMany(group => group.Items.OfType<MenuItem>()).ToArray();
-            Assert.Equal(24, actions.Length);
+            Assert.Equal(25, actions.Length);
             var bold = actions.Single(item => Equals(item.Tag, "editor.format.bold"));
             bold.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             Assert.Equal("**Selected** text", editor.Text);

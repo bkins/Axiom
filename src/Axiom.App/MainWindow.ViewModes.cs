@@ -53,7 +53,7 @@ public partial class MainWindow
             WorkspaceSidebar.IsVisible = WorkspaceSplitter.IsVisible = false;
             WorkbenchLayout.ColumnDefinitions[0].Width = WorkbenchLayout.ColumnDefinitions[1].Width = new GridLength(0);
             SetToolWindowVisible(false); ToolWindowRail.IsVisible = false; WorkbenchLayout.ColumnDefinitions[5].Width = new GridLength(0);
-            HelpPanelHost.IsVisible = false; TopCommandBar.IsVisible = false; DocumentTabs.IsVisible = false;
+            HelpPanelHost.IsVisible = false; TopCommandBar.IsVisible = false; WorkspaceContextBar.IsVisible = false; DocumentTabs.IsVisible = false;
             SideCommandHost.IsVisible = false;
             if (mode == WorkbenchViewMode.Presentation) { ApplyReadingMode(true); Preview.IsVisible = true; }
             else
@@ -79,7 +79,7 @@ public partial class MainWindow
         WorkbenchLayout.ColumnDefinitions[1].Width = new GridLength(snapshot.WorkspaceVisible ? 5 : 0);
         ToolWindowRail.IsVisible = snapshot.RailVisible; WorkbenchLayout.ColumnDefinitions[5].Width = new GridLength(snapshot.RailVisible ? 44 : 0);
         SetToolWindowVisible(snapshot.ToolVisible); HelpPanelHost.IsVisible = snapshot.HelpVisible;
-        TopCommandBar.IsVisible = snapshot.TopBarVisible; DocumentTabs.IsVisible = snapshot.TabsVisible;
+        TopCommandBar.IsVisible = snapshot.TopBarVisible; WorkspaceContextBar.IsVisible = snapshot.TopBarVisible; DocumentTabs.IsVisible = snapshot.TabsVisible;
         ApplyToolbarLayout();
         ApplyReadingMode(snapshot.ReadingMode); Preview.IsVisible = true;
         _editingColumns = snapshot.PreviousEditingColumns;

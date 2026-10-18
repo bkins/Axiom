@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 01DA46C2935673BA806945CF685AB75BF58D6E95E0069A881070EEA5B2EA083D. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 99C8A70EC7E2E01FB94C712020E4F9E8330F318042F48C4F7FED02117C40AC91. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -132,7 +132,7 @@ Pinned files appear as a compact **Pinned** group at the top of Workspace Files,
 
 Right-click a file, folder or document tab for actions on that target. Labels use New file, New folder, Rename, Move, Duplicate, Recycle, Copy path and Show in Explorer. Pin changes to Unpin for a pinned file. Show in Explorer selects the file or folder. Copy captures a saved file snapshot for Paste; unsaved edits are excluded. Folder copying still uses Copy folder and its destination review; unified folder Copy/Paste is tracked for a later increment. Existing targets are never overwritten and enrolled copies receive fresh identities.
 
-The workspace action toolbar starts collapsed. Use the down arrow to show relevant actions, and the up arrow to hide them. Visibility is remembered in your settings. Actions depend on the current selection or active file. Opening files no longer requires a confirmation; Move and Recycle show only information relevant to their operation. Help opens inside the right tool rail, on its left like the other panels.
+The file action toolbar sits directly below the main top toolbar and starts collapsed. Use the down arrow to show relevant actions, and the up arrow to hide them. Visibility is remembered in your settings. Actions depend on the current selection or active file. Opening files no longer requires a confirmation; Move and Recycle show only information relevant to their operation. Help opens inside the right tool rail, on its left like the other panels.
 
 Preview task checkboxes are still display-only in this candidate; interactive source editing is tracked separately.
 
@@ -649,3 +649,7 @@ Store leftover food in the refrigerator.
 Pass the workflow when selection/review, completed embedding build, useful semantic matches, source navigation, cross-document review and stale-source refusal work as described. Record the running Axiom build, provider/model, the query and anything confusing. A network success proves connectivity; it does not establish useful rankings or grounded answers. Ordinary Discovery remains literal search over saved workspace Markdown and needs no CP connection.
 
 The semantic screen keeps **Operation status** and its main action buttons below the scrolling review/results area. Check this status after Build, Search, Analyze, Clear or Cancel. It reports source-change refusals, completion and reused sections. A refused request leaves earlier derived results visible; they are not fresh results from that request. An answer with no validated citation ranges is explicitly marked unverified and cannot provide cited-source navigation. Valid citation locations still require you to check whether the source supports each claim.
+
+### Editor context menu labels
+
+Right-click in the editor for History, Clipboard, Format, Paragraph, Lists and Insert. Actions use short labels such as Cut, Copy, Paste, Bold, Italic and Strikethrough. Commands keep the selected text, availability checks and Undo behavior. This context menu edits text; it is distinct from file Copy/Paste in the workspace.

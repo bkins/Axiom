@@ -134,6 +134,28 @@ public partial class MainWindow
     internal IReadOnlyList<SpellingIssue> SpellingIssuesForTesting => _spellingRenderer.Issues;
     internal IReadOnlyList<CSharpToken> CSharpTokensForTesting => _csharpColorizer.Tokens;
 
+    private static string EditorActionTitle(string id, string fallback)
+    {
+        if (id.StartsWith("editor.format.", StringComparison.Ordinal) &&
+            Enum.TryParse<MarkdownEditKind>(id["editor.format.".Length..], true, out var kind))
+        {
+            var title = GetMarkdownEditLabel(kind);
+            return char.ToUpperInvariant(title[0]) + title[1..];
+        }
+        return id switch
+        {
+            "editor.cut" => "Cut",
+            "editor.copy" => "Copy",
+            "editor.paste" => "Paste",
+            "editor.undo" => "Undo",
+            "editor.redo" => "Redo",
+            "editor.insertSymbol" => "Symbol…",
+            "editor.insertImage" => "Image…",
+            "editor.pasteImage" => "Paste image…",
+            _ => fallback
+        };
+    }
+
     private ContextMenu BuildEditorContextMenu(CommandContext context)
     {
         var menu = new ContextMenu();
@@ -143,7 +165,7 @@ public partial class MainWindow
             var availability = _commands.GetAvailability(id, context);
             var item = new MenuItem
             {
-                Header = command.Title
+                Header = EditorActionTitle(id, command.Title)
               , IsEnabled = availability.Enabled
               , Tag = id
             };
@@ -159,8 +181,8 @@ public partial class MainWindow
         }
         Group("History", "editor.undo", "editor.redo");
         Group("Clipboard", "editor.cut", "editor.copy", "editor.paste");
-        Group("Inline formatting", "editor.format.bold", "editor.format.italic", "editor.format.inlinecode", "editor.format.link");
-        Group("Paragraphs and headings", "editor.format.paragraph", "editor.format.heading1", "editor.format.heading2", "editor.format.heading3");
+        Group("Format", "editor.format.bold", "editor.format.italic", "editor.format.strikethrough", "editor.format.inlinecode", "editor.format.link");
+        Group("Paragraph", "editor.format.paragraph", "editor.format.heading1", "editor.format.heading2", "editor.format.heading3");
         Group("Lists", "editor.format.unorderedlist", "editor.format.orderedlist", "editor.format.tasklist");
         Group("Insert", "editor.format.fencedcode", "editor.format.table", "editor.format.horizontalrule", "editor.format.callout", "editor.format.hardbreak", "editor.insertSymbol", "editor.insertImage", "editor.pasteImage");
         return menu;

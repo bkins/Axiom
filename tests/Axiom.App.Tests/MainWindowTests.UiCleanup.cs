@@ -28,6 +28,16 @@ public sealed partial class MainWindowTests
             Assert.Contains(window.WorkspaceContextMenuForTesting("sample.md", false).Items.OfType<MenuItem>(), item => Equals(item.Header, "Unpin"));
             Assert.Single(labels, label => label == "Show in Explorer");
             Assert.DoesNotContain(labels, label => label?.Contains("selected") == true || label?.Contains("CreateFolder") == true);
+            var contextBar = window.FindControl<Border>("WorkspaceContextBar")!;
+            var mainBar = window.FindControl<Border>("TopCommandBar")!;
+            var dock = Assert.IsType<DockPanel>(contextBar.Parent);
+            Assert.Same(mainBar.Parent, contextBar.Parent);
+            Assert.Equal(dock.Children.IndexOf(mainBar) + 1, dock.Children.IndexOf(contextBar));
+            Assert.Equal(Dock.Top, DockPanel.GetDock(contextBar));
+            var format = window.EditorContextMenuForTesting().Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Format"));
+            Assert.Contains(format.Items.OfType<MenuItem>(), item => Equals(item.Header, "Bold"));
+            Assert.Contains(format.Items.OfType<MenuItem>(), item => Equals(item.Header, "Strikethrough"));
+            Assert.DoesNotContain(format.Items.OfType<MenuItem>(), item => item.Header?.ToString()?.StartsWith("Format ") == true);
             var actions = window.FindControl<WrapPanel>("WorkspaceContextActions")!;
             Assert.False(actions.IsVisible);
             window.FindControl<Button>("WorkspaceToolbarToggle")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
