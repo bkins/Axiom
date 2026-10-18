@@ -36,16 +36,16 @@ public partial class MainWindow
     {
         FileTree.SelectionChanged += (_, _) => UpdateSelectionCount();
         FileTree.AddHandler(KeyDownEvent, WorkspaceSelectionKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-        foreach (var (id, title, action) in new[] { ("rename", "Rename selected workspace items", "Rename"), ("copy", "Copy selected workspace folder", "Copy folder"), ("export", "Export selected workspace documents", "Export") })
+        foreach (var (id, title, action) in new[] { ("rename", "Rename…", "Rename"), ("copy", "Copy folder…", "Copy folder"), ("export", "Export…", "Export") })
             RegisterCommand("workspace.batch." + id, title, null, true, (_, _) => RunNextWorkspaceToolAsync(action),
                 _ => new(_activeWorkspace is not null && SelectedWorkspaceItems().Length > 0 && (id != "copy" || SelectedWorkspaceItems() is [{ IsDocument: false }]), "Select workspace items; folder copy requires exactly one folder."));
-        RegisterCommand("workspace.copyPath", "Copy workspace item path", null, false, async (context, _) =>
+        RegisterCommand("workspace.copyPath", "Copy path", null, false, async (context, _) =>
         {
             if (Clipboard is null || ExplorerCommandPath(context) is not { } path) return new(CommandOutcome.Unavailable, "Select a saved workspace item first.");
             await Clipboard.SetTextAsync(path);
             return new(CommandOutcome.Completed, "Workspace item path copied.");
         }, context => new(ExplorerCommandNode(context) is not null, "Select a saved workspace item first."));
-        RegisterCommand("workspace.showInExplorer", "Show workspace item in Explorer", null, false, async (context, _) =>
+        RegisterCommand("workspace.showInExplorer", "Show in Explorer", null, false, async (context, _) =>
         {
             var path = ExplorerCommandPath(context);
             if (!OperatingSystem.IsWindows() || path is null || !File.Exists(path) && !Directory.Exists(path))
@@ -53,7 +53,7 @@ public partial class MainWindow
             await WindowsExplorerReveal.ShowAsync(path);
             return new CommandResult(CommandOutcome.Completed, "Workspace item shown in Explorer.");
         }, context => new(OperatingSystem.IsWindows() && ExplorerCommandNode(context) is not null, "Select a saved workspace item on Windows."));
-        RegisterCommand("workspace.showFolderInExplorer", "Show workspace folder in Explorer", null, false, async (context, _) =>
+        RegisterCommand("workspace.showFolderInExplorer", "Show workspace in Explorer", null, false, async (context, _) =>
         {
             if (!OperatingSystem.IsWindows() || _folder is null || _activeWorkspace?.WorkspaceId != context.WorkspaceId)
                 return new(CommandOutcome.Unavailable, "Open a workspace on Windows first.");
@@ -72,7 +72,7 @@ public partial class MainWindow
             await RefreshPinsAsync();
             return new(CommandOutcome.Completed, "Selected file pin updated.");
         }, context => new(ExplorerCommandNode(context)?.IsDocument == true, "Select a workspace file."));
-        RegisterCommand("workspace.copyFile", "Copy saved workspace file for paste", null, false, async (context, cancellation) =>
+        RegisterCommand("workspace.copyFile", "Copy", null, false, async (context, cancellation) =>
         {
             var path = ExplorerCommandPath(context);
             if (path is null || _activeWorkspace is null || ManagementState is null || ExplorerCommandNode(context)?.IsDocument != true)
@@ -83,7 +83,7 @@ public partial class MainWindow
             UpdateChrome("Saved file copied for Paste file in Axiom. Unsaved editor changes are not included.");
             return new(CommandOutcome.Completed, "Saved file snapshot copied for Axiom paste.");
         }, context => new(ExplorerCommandNode(context)?.IsDocument == true, "Select a workspace file."));
-        RegisterCommand("workspace.pasteFile", "Paste copied workspace file", null, true, async (context, cancellation) =>
+        RegisterCommand("workspace.pasteFile", "Paste…", null, true, async (context, cancellation) =>
         {
             if (_activeWorkspace is not { } workspace || context.WorkspaceId != workspace.WorkspaceId || ManagementState is null || _copiedWorkspaceDocument is null || _copiedWorkspaceName is null)
                 return new(CommandOutcome.Unavailable, "Copy a saved file in Axiom first.");
@@ -116,13 +116,13 @@ public partial class MainWindow
             var menu = new ContextMenu();
             foreach (var action in new[] { "Open", "Move", "Recycle" })
             {
-                var entry = new MenuItem { Header = action + " selected…" };
+                var entry = new MenuItem { Header = action + "…" };
                 entry.Click += async (_, _) => await RunSelectedItemsAsync(action);
                 menu.Items.Add(entry);
             }
             foreach (var action in new[] { "Rename", "Export" })
             {
-                var entry = new MenuItem { Header = action + " selected…" };
+                var entry = new MenuItem { Header = action + "…" };
                 entry.Click += async (_, _) => await ExecuteCommandAsync("workspace.batch." + action.ToLowerInvariant()); menu.Items.Add(entry);
             }
             menu.Open(item ?? (Control)FileTree); args.Handled = true; return;
@@ -154,18 +154,68 @@ public partial class MainWindow
     private ContextMenu BuildWorkspaceContextMenu(CommandContext context, bool tab)
     {
         var ids = tab ? new[] { "document.close", "document.tabLeft", "document.tabRight", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.pinItem", "workspace.copyFile", "workspace.copyPath", "workspace.showInExplorer" }
-            : new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.manage.recycle", "workspace.batch.copy", "workspace.batch.rename", "workspace.batch.export", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.copyPath", "workspace.showInExplorer", "workspace.showFolderInExplorer" };
+            : new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.manage.duplicate", "workspace.manage.recycle", "workspace.batch.copy", "workspace.batch.export", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.copyPath", "workspace.showInExplorer" };
         var menu = new ContextMenu();
         foreach (var id in ids)
         {
             var command = _commands.Commands.Single(command => command.Id == id);
             var availability = _commands.GetAvailability(id, context);
-            var item = new MenuItem { Header = command.Title, IsEnabled = availability.Enabled };
+            if (id == "workspace.batch.copy" && !context.ExplorerIsFolder || id == "workspace.copyFile" && context.ExplorerIsFolder || id == "workspace.pinItem" && context.ExplorerIsFolder) continue;
+            var item = new MenuItem { Header = WorkspaceActionTitle(id, context, command.Title), IsEnabled = availability.Enabled };
             if (!availability.Enabled) ToolTip.SetTip(item, availability.Reason);
             item.Click += async (_, _) => await ExecuteCommandInContextAsync(id, context);
             menu.Items.Add(item);
         }
         return menu;
+    }
+
+    private string WorkspaceActionTitle(string id, CommandContext context, string fallback) => id switch
+    {
+        "document.new" => "New file…",
+        "workspace.pinItem" => _workspacePins.Any(pin => pin.RelativePath.Equals(ExplorerCommandNode(context)?.RelativePath, WorkspacePathBoundary.Comparison)) ? "Unpin" : "Pin",
+        _ => fallback
+    };
+
+    private async void WorkspaceToolbarToggle_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs args)
+    {
+        _editorPreferences = _editorPreferences with { ShowWorkspaceActions = !_editorPreferences.ShowWorkspaceActions };
+        RefreshWorkspaceActions();
+        if (ManagementState is not null) await ManagementState.SetEditorPreferencesAsync(_editorPreferences, _appearance);
+    }
+
+    private void RefreshWorkspaceActions()
+    {
+        WorkspaceContextActions.IsVisible = _editorPreferences.ShowWorkspaceActions;
+        WorkspaceToolbarToggle.Content = _editorPreferences.ShowWorkspaceActions ? "⌃" : "⌄";
+        Avalonia.Automation.AutomationProperties.SetName(WorkspaceToolbarToggle, _editorPreferences.ShowWorkspaceActions ? "Hide file actions" : "Show file actions");
+        ToolTip.SetTip(WorkspaceToolbarToggle, _editorPreferences.ShowWorkspaceActions ? "Hide file actions" : "Show file actions");
+        WorkspaceContextActions.Children.Clear();
+        if (!_editorPreferences.ShowWorkspaceActions || _activeWorkspace is null) return;
+        if (SelectedWorkspaceItems().Length > 1)
+        {
+            foreach (var action in new[] { "Open", "Move", "Recycle", "Rename", "Export" })
+            {
+                var button = new Button { Content = action, Margin = new Avalonia.Thickness(2) };
+                button.Click += async (_, _) => { if (action is "Rename" or "Export") await ExecuteCommandAsync("workspace.batch." + action.ToLowerInvariant()); else await RunSelectedItemsAsync(action); };
+                WorkspaceContextActions.Children.Add(button);
+            }
+            return;
+        }
+        var context = CaptureCommandContext();
+        if (SelectedWorkspaceItems().Length == 1)
+        {
+            var open = new Button { Content = "Open", Margin = new Avalonia.Thickness(2) };
+            open.Click += async (_, _) => await RunSelectedItemsAsync("Open");
+            WorkspaceContextActions.Children.Add(open);
+        }
+        foreach (var id in new[] { "document.new", "workspace.manage.createfolder", "workspace.manage.rename", "workspace.manage.move", "workspace.pinItem", "workspace.copyFile", "workspace.pasteFile", "workspace.batch.copy", "workspace.batch.export" })
+        {
+            if (!_commands.Commands.Any(command => command.Id == id) || !_commands.GetAvailability(id, context).Enabled) continue;
+            var command = _commands.Commands.Single(command => command.Id == id);
+            var button = new Button { Content = WorkspaceActionTitle(id, context, command.Title), Margin = new Avalonia.Thickness(2) };
+            button.Click += async (_, _) => { await ExecuteCommandInContextAsync(id, context); RefreshWorkspaceActions(); };
+            WorkspaceContextActions.Children.Add(button);
+        }
     }
 
     internal Task<CommandResult> ExecuteExplorerCommandForTestingAsync(string id, string relative, bool folder = false)

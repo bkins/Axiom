@@ -41,6 +41,7 @@ public partial class MainWindow
     {
         preferences.Validate();
         _editorPreferences = preferences;
+        RefreshWorkspaceActions();
         ApplyCompactTitleBar(preferences.CompactTitleBar);
         foreach (var button in new[] { FileCommandsButton, EditCommandsButton, FormatCommandsButton })
         {

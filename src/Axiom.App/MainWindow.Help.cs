@@ -15,12 +15,13 @@ public partial class MainWindow
     {
         if (HelpRequestedForTesting is { } show) return show(context);
         _persistentHelp ??= new HelpPanel(_operationalPaths.Root, _appearance,
-            () => HelpPanelHost.IsVisible = false,
-            delta => { HelpPanelHost.Width = Math.Clamp(HelpPanelHost.Width + delta, 280, Math.Max(280, Bounds.Width - 550)); ClampWorkbenchWidths(); },
+            () => { HelpPanelHost.IsVisible = false; SetToolWindowVisible(false); },
+            delta => { WorkbenchLayout.ColumnDefinitions[4].Width = new Avalonia.Controls.GridLength(Math.Clamp(WorkbenchLayout.ColumnDefinitions[4].Width.Value + delta, 280, Math.Max(280, Bounds.Width - 550))); ClampWorkbenchWidths(); },
             () => _ = ExecuteCommandAsync("help.walkthrough"), _commands.Commands);
         HelpPanelHost.Child = _persistentHelp;
         SetToolWindowVisible(false);
         HelpPanelHost.IsVisible = true;
+        WorkbenchLayout.ColumnDefinitions[4].Width = new Avalonia.Controls.GridLength(340);
         ClampHelpPanelWidth();
         ClampWorkbenchWidths();
         _persistentHelp.SetAppearance(_appearance);
@@ -34,7 +35,7 @@ public partial class MainWindow
 
     private void ClampHelpPanelWidth()
     {
-        if (HelpPanelHost.IsVisible) HelpPanelHost.Width = Math.Clamp(HelpPanelHost.Width, 280, Math.Max(280, Bounds.Width - 550));
+        if (HelpPanelHost.IsVisible) WorkbenchLayout.ColumnDefinitions[4].Width = new Avalonia.Controls.GridLength(Math.Clamp(WorkbenchLayout.ColumnDefinitions[4].Width.Value, 280, Math.Max(280, Bounds.Width - 550)));
     }
 
     internal Func<string?, Task>? HelpRequestedForTesting { get; set; }

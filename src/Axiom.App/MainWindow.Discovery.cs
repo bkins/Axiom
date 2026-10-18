@@ -50,7 +50,7 @@ public partial class MainWindow
             WorkbenchLayout.RowDefinitions[1].Height = new GridLength(bottom ? 5 : 0);
             WorkbenchLayout.RowDefinitions[2].Height = new GridLength(bottom ? Math.Clamp(Bounds.Height * 0.34, 180, 320) : 0);
             WorkbenchLayout.ColumnDefinitions[3].Width = new GridLength(ToolWindowHost.IsVisible && !bottom ? 5 : 0);
-            WorkbenchLayout.ColumnDefinitions[4].Width = new GridLength(ToolWindowHost.IsVisible && !bottom ? _toolWidth : 0);
+            WorkbenchLayout.ColumnDefinitions[4].Width = new GridLength(HelpPanelHost.IsVisible ? Math.Max(280, WorkbenchLayout.ColumnDefinitions[4].Width.Value) : ToolWindowHost.IsVisible && !bottom ? _toolWidth : 0);
             DiscoveryContext.Text = _cpAnalysisClient is null ? "CP connects automatically when you Analyze or Search. Offline search remains available."
                 : "CP connected to " + _cpAnalysisClient.Endpoint.Host + " · Reviewed CP search reviews sources before sending. Offline results stay local; backlinks and explicit relations describe the active document, while CP suggestions are derived.";
             ClampWorkbenchWidths();

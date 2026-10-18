@@ -139,7 +139,7 @@ public partial class MainWindow
                 (_, cancellation) => ExportCurrentBufferAsync(extension, cancellation),
                 _ => new(extension != "pdf" || OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux(), "PDF export is unavailable on this platform."));
         foreach (var kind in new[] { DocumentMutationKind.CreateFolder, DocumentMutationKind.Rename, DocumentMutationKind.Move, DocumentMutationKind.Duplicate, DocumentMutationKind.Recycle })
-            RegisterCommand("workspace.manage." + kind.ToString().ToLowerInvariant(), kind + " workspace document", null, true,
+            RegisterCommand("workspace.manage." + kind.ToString().ToLowerInvariant(), kind == DocumentMutationKind.CreateFolder ? "New folder…" : kind + "…", null, true,
                 (context, cancellation) => kind is DocumentMutationKind.Move or DocumentMutationKind.Rename
                     ? MoveCommandAsync(context, kind == DocumentMutationKind.Rename, cancellation)
                     : ManageDocumentAsync(kind, cancellation, ExplorerCommandNode(context)),

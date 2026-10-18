@@ -57,7 +57,7 @@ public partial class MainWindow
     {
         if (!_workbenchReady) return;
         if (_viewMode is WorkbenchViewMode.Zen or WorkbenchViewMode.Presentation) return;
-        var available = Math.Max(620, Bounds.Width - (HelpPanelHost.IsVisible ? HelpPanelHost.Width : 0));
+        var available = Math.Max(620, Bounds.Width - (HelpPanelHost.IsVisible ? WorkbenchLayout.ColumnDefinitions[4].Width.Value : 0));
         var left = Math.Clamp(WorkbenchLayout.ColumnDefinitions[0].Width.Value, 180, Math.Min(480, available * 0.32));
         WorkbenchLayout.ColumnDefinitions[0].Width = new GridLength(left);
         if (ToolWindowHost.IsVisible && !(SidebarTopics.SelectedIndex == 3 && _editorPreferences.DiscoveryPlacement == DiscoveryPlacement.Bottom))

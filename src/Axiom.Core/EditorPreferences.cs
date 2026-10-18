@@ -6,6 +6,7 @@ public sealed record EditorPreferences(string FontFamily = "Cascadia Mono, Conso
                                     , int TabWidth = 4
                                     , MenuStyle MenuStyle = MenuStyle.Quiet)
 {
+    public bool ShowWorkspaceActions { get; init; }
     public bool CompactTitleBar { get; init; } = true;
     public bool HighlightCurrentLine { get; init; } = true;
     public bool ShowNonPrintingCharacters { get; init; }

@@ -48,7 +48,11 @@ public partial class MainWindow
             WorkspacePathBoundary.Contains(Path.Combine(_folder!, parent.RelativePath), Path.Combine(_folder!, node.RelativePath))))
         .ToArray();
 
-    private void UpdateSelectionCount() => WorkspaceSelectionCount.Text = $"{(_folder is null ? 0 : SelectedWorkspaceItems().Length)} selected — Ctrl/Shift selects multiple";
+    private void UpdateSelectionCount()
+    {
+        WorkspaceSelectionCount.Text = $"{(_folder is null ? 0 : SelectedWorkspaceItems().Length)} selected";
+        RefreshWorkspaceActions();
+    }
     private async void WorkspaceBatchOpen_OnClick(object? sender, RoutedEventArgs args) => await RunSelectedItemsAsync("Open");
     private async void WorkspaceBatchMove_OnClick(object? sender, RoutedEventArgs args) => await RunSelectedItemsAsync("Move");
     private async void WorkspaceBatchRecycle_OnClick(object? sender, RoutedEventArgs args) => await RunSelectedItemsAsync("Recycle");
@@ -97,9 +101,10 @@ public partial class MainWindow
                         throw new IOException("Batch contains a collision or unsafe destination. Nothing was changed.");
                 }
             }
-            if (await ChoiceDialog.ShowAsync(this, action + " selected workspace items", string.Join("\n", nodes.Select(node => node.RelativePath)) +
-                (destination is null ? "" : "\nDestination: " + destination) +
-                "\n\nFolders include descendants; selected descendants are counted once. Items run in order and stop on cancellation or failure; earlier successful items remain completed. Moves each show their link-repair preview. Recycled files use Axiom recovery; recycled folders retain a verified ZIP under state Backups and can be restored through Windows Recycle Bin. Rename selected, Copy folder and Export selected have separate previews.", "Continue", "Cancel") != "Continue")
+            if (action != "Open" && await ChoiceDialog.ShowAsync(this, action + " files", string.Join("\n", nodes.Select(node => node.RelativePath)) +
+                (destination is null ? "" : "\nTo: " + destination) + "\n\n" +
+                (action == "Move" ? "Each move has a link-repair review. Cancelling stops the remaining moves; completed moves are kept."
+                    : "Files go to Axiom recovery. Folders go to the Recycle Bin with a verified backup in State/Backups. Completed items are kept if the operation stops."), action, "Cancel") != action)
                 return new(CommandOutcome.Cancelled, "Batch cancelled.");
             var operations = new WorkspaceFileOperations(ManagementState, log: _log);
             foreach (var node in nodes)

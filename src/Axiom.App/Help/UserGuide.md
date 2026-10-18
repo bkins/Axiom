@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 703E88462B56BF4A1D8BD831B611D5E2FAC6A9D53735BA7F33972B8228CB2605. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 01DA46C2935673BA806945CF685AB75BF58D6E95E0069A881070EEA5B2EA083D. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -130,7 +130,11 @@ New (Ctrl+N) opens an unsaved buffer with the selected folder as its eventual Sa
 
 Pinned files appear as a compact **Pinned** group at the top of Workspace Files, with a star on the canonical file as well. Click an entry to open its existing tab. Right-click a file to pin or unpin it without changing the active editor. The folder hierarchy remains below the pins.
 
-Right-click a file, folder or document tab for actions on that specific item. Tabs target their own document even when inactive. **Copy saved workspace file for paste** captures the saved Markdown bytes for **Paste copied workspace file** inside Axiom; unsaved editor changes are not included. Paste asks for a destination and confirmation, never overwrites, and gives a copied Axiom document a distinct identity. **Copy workspace item path** copies plain path text to the system clipboard. Folder copy/recycle are unavailable; folders support New, Rename and Move. **Show workspace item in Explorer** selects the existing item in Windows Explorer.
+Right-click a file, folder or document tab for actions on that target. Labels use New file, New folder, Rename, Move, Duplicate, Recycle, Copy path and Show in Explorer. Pin changes to Unpin for a pinned file. Show in Explorer selects the file or folder. Copy captures a saved file snapshot for Paste; unsaved edits are excluded. Folder copying still uses Copy folder and its destination review; unified folder Copy/Paste is tracked for a later increment. Existing targets are never overwritten and enrolled copies receive fresh identities.
+
+The workspace action toolbar starts collapsed. Use the down arrow to show relevant actions, and the up arrow to hide them. Visibility is remembered in your settings. Actions depend on the current selection or active file. Opening files no longer requires a confirmation; Move and Recycle show only information relevant to their operation. Help opens inside the right tool rail, on its left like the other panels.
+
+Preview task checkboxes are still display-only in this candidate; interactive source editing is tracked separately.
 
 Drag a workspace file/folder or a saved external document tab onto a workspace folder, or onto blank explorer space for the workspace root. Dragging within the tab strip still reorders tabs. The target is highlighted and dropping opens **Review move and references**. Review each listed link/image change, then choose **Move and repair**, **Move only**, or **Cancel**. Repair changes only reviewed saved Markdown destinations; Move only keeps their bytes. Folder moves include assets and empty folders. Save affected documents and resolve conflicts before retrying a move; Axiom never silently saves or discards dirty buffers.
 
@@ -256,7 +260,7 @@ The right side of the bottom status bar shows the running Axiom product version 
 
 ## Pin important documents
 
-Open a Markdown document inside the active workspace and choose **Pin** in the toolbar, or right-click its file and choose **Pin or unpin selected workspace file**. The document appears in the **Pinned** group at the top of Workspace Files. Click a pin to open its normal document tab. Unpin through the same context action or the current document's toolbar action.
+Open a Markdown document inside the active workspace and choose **Pin** in the toolbar, or right-click its file and choose **Pin or Unpin**. The document appears in the **Pinned** group at the top of Workspace Files. Click a pin to open its normal document tab. Unpin through the same context action or the current document's toolbar action.
 
 Pins are workspace-specific Axiom state. Pinning ordinary Markdown does not enroll or modify it. If a pinned file is moved or deleted outside Axiom, its pin remains visible and removable; opening it reports that the target is missing.
 

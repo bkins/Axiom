@@ -1232,6 +1232,7 @@ public partial class MainWindow : Window
         ScheduleDocumentStatistics();
         UpdateMetadataPanel();
         ApplyToolbarVisibility();
+        RefreshWorkspaceActions();
     }
 
     private void UpdateDurableStatus()
@@ -1285,6 +1286,7 @@ public partial class MainWindow : Window
         PinButton.Tag = pinned ? "Unpin" : "Pin";
         ToolTip.SetTip(PinButton, pinned ? "Unpin current document" : "Pin current document");
         ApplyToolbarVisibility();
+        RefreshWorkspaceActions();
     }
 
     private void ReportError(string eventName, Exception exception, string? path)
