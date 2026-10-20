@@ -72,7 +72,7 @@ public partial class MainWindow
 
     internal async Task<string> GetAboutInformationAsync()
     {
-        var result = $"Axiom {_buildIdentity.ProductVersion}\nBuild: {_buildIdentity.InformationalVersion}\nOS: {RuntimeInformation.OSDescription}\nRuntime: {RuntimeInformation.FrameworkDescription}\nArchitecture: {RuntimeInformation.ProcessArchitecture}\nState: {_operationalPaths.Root}\nSupported state schema: {SqliteStateStore.CurrentSchemaVersion}";
+        var result = $"Axiom {_buildIdentity.ProductVersion}\nBuild: {_buildIdentity.InformationalVersion}\nUpdate test: Bluebird\nOS: {RuntimeInformation.OSDescription}\nRuntime: {RuntimeInformation.FrameworkDescription}\nArchitecture: {RuntimeInformation.ProcessArchitecture}\nState: {_operationalPaths.Root}\nSupported state schema: {SqliteStateStore.CurrentSchemaVersion}";
         var manifestPath = Path.Combine(AppContext.BaseDirectory, PortablePackageService.ManifestName);
         if (!File.Exists(manifestPath)) return result + "\nPublish metadata: unavailable (development build).";
         try
