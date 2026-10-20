@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: 7B66443F82D4DF5C7C38B3222AE5A25FD44B7B29EA0D1B39A43FEADF095A20D6. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: CC8407FFF939DCDEBAB6758F5A6CFCDF6F017E38662F40D9C9619F278C9DC1F1. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -661,3 +661,15 @@ The contextual toolbar below the main toolbar uses icons with tooltips. Hover fo
 Windows Open with uses a stable Axiom review launcher. Preparing a new current review build updates that launcher to its exact package and isolated state; you do not need to find a new executable each time. To use double-click opening without the chooser, select Axiom as your Windows default once. Preparing builds does not change that choice or follow arbitrary historical/support builds.
 
 If another build is already using the same application state, Axiom refuses to send the file to that different version and asks you to save and close it normally. The stable review launcher verifies the expected executable version and records its most recent dispatch locally without document contents. Normal Windows default selection remains your choice.
+
+## Automatic updates and release channels
+
+Install Axiom once using the installer from the public [Axiom releases page](https://github.com/bkins/Axiom-Releases/releases). The application source remains private. Updates require Windows x64 and an update-enabled installation; retained portable review builds do not poll or replace themselves. Core editing continues to work offline.
+
+In Tools → Update Settings, choose **Stable** for accepted releases or **Preview** for test builds, and enable background checks or select **Manual checks only**. New installations start on their installer channel. Checks run after startup and every six hours when enabled. Tools → Check for Updates checks immediately, even with automatic checks disabled. Tools → Cancel Update Download cancels an active download; retry later to resume. A canceled or failed download never installs itself.
+
+When an update downloads, **Update ready…** appears in the toolbar. Open it and select **Restart to update**, or choose **Later** to keep working. Axiom runs its normal save/discard/cancel prompts across unsaved tabs and saves the session before closing. Cancel stops the restart. A state backup is created before applying the update. Updates never silently save Markdown or install just because you close or reopen the app.
+
+Preview-to-Stable switching waits for a newer Stable version; it does not downgrade the app or its database. Automatic updates replace only Axiom's installed binaries. Your Markdown, settings and recovery state live separately; CP, models and retained review candidates are separate. Windows default-app choices remain yours. Existing portable installation and trusted-offer commands remain available for offline/manual workflows.
+
+The first update-enabled release requires this one-time installer download. Later releases arrive through the updater. A normal successful check may report no newer update until another release is published. Unsigned installers can show Windows publisher warnings; obtain the installer only from the maintained releases page. Work-device installation and network policy still apply.

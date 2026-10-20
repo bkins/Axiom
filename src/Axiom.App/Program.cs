@@ -7,9 +7,14 @@ namespace Axiom.App;
 internal static class Program
 {
     internal static string? StartupDocument { get; private set; }
+    internal static bool UpdateRuntimeInitialized { get; private set; }
     [STAThread]
     public static int Main(string[] args)
     {
+        Velopack.VelopackApp.Build().SetAutoApplyOnStartup(false).Run();
+        UpdateRuntimeInitialized = true;
+        if (args.FirstOrDefault() == "--verify-published-update-feed" && args.Length == 2) return AutomaticUpdateProbe.CheckPublishedFeed(args[1]);
+        if (args.FirstOrDefault() is "--automatic-update-probe" or "--automatic-update-receipt") return AutomaticUpdateProbe.Run(args);
         if (args.FirstOrDefault() == "--restore-state") return StateRestoreHelper.Run(args);
         if (args.FirstOrDefault() == "--next-ui-stories-probe" && args.Length == 2) NextUiStoriesProbe.Configure(args[1]);
         if (args.FirstOrDefault() == "--registered-review-opening-probe" && args.Length == 2) NextUiStoriesProbe.Configure(args[1], true);

@@ -12,6 +12,7 @@
     <None Include="Walkthrough/**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="Help/UserGuide.md" LogicalName="Axiom.App.Help.UserGuide.md" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4129.50" GeneratePathProperty="true" ExcludeAssets="build;buildTransitive;compile;runtime" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
     <Reference Include="Microsoft.Web.WebView2.Core">
       <HintPath>$(PkgMicrosoft_Web_WebView2)/lib_manual/netcoreapp3.0/Microsoft.Web.WebView2.Core.dll</HintPath>
     </Reference>

@@ -3,6 +3,7 @@
 .idea/
 .vs/
 artifacts/
+.tools/
 *.user
 *.suo
 *.WebView2/

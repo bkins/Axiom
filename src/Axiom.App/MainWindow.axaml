@@ -157,10 +157,14 @@
               </MenuFlyout>
             </Button.Flyout>
           </Button>
+          <Button x:Name="UpdateReadyButton" AutomationProperties.Name="Update ready" IsVisible="False" Content="Update ready…" ToolTip.Tip="Review the downloaded update and restart when convenient" Click="AutomaticUpdates_OnClick" />
           <Button x:Name="ToolsCommandsButton" AutomationProperties.Name="Operational tools" ToolTip.Tip="Inspect diagnostics, state, builds, and portable updates">Tools…
             <Button.Flyout>
               <MenuFlyout>
                 <MenuItem Header="Diagnostics…" Click="Diagnostics_OnClick" />
+                <MenuItem Header="Check for Updates…" Click="AutomaticUpdates_OnClick" />
+                <MenuItem Header="Update Settings…" Click="AutomaticUpdateSettings_OnClick" />
+                <MenuItem Header="Cancel Update Download" Click="CancelAutomaticUpdate_OnClick" />
                 <MenuItem Header="State Maintenance…" Click="Maintenance_OnClick" />
                 <MenuItem Header="Restore State Backup…" Click="RestoreState_OnClick" />
                 <MenuItem Header="Install Portable Update…" Click="InstallUpdate_OnClick" />

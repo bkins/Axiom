@@ -11,6 +11,8 @@ public partial class MainWindow
 
     private async Task<Axiom.Core.CommandResult> InstallCurrentUserAsync()
     {
+        if (Program.UpdateRuntimeInitialized && new VelopackUpdateClient(new Axiom.Core.AutomaticUpdatePreferences()).IsInstalled)
+            return new(Axiom.Core.CommandOutcome.Completed, "This copy is already installed with automatic updates. Use Tools → Check for Updates. Its stable executable is in LocalAppData/AxiomDesktop/current/Axiom.App.exe.");
         if (_installationRunning || _mutationBlocked) return new(Axiom.Core.CommandOutcome.Unavailable, "Finish the active installation or pending file operation first.");
         _installationRunning = true;
         try
@@ -55,7 +57,7 @@ public partial class MainWindow
         _installationRunning = true;
         try
         {
-            var url = await TextEntryDialog.ShowAsync(this, "Trusted update offer URL", "This explicit check contacts the HTTPS URL you provide. Obtain the offer URL and its SHA-256 from an independently trusted release publisher. No automatic background checks run.", "");
+            var url = await TextEntryDialog.ShowAsync(this, "Trusted update offer URL", "This manual workflow contacts the HTTPS URL you provide. Obtain the offer URL and its SHA-256 from an independently trusted release publisher. Automatic updates have separate settings under Tools → Update Settings.", "");
             if (url is null) return new(Axiom.Core.CommandOutcome.Cancelled, "Update check cancelled.");
             var hash = await TextEntryDialog.ShowAsync(this, "Trusted offer SHA-256", "Enter the independently trusted 64-character SHA-256 for the offer JSON. A hash downloaded from the same untrusted URL does not establish publisher trust.", "");
             if (hash is null) return new(Axiom.Core.CommandOutcome.Cancelled, "Update check cancelled.");

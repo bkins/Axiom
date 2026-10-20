@@ -7,6 +7,7 @@ public partial class MainWindow
     private void InitializeAdditionalCommands()
     {
         InitializeExplorerCommands();
+        InitializeAutomaticUpdateCommands();
         RegisterCommand("document.cancelExport", "Cancel current document export", null, false, (_, _) =>
         {
             ExportCancelRequested?.Invoke();

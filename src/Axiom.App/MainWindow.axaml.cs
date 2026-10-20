@@ -183,6 +183,7 @@ public partial class MainWindow : Window
                 await RestoreWorkbenchAsync();
                 await RestoreDraftIfAvailableAsync();
                 if (Program.StartupDocument is { } startupDocument) await OpenExternalDocumentAsync(startupDocument);
+                StartAutomaticUpdates();
             }
             finally { _startupCompleted.TrySetResult(); }
         };
@@ -1307,11 +1308,14 @@ public partial class MainWindow : Window
     {
         if (_closingApproved) return;
         eventArgs.Cancel = true;
-        await RunSessionTransitionAsync(async () =>
+        var closed = await RunSessionTransitionAsync(async () =>
         {
+            await PrepareAutomaticUpdateRestartAsync();
             if (_gitTerminal is { } terminal) await terminal.DisposeAsync();
             await _markCleanExit();
             _closingApproved = true;
+            _automaticUpdateTimer.Stop();
+            _automaticUpdateCancellation.Cancel();
             _recoveryTimer.Stop();
             _previewTimer.Stop();
             _outlineTimer.Stop();
@@ -1324,6 +1328,7 @@ public partial class MainWindow : Window
             ++_workspaceLoadGeneration;
             Close();
         });
+        if (!closed) _restartForAutomaticUpdate = false;
     }
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs e)

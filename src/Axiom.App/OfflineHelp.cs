@@ -67,6 +67,7 @@ internal static class OfflineHelp
       , "application.toolbar" or "view.resetLayout" => "Toolbar and viewing modes"
       , "application.diagnostics" or "application.maintenance" or "application.restoreState" or "application.installPortable" or "application.switchPortable" => "Diagnostics, backups, and versions"
       , "application.install" or "application.checkUpdate" => "Per-user installation and trusted updates"
+      , "application.automaticUpdates" or "application.updateSettings" or "application.cancelAutomaticUpdate" => "Automatic updates and release channels"
       , "view.statusDetails" or "view.dismissStatus" => "Document statistics and operation feedback"
       , "view.scrollSync" or "view.previewAtCaret" => "Preview navigation and synchronized scrolling"
       , "view.reading" => "Workspace loading, reading mode, and Help"
