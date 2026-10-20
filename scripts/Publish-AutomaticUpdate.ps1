@@ -24,15 +24,28 @@ $version = [string]$props.Project.PropertyGroup.AxiomVersion
 $commit = (& git -C $repo rev-parse --short=12 HEAD).Trim()
 $payload = Join-Path $output 'payload'
 $releases = Join-Path $output 'releases'
-& (Join-Path $PSScriptRoot 'Publish-PortableWindows.ps1') -OutputDirectory $payload -TestStateName "Axiom-UpdateReview-$version" -Channel $Channel -ReleaseNotes ([IO.File]::ReadAllText($notes)) -UpdateReviewFileOpening:$CurrentReview
+& (Join-Path $PSScriptRoot 'Publish-PortableWindows.ps1') -OutputDirectory $payload -TestStateName "Axiom-Test-UpdateReview-$version-$commit" -Channel $Channel -ReleaseNotes ([IO.File]::ReadAllText($notes)) -UpdateReviewFileOpening:$CurrentReview
 if ($LASTEXITCODE -ne 0) { throw 'Payload publish failed.' }
 # Keep app/state paths separate: Velopack owns AxiomDesktop, while state is in Axiom.
 # Keep symbols too: the payload manifest hashes every file and must survive packaging.
-& $vpk pack --packId AxiomDesktop --packTitle Axiom --packAuthors bkins --packVersion $version --packDir $payload --mainExe Axiom.App.exe --runtime win-x64 --channel "win-x64-$Channel" --outputDir $releases --releaseNotes $notes --icon (Join-Path $repo 'src/Axiom.App/Assets/Axiom.ico') --delta none --exclude '^$' --shortcuts StartMenuRoot
+& $vpk pack --packId AxiomDesktop --packTitle Axiom --packAuthors bkins --packVersion $version --packDir $payload --mainExe Axiom.App.exe --runtime win-x64 --channel "win-x64-$Channel" --outputDir $releases --releaseNotes $notes --icon (Join-Path $repo 'src/Axiom.App/Assets/Axiom.ico') --delta none --exclude '^$' --noDefaultExclude --shortcuts StartMenuRoot
 if ($LASTEXITCODE -ne 0) { throw 'Update packaging failed.' }
 # Publish only the explicitly selected runtime assets, never checkout files or credentials.
 $assets = @(Get-ChildItem -LiteralPath $releases -File | Where-Object { $_.Name -match '(Setup\.exe$|Portable\.zip$|\.nupkg$|^releases\..*\.json$)' })
 if ($assets.Count -ne 4) { throw "Expected installer, portable ZIP, full package and channel feed; found $($assets.Count)." }
+# Verify every payload byte survives Velopack's filtering before any upload.
+$manifest = Get-Content (Join-Path $payload 'payload-manifest.json') -Raw | ConvertFrom-Json
+$archive = [IO.Compression.ZipFile]::OpenRead((Join-Path $releases "AxiomDesktop-win-x64-$Channel-Portable.zip"))
+try {
+    foreach ($item in $manifest.Files) {
+        $entry = $archive.GetEntry('current/' + $item.RelativePath.Replace('\','/'))
+        if (!$entry -or $entry.Length -ne $item.Length) { throw "Packaged payload missing or changed: $($item.RelativePath)" }
+        $stream = $entry.Open(); $algorithm = [Security.Cryptography.SHA256]::Create()
+        try { $hash = [BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace('-','') }
+        finally { $stream.Dispose(); $algorithm.Dispose() }
+        if ($hash -ne $item.Sha256) { throw "Packaged payload integrity failed: $($item.RelativePath)" }
+    }
+} finally { $archive.Dispose() }
 $assets | ForEach-Object { "$( (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash )  $($_.Name)" } | Set-Content (Join-Path $releases 'SHA256SUMS.txt')
 [ordered]@{ Version=$version; InformationalVersion="$version+$commit"; Channel=$Channel; Repository='bkins/Axiom-Releases'; Files=@($assets.Name) } | ConvertTo-Json | Set-Content (Join-Path $output 'release-record.json')
 if ($Publish) {

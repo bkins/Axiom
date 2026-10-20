@@ -11,7 +11,7 @@ $install = Join-Path $evidence 'installed'
 $state = Join-Path $evidence 'state'
 $receipt = Join-Path $evidence 'receipt.json'
 foreach ($version in @('0.0.1','0.0.2')) {
-    & $vpk pack --packId AxiomUpdaterProbe --packTitle AxiomUpdaterProbe --packVersion $version --packDir $PayloadDirectory --mainExe Axiom.App.exe --runtime win-x64 --channel win-x64-preview --outputDir $feed --delta none --exclude '^$' --shortcuts None
+    & $vpk pack --packId AxiomUpdaterProbe --packTitle AxiomUpdaterProbe --packVersion $version --packDir $PayloadDirectory --mainExe Axiom.App.exe --runtime win-x64 --channel win-x64-preview --outputDir $feed --delta none --exclude '^$' --noDefaultExclude --shortcuts None
     if ($LASTEXITCODE -ne 0) { throw 'Fixture package creation failed.' }
     if ($version -eq '0.0.1') { Copy-Item (Join-Path $feed '*Portable.zip') (Join-Path $evidence 'initial.zip') }
 }
