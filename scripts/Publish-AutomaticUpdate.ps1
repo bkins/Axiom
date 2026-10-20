@@ -28,13 +28,33 @@ $releases = Join-Path $output 'releases'
 if ($LASTEXITCODE -ne 0) { throw 'Payload publish failed.' }
 # Keep app/state paths separate: Velopack owns AxiomDesktop, while state is in Axiom.
 # Keep symbols too: the payload manifest hashes every file and must survive packaging.
-& $vpk pack --packId AxiomDesktop --packTitle Axiom --packAuthors bkins --packVersion $version --packDir $payload --mainExe Axiom.App.exe --runtime win-x64 --channel "win-x64-$Channel" --outputDir $releases --releaseNotes $notes --icon (Join-Path $repo 'src/Axiom.App/Assets/Axiom.ico') --delta none --exclude '^$' --noDefaultExclude --shortcuts StartMenuRoot
+$commonPack = @('--packId','AxiomDesktop','--packTitle','Axiom','--packAuthors','bkins','--packVersion',$version,'--mainExe','Axiom.App.exe','--runtime','win-x64','--channel',"win-x64-$Channel",'--releaseNotes',$notes,'--icon',(Join-Path $repo 'src/Axiom.App/Assets/Axiom.ico'),'--delta','none','--exclude','^$','--noDefaultExclude','--shortcuts','StartMenuRoot')
+# Velopack generates sq.version. Seed its deterministic metadata, then pin it in
+# the installed manifest before the final pack. The ordinary review payload stays portable.
+$staging = Join-Path $repo ('.tools/package-staging/' + [Guid]::NewGuid().ToString('N'))
+$seed = Join-Path $staging 'seed'
+$installPayload = Join-Path $staging 'payload'
+& $vpk pack @commonPack --packDir $payload --outputDir $seed --noInst
+if ($LASTEXITCODE -ne 0) { throw 'Update metadata generation failed.' }
+New-Item -ItemType Directory -Path $installPayload | Out-Null
+Get-ChildItem -LiteralPath $payload | Copy-Item -Destination $installPayload -Recurse
+$seedArchive = [IO.Compression.ZipFile]::OpenRead((Join-Path $seed "AxiomDesktop-win-x64-$Channel-Portable.zip"))
+try {
+    $metadata = $seedArchive.GetEntry('current/sq.version')
+    if (!$metadata) { throw 'Velopack metadata missing.' }
+    $inputStream = $metadata.Open(); $outputStream = [IO.File]::Create((Join-Path $installPayload 'sq.version'))
+    try { $inputStream.CopyTo($outputStream) } finally { $inputStream.Dispose(); $outputStream.Dispose() }
+} finally { $seedArchive.Dispose() }
+$manifest = Get-Content (Join-Path $installPayload 'payload-manifest.json') -Raw | ConvertFrom-Json
+$metadataPath = Join-Path $installPayload 'sq.version'
+$manifest.Files = @($manifest.Files) + @([pscustomobject]@{ RelativePath='sq.version'; Length=(Get-Item $metadataPath).Length; Sha256=(Get-FileHash $metadataPath -Algorithm SHA256).Hash })
+$manifest | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $installPayload 'payload-manifest.json')
+& $vpk pack @commonPack --packDir $installPayload --outputDir $releases
 if ($LASTEXITCODE -ne 0) { throw 'Update packaging failed.' }
 # Publish only the explicitly selected runtime assets, never checkout files or credentials.
 $assets = @(Get-ChildItem -LiteralPath $releases -File | Where-Object { $_.Name -match '(Setup\.exe$|Portable\.zip$|\.nupkg$|^releases\..*\.json$)' })
 if ($assets.Count -ne 4) { throw "Expected installer, portable ZIP, full package and channel feed; found $($assets.Count)." }
 # Verify every payload byte survives Velopack's filtering before any upload.
-$manifest = Get-Content (Join-Path $payload 'payload-manifest.json') -Raw | ConvertFrom-Json
 $archive = [IO.Compression.ZipFile]::OpenRead((Join-Path $releases "AxiomDesktop-win-x64-$Channel-Portable.zip"))
 try {
     foreach ($item in $manifest.Files) {
