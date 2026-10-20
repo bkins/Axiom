@@ -4,10 +4,12 @@ using Velopack.Sources;
 
 namespace Axiom.App;
 
+internal sealed record AutomaticUpdateProgress(string Message, int? Percentage = null);
+
 internal interface IAutomaticUpdateClient
 {
     bool IsInstalled { get; }
-    Task<string?> DownloadLatestAsync(CancellationToken cancellationToken);
+    Task<string?> DownloadLatestAsync(CancellationToken cancellationToken, IProgress<AutomaticUpdateProgress>? progress = null);
     void ApplyAndRestart();
 }
 
@@ -28,14 +30,17 @@ internal sealed class VelopackUpdateClient : IAutomaticUpdateClient
 
     public bool IsInstalled => OperatingSystem.IsWindows() && _manager.IsInstalled;
 
-    public async Task<string?> DownloadLatestAsync(CancellationToken cancellationToken)
+    public async Task<string?> DownloadLatestAsync(CancellationToken cancellationToken, IProgress<AutomaticUpdateProgress>? progress = null)
     {
         _ready = null;
         cancellationToken.ThrowIfCancellationRequested();
+        progress?.Report(new("Checking for updates…"));
         var update = await _manager.CheckForUpdatesAsync();
         cancellationToken.ThrowIfCancellationRequested();
         if (update is null) return null;
-        await _manager.DownloadUpdatesAsync(update, cancelToken: cancellationToken);
+        progress?.Report(new($"Downloading Axiom {update.TargetFullRelease.Version}…", 0));
+        await _manager.DownloadUpdatesAsync(update, value => progress?.Report(new(
+            value >= 100 ? "Verifying downloaded update…" : $"Downloading Axiom {update.TargetFullRelease.Version}… {value}%", value)), cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         _ready = update.TargetFullRelease;
         return _ready.Version.ToString();
@@ -52,7 +57,7 @@ internal sealed class AutomaticUpdateService(Func<AutomaticUpdatePreferences, IA
     public string? ReadyVersion { get; private set; }
     public AutomaticUpdatePreferences? ReadyPreferences { get; private set; }
 
-    public async Task<string> CheckAsync(AutomaticUpdatePreferences preferences, CancellationToken cancellationToken)
+    public async Task<string> CheckAsync(AutomaticUpdatePreferences preferences, CancellationToken cancellationToken, IProgress<AutomaticUpdateProgress>? progress = null)
     {
         _ = preferences.FeedChannel;
         if (!await _gate.WaitAsync(0, cancellationToken)) return "An update check is already running.";
@@ -63,7 +68,7 @@ internal sealed class AutomaticUpdateService(Func<AutomaticUpdatePreferences, IA
             _readyClient = null;
             var client = createClient(preferences);
             if (!client.IsInstalled) return "Automatic updates require the update-enabled Axiom installer. This portable review build is unchanged.";
-            var version = await client.DownloadLatestAsync(cancellationToken);
+            var version = await client.DownloadLatestAsync(cancellationToken, progress);
             if (version is null) return $"No newer update is available on {preferences.Channel}.";
             cancellationToken.ThrowIfCancellationRequested();
             _readyClient = client;

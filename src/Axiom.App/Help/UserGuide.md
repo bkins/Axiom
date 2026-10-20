@@ -1,4 +1,4 @@
-<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: CC8407FFF939DCDEBAB6758F5A6CFCDF6F017E38662F40D9C9619F278C9DC1F1. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
+<!-- Generated from the maintained Axiom v1 User Guide. Source SHA-256: B7BBBB7C22DDDE24D28FF89FA705C887215F34DAB25FFC82F465F2E809290939. Edit the maintained guide and run scripts/Sync-OfflineHelp.ps1. -->
 
 # Axiom User Guide
 
@@ -666,7 +666,7 @@ If another build is already using the same application state, Axiom refuses to s
 
 Install Axiom once using the installer from the public [Axiom releases page](https://github.com/bkins/Axiom-Releases/releases). The application source remains private. Updates require Windows x64 and an update-enabled installation; retained portable review builds do not poll or replace themselves. Core editing continues to work offline.
 
-In Tools → Update Settings, choose **Stable** for accepted releases or **Preview** for test builds, and enable background checks or select **Manual checks only**. New installations start on their installer channel. Checks run after startup and every six hours when enabled. Tools → Check for Updates checks immediately, even with automatic checks disabled. Tools → Cancel Update Download cancels an active download; retry later to resume. A canceled or failed download never installs itself.
+In Tools → Update Settings, choose **Stable** for accepted releases or **Preview** for test builds, and enable background checks or select **Manual checks only**. New installations start on their installer channel. Checks run after startup and every six hours when enabled. Tools → Check for Updates checks immediately, even with automatic checks disabled. A progress window appears immediately with Checking for updates, then download percentage and verification status when an update is available. Cancel or close this window to cancel; editing remains available. Background checks stay quiet, but clicking Check for Updates during one opens its progress window. Tools → Cancel Update Download cancels an active download; retry later to resume. A canceled or failed download never installs itself.
 
 When an update downloads, **Update ready…** appears in the toolbar. Open it and select **Restart to update**, or choose **Later** to keep working. Axiom runs its normal save/discard/cancel prompts across unsaved tabs and saves the session before closing. Cancel stops the restart. A state backup is created before applying the update. Updates never silently save Markdown or install just because you close or reopen the app.
 

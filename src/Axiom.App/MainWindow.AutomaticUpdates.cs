@@ -12,6 +12,7 @@ public partial class MainWindow
     private readonly DispatcherTimer _automaticUpdateTimer = new() { Interval = TimeSpan.FromHours(6) };
     private bool _restartForAutomaticUpdate;
     private CancellationTokenSource? _automaticDownloadCancellation;
+    private UpdateDownloadWindow? _automaticUpdateProgressWindow;
     internal bool AutomaticUpdateRestartRequestedForTesting => _restartForAutomaticUpdate;
     internal void RequestAutomaticUpdateRestartForTesting() { _restartForAutomaticUpdate = true; Close(); }
 
@@ -94,7 +95,16 @@ public partial class MainWindow
             var preferences = UpdatePreferencesStore.Load();
             if (!interactive && (!preferences.Enabled || _automaticUpdateCancellation.IsCancellationRequested || (_automaticUpdates.ReadyVersion is not null && _automaticUpdates.ReadyPreferences == preferences)))
                 return new(CommandOutcome.Cancelled, "Automatic update check skipped.");
-            if (_automaticDownloadCancellation is not null) return new(CommandOutcome.Unavailable, "An update check is already running. Use Cancel Update Download to cancel it.");
+            if (_automaticDownloadCancellation is not null)
+            {
+                if (interactive && _automaticUpdateProgressWindow is { } running)
+                {
+                    if (running.WasClosed) return new(CommandOutcome.Unavailable, "Update cancellation is finishing. Check again in a moment.");
+                    if (!running.IsVisible) running.Show(this);
+                    running.Activate();
+                }
+                return new(CommandOutcome.Unavailable, "An update check is already running. Its progress window shows the current status.");
+            }
             string message;
             if (_automaticUpdates.ReadyVersion is not null && _automaticUpdates.ReadyPreferences == preferences)
                 message = $"Axiom {_automaticUpdates.ReadyVersion} is downloaded and ready.";
@@ -103,8 +113,20 @@ public partial class MainWindow
                 UpdateReadyButton.IsVisible = false;
                 using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_automaticUpdateCancellation.Token);
                 _automaticDownloadCancellation = cancellation;
-                try { message = await _automaticUpdates.CheckAsync(preferences, cancellation.Token); }
-                finally { _automaticDownloadCancellation = null; }
+                var window = new UpdateDownloadWindow(cancellation.Cancel, "Axiom updates", "Checking for updates…");
+                _automaticUpdateProgressWindow = window;
+                if (interactive) window.Show(this);
+                var progress = new Progress<AutomaticUpdateProgress>(value =>
+                {
+                    if (_automaticDownloadCancellation == cancellation && !cancellation.IsCancellationRequested && !window.WasClosed) window.SetProgress(value);
+                });
+                try { message = await _automaticUpdates.CheckAsync(preferences, cancellation.Token, progress); }
+                finally
+                {
+                    _automaticDownloadCancellation = null;
+                    _automaticUpdateProgressWindow = null;
+                    window.Close();
+                }
             }
             UpdateReadyButton.IsVisible = _automaticUpdates.ReadyVersion is not null;
             if (!interactive)

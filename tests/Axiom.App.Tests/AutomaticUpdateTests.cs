@@ -88,7 +88,7 @@ public sealed class AutomaticUpdateTests
         public Exception? Failure { get; set; }
         public Action? AfterDownload { get; init; }
         public Task? Wait { get; init; }
-        public async Task<string?> DownloadLatestAsync(CancellationToken cancellationToken)
+        public async Task<string?> DownloadLatestAsync(CancellationToken cancellationToken, IProgress<AutomaticUpdateProgress>? progress = null)
         {
             Downloads++;
             if (Wait is not null) await Wait.WaitAsync(cancellationToken);
