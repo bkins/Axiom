@@ -1,6 +1,8 @@
 <Project>
   <PropertyGroup>
-    <AxiomVersion>1.7.2</AxiomVersion>
+    <AxiomVersion>1.7.3</AxiomVersion>
+    <Company>Ben Hopkins</Company>
+    <Authors>Ben Hopkins</Authors>
     <Version Condition="'$(Version)' == ''">$(AxiomVersion)</Version>
     <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(AxiomVersion)+dev</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>

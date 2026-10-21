@@ -28,7 +28,7 @@ $releases = Join-Path $output 'releases'
 if ($LASTEXITCODE -ne 0) { throw 'Payload publish failed.' }
 # Keep app/state paths separate: Velopack owns AxiomDesktop, while state is in Axiom.
 # Keep symbols too: the payload manifest hashes every file and must survive packaging.
-$commonPack = @('--packId','AxiomDesktop','--packTitle','Axiom','--packAuthors','bkins','--packVersion',$version,'--mainExe','Axiom.App.exe','--runtime','win-x64','--channel',"win-x64-$Channel",'--releaseNotes',$notes,'--icon',(Join-Path $repo 'src/Axiom.App/Assets/Axiom.ico'),'--delta','none','--exclude','^$','--noDefaultExclude','--shortcuts','StartMenuRoot')
+$commonPack = @('--packId','AxiomDesktop','--packTitle','Axiom','--packAuthors','Ben Hopkins','--packVersion',$version,'--mainExe','Axiom.App.exe','--runtime','win-x64','--channel',"win-x64-$Channel",'--releaseNotes',$notes,'--icon',(Join-Path $repo 'src/Axiom.App/Assets/Axiom.ico'),'--delta','none','--exclude','^$','--noDefaultExclude','--shortcuts','StartMenuRoot')
 # Velopack generates sq.version. Seed its deterministic metadata, then pin it in
 # the installed manifest before the final pack. The ordinary review payload stays portable.
 $staging = Join-Path $repo ('.tools/package-staging/' + [Guid]::NewGuid().ToString('N'))
